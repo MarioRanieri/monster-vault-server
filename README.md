@@ -25,9 +25,14 @@
 
 ## 📸 Screenshots
 
-> ▶️ **Best experienced live:** **[monster-vault-server.onrender.com](https://monster-vault-server.onrender.com)**
->
-> _Static screenshots can be added under [`docs/screenshots/`](docs/screenshots) — suggested shots and ready‑to‑paste snippets are listed in that folder's README._
+> ▶️ **Try it live:** **[monster-vault-server.onrender.com](https://monster-vault-server.onrender.com)**
+
+### 🗺️ Interactive world map
+![World map — countries lit by collected flavour](docs/screenshots/world-map.png)
+
+| Collection grid | Can detail |
+|---|---|
+| ![Collection grid](docs/screenshots/grid.png) | ![Can detail](docs/screenshots/detail.png) |
 
 ---
 
