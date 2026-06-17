@@ -12,7 +12,7 @@
  * Aggiorna CACHE_VERSION per forzare il rinnovo della cache su tutti i client.
  */
 
-var CACHE_VERSION = 'mv-v17';
+var CACHE_VERSION = 'mv-v18';
 var STATIC_ASSETS = ['/', '/index.html', '/map.html', '/map-data.js', '/world-map.svg'];
 
 // ── INSTALL: precache gli asset statici ──────────────────────────────────────

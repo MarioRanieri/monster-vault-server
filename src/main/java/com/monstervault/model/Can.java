@@ -67,7 +67,7 @@ public class Can {
     private Long photoAt;
 
     /** Flag "Monitora su eBay": se true, il companion tool eBay Monitor usa le foto
-     *  di questa lattina come riferimento CLIP per cercarla sui mercati eBay.
+     *  di questa lattina come riferimento per cercarla sui mercati eBay.
      *  Impostato dall'admin dal frontend (toggle per-lattina). Default null = non sorvegliata. */
     private Boolean watch;
 }

@@ -906,7 +906,6 @@ body.light .compare-cell-name strong{color:rgba(15,23,42,0.9);}
           <li>Type in the search box to find cans by <strong>name</strong> or <strong>SKU</strong></li>
           <li>Use the dropdowns to filter by Country, Size, Manufacturer, or Tab type</li>
           <li>Chips: <strong>Promo</strong> (limited editions) · <strong>FULL</strong> (sealed) · <strong>With/No photo</strong></li>
-          <li>The <strong>€ range</strong> inputs filter by estimated value</li>
         </ol>
       </div>
 
@@ -1041,7 +1040,7 @@ body.light .compare-cell-name strong{color:rgba(15,23,42,0.9);}
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       <span class="btn-label">Edit</span>
     </button>
-    <button class="btn btn-ghost" id="detail-watch-btn" onclick="toggleWatch(detailCurrentId)" title="Monitora su eBay (CLIP)">
+    <button class="btn btn-ghost" id="detail-watch-btn" onclick="toggleWatch(detailCurrentId)" title="Monitora su eBay">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
       <span class="btn-label">Watch</span>
     </button>
@@ -1349,7 +1348,7 @@ body.light .compare-cell-name strong{color:rgba(15,23,42,0.9);}
           </select>
         </div>
         <div class="field field-full" id="e-watch-field">
-          <label class="e-watch-row"><input type="checkbox" id="e-watch"><span>&#128065;&#65039; Monitora su eBay <span style="font-size:10px;font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0">&nbsp;&mdash; usa le foto di questa lattina come riferimento per il monitor eBay (CLIP)</span></span></label>
+          <label class="e-watch-row"><input type="checkbox" id="e-watch"><span>&#128065;&#65039; Monitora su eBay <span style="font-size:10px;font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0">&nbsp;&mdash; usa le foto di questa lattina come riferimento per il monitor eBay</span></span></label>
         </div>
       </div>
     </div>
@@ -2501,7 +2500,8 @@ function openStatsModal(){
     +'</div>'
     +'</div></div>';
   // OCP: grafico timeline aggiunto senza modificare renderSection o le sezioni esistenti
-  html += renderTimeline();
+  // Admin-only: "Added over time" nascosto in modalità guest/public (come il Top 10 valore)
+  if (!isPublicMode) html += renderTimeline();
   body.innerHTML=html;
   document.getElementById('stats-modal').classList.add('open');
 }
@@ -2990,7 +2990,7 @@ function cardHTML(c){
   var isComp=selectedForCompare.indexOf(c.id)>=0;
   return '<div class="card'+(isComp?' comparing':'')+(c.watch?' watching':'')+'" data-id="'+esc(c.id)+'" onclick="openDetail(\''+jsq(c.id)+'\')">'
     +'<div class="card-img">'+img
-    +'<button class="card-watch-btn" title="Monitora su eBay (CLIP)" onclick="event.stopPropagation();toggleWatch(\''+jsq(c.id)+'\')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button>'
+    +'<button class="card-watch-btn" title="Monitora su eBay" onclick="event.stopPropagation();toggleWatch(\''+jsq(c.id)+'\')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button>'
     +'<span class="card-sku">'+esc(c.sku)+((c.note&&c.note.toUpperCase().indexOf('FULL')!==-1)?'<br><span class="badge-full">FULL</span>':'')+'</span>'
     +'<div class="card-badges">'+badges+'</div>'
     +'<div class="card-overlay">'
