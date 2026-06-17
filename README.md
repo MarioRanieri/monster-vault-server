@@ -6,6 +6,7 @@
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3-6DB33F?logo=springboot&logoColor=white)
 ![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8?logo=pwa&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-86%20Jest%20%2B%20117%20JVM-success)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Live demo](https://img.shields.io/badge/demo-live-success?logo=render&logoColor=white)](https://monster-vault-server.onrender.com)
 
 **Monster Vault** is a full‑stack app for managing a large Monster Energy can collection (1,800+ cans). A Spring Boot 3.3 / Java 17 backend exposes a stateless JWT REST API (Firestore + Cloudinary); the frontend is a single‑file vanilla‑JS Progressive Web App served from the same origin — no CORS, no build step.
