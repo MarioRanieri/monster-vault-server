@@ -1,0 +1,20 @@
+# Prometheus "raschia" (scrape) le metriche a intervalli regolari e le archivia nel tempo.
+global:
+  scrape_interval: 5s          # ogni 5 secondi chiede i numeri all'app
+
+scrape_configs:
+  # App in LOCALE (mvnw spring-boot:run sull'host, porta 8080).
+  - job_name: monster-vault-local
+    metrics_path: /actuator/prometheus
+    static_configs:
+      # Su Docker Desktop (Windows/Mac) 'host.docker.internal' = la tua macchina.
+      # Su Linux: usa l'IP dell'host, oppure aggiungi extra_hosts nel compose.
+      - targets: ["host.docker.internal:8080"]
+
+  # --- Alternativa: scrape dell'app LIVE su Render (metriche di PRODUZIONE) ---
+  # Decommenta per vedere in Grafana i numeri veri del sito online.
+  # - job_name: monster-vault-prod
+  #   scheme: https
+  #   metrics_path: /actuator/prometheus
+  #   static_configs:
+  #     - targets: ["monster-vault-server.onrender.com"]

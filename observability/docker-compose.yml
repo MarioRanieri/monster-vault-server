@@ -1,0 +1,32 @@
+# Stack di observability LOCALE: Prometheus (raccoglie le metriche) + Grafana (le disegna).
+# L'app Spring gira a parte sull'host (mvnw spring-boot:run, porta 8080); questo stack la "raschia".
+#
+# Avvio:   cd observability && docker compose up -d
+# Stop:    docker compose down
+# Grafana:    http://localhost:3001   (login: admin / admin)
+# Prometheus: http://localhost:9090
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: mv-prometheus
+    ports:
+      - "9090:9090"                 # UI di Prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro   # gli passiamo la nostra config
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: mv-grafana
+    ports:
+      - "3001:3000"                 # Grafana usa 3000 nel container → esposto su 3001 (3000 spesso occupato)
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro  # datasource auto-configurato
+    depends_on:
+      - prometheus
+    restart: unless-stopped

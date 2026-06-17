@@ -1,0 +1,9 @@
+# Provisioning: Grafana legge questo file all'avvio e configura Prometheus come sorgente dati,
+# così non devi collegarlo a mano dalla UI.
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090   # 'prometheus' = nome del servizio nel docker-compose (rete interna)
+    isDefault: true
