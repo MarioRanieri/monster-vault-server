@@ -60,6 +60,16 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
+        <!-- Observability: Actuator aggiunge gli endpoint /actuator/* (health, metrics…);
+             micrometer-registry-prometheus espone le metriche in formato Prometheus -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
         <!-- #7: Lombok 1.18.34 — compatible with JDK 21+ (removes JAVA_HOME workaround) -->
         <dependency>
             <groupId>org.projectlombok</groupId>

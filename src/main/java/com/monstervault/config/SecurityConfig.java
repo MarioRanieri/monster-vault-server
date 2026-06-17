@@ -79,6 +79,9 @@ public class SecurityConfig {
                         // senza i glob *.html/*.js le pagine nuove finirebbero in anyRequest() → 401.
                         .requestMatchers("/", "/*.html", "/*.js", "/manifest.json",
                                 "/*.jpg", "/*.png", "/*.ico", "/*.svg", "/*.webmanifest").permitAll()
+                        // Observability: endpoint Actuator pubblici per lo scrape di Prometheus
+                        // (solo questi 3; /actuator/env, /beans ecc. NON sono esposti — vedi application.yml)
+                        .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html",
                                 "/v3/api-docs/**", "/v3/api-docs").permitAll()
                         .anyRequest().authenticated()

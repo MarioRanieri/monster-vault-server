@@ -1,0 +1,16 @@
+# Config NON segreta e versionata (i segreti restano in application.properties, gitignored,
+# o nelle variabili d'ambiente su Render). Qui solo l'observability.
+#
+# Actuator di default espone via HTTP solo /health: qui apriamo anche /info e /prometheus,
+# che Prometheus "raschia" (scrape) ogni N secondi per raccogliere le metriche.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized   # i dettagli dell'health solo se autenticato
+  metrics:
+    tags:
+      application: monster-vault       # tag comune su TUTTE le metriche (utile per filtrare in Grafana)
