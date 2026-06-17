@@ -22,6 +22,7 @@
 - 📱 **Installable PWA** — offline‑ready service worker, add‑to‑home‑screen, mobile‑tuned UI.
 - 🔍 **eBay rarity monitor** *(companion tool)* — a Python service that watches eBay across multiple marketplaces (Browse API + OAuth2) and pings Telegram when rare cans appear, with configurable saved searches and keyword filters.
 - 🔒 **Admin & guest modes** — JWT‑authenticated editing; public, read‑only share links.
+- 📈 **Observability** — Spring Boot Actuator + Micrometer expose Prometheus metrics (HTTP, JVM + a custom `monstervault_cans_active` gauge); local **Grafana** dashboards via docker-compose ([`observability/`](observability/)).
 
 ## 📸 Screenshots
 
@@ -83,6 +84,7 @@ This makes each component independently testable with mocks.
 | Boilerplate reduction | Lombok 1.18.34 (`@Data`, `@Slf4j`) — compatible with JDK 21+ |
 | Rate limiting | Bucket4j 8.10.1 — 10 login attempts/min per IP (LRU-bounded IP map) |
 | API docs | SpringDoc OpenAPI 2.6.0 — Swagger UI at `/swagger-ui.html` |
+| Observability | Spring Boot Actuator, Micrometer, Prometheus, Grafana |
 | Containerization | Docker (multi-stage build) |
 | Hosting | Render free tier |
 | Frontend | PWA (manifest + service worker), installable as app |
