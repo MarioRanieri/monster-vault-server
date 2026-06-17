@@ -1,11 +1,32 @@
-# Monster Vault Server
+# 🥤 Monster Vault
 
-Spring Boot 3.3 backend for the **Monster Vault** energy drink can collection app.
-Provides a stateless REST API with JWT authentication, Firestore persistence, and Cloudinary photo storage.
-The frontend (`index.html`) is served as a static resource from the same server — no CORS needed.
+> Catalog, value, and explore a Monster Energy can collection — with an interactive world map, a combinable‑filter value calculator, multiple gallery views, and a companion eBay rarity monitor.
 
-**Live:** https://monster-vault-server.onrender.com  
-**Repo:** https://github.com/MarioRanieri/monster-vault-server
+![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3-6DB33F?logo=springboot&logoColor=white)
+![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8?logo=pwa&logoColor=white)
+![Tests](https://img.shields.io/badge/tests-86%20Jest%20%2B%20117%20JVM-success)
+[![Live demo](https://img.shields.io/badge/demo-live-success?logo=render&logoColor=white)](https://monster-vault-server.onrender.com)
+
+**Monster Vault** is a full‑stack app for managing a large Monster Energy can collection (1,800+ cans). A Spring Boot 3.3 / Java 17 backend exposes a stateless JWT REST API (Firestore + Cloudinary); the frontend is a single‑file vanilla‑JS Progressive Web App served from the same origin — no CORS, no build step.
+
+**🔗 Live demo:** https://monster-vault-server.onrender.com
+
+## ✨ Features
+
+- 🗺️ **Interactive world map** — every country you own a can from lights up; pick a flavour (OG, Khaos, Assault, Rehab, Ripper…) to see where it's collected, with a grouped list and a "missing countries" overview.
+- 🧮 **Value calculator** — fully combinable filters (country, flavour, size, full/promo, photo, SKU, year…) that only ever offer *possible* values; results grouped by a field of your choice with per‑group subtotals and a grand‑total €.
+- 🖼️ **Three gallery views** — responsive grid, dense list, and a photo "wall"; full‑screen lightbox with pinch‑zoom and keyboard navigation.
+- 📊 **Stats & insights** — collection breakdowns, Top 10 most valuable, and a value‑over‑time timeline.
+- 📱 **Installable PWA** — offline‑ready service worker, add‑to‑home‑screen, mobile‑tuned UI.
+- 🔍 **eBay rarity monitor** *(companion tool)* — a Python service that pings Telegram when rare cans surface on eBay, using CLIP image matching to cut false positives.
+- 🔒 **Admin & guest modes** — JWT‑authenticated editing; public, read‑only share links.
+
+## 📸 Screenshots
+
+> ▶️ **Best experienced live:** **[monster-vault-server.onrender.com](https://monster-vault-server.onrender.com)**
+>
+> _Static screenshots can be added under [`docs/screenshots/`](docs/screenshots) — suggested shots and ready‑to‑paste snippets are listed in that folder's README._
 
 ---
 
