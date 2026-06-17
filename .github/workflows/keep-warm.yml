@@ -1,0 +1,33 @@
+name: Keep warm
+
+# ⛔ SPENTO (2026-06-11): sostituito da UptimeRobot (ping HTTP a /manifest.json ogni
+# 5 minuti, 24/7, gratuito) — copre anche la notte, non subisce i ritardi della cron
+# di GitHub e non consuma i 2000 minuti/mese Actions della repo privata (ogni job
+# veniva fatturato arrotondato al minuto: ~96 run/giorno sforavano la quota e i ping
+# morivano a metà mese, riportando i cold start).
+#
+# Resta solo l'avvio MANUALE dal tab Actions, come strumento di emergenza.
+
+on:
+  workflow_dispatch:            # solo esecuzione manuale (la cron è stata rimossa)
+
+concurrency:
+  group: keep-warm
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    name: Ping live API
+    runs-on: ubuntu-latest
+    steps:
+      - name: Warm up the server (retry on cold start)
+        run: |
+          URL="https://monster-vault-server.onrender.com/api/cans"
+          for i in 1 2 3 4; do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 90 "$URL" || echo "000")
+            echo "Attempt $i → HTTP $CODE"
+            [ "$CODE" = "200" ] && exit 0
+            sleep 20
+          done
+          echo "Server did not return 200 (likely cold/slow) — non bloccante."
+          exit 0

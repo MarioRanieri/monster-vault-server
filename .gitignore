@@ -1,0 +1,16 @@
+target/
+*.class
+*.jar
+*.log
+.env
+ebay-monitor/config.py
+config.py
+firebase-service-account.json
+application.properties
+application-local.properties
+.idea/
+*.iml
+.vscode/
+frontend-tests/node_modules/
+src/test/api/local.environment.json
+src/main/resources/static/serve.ps1

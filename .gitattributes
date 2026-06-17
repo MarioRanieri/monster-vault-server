@@ -1,0 +1,10 @@
+# Line ending deterministici per gli script, indipendenti da core.autocrlf locale.
+# Gli script batch Windows DEVONO essere CRLF: con line ending LF cmd.exe non
+# interpreta correttamente i prefissi @ (echo) e i blocchi tra parentesi, generando
+# output spurio ed errori (es. "-Dmaven.multiModuleProjectDirectory ... is not set").
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Gli script shell Unix (incluso il wrapper Maven mvnw) DEVONO essere LF.
+*.sh  text eol=lf
+mvnw  text eol=lf

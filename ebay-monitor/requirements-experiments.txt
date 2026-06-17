@@ -1,0 +1,7 @@
+# SOLO per gli script di esperimento clip_check.py / dino_check.py / ocr_check.py
+# (riconoscimento immagini: CLIP/DINOv2/OCR — FALLITI, tenuti come documentazione).
+# Il monitor (ebay_monitor.py) NON ha bisogno di nulla di tutto questo.
+Pillow==10.4.0
+numpy>=1.26
+sentence-transformers>=3.0
+easyocr

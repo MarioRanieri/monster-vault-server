@@ -1,0 +1,13 @@
+# Config locale con segreti (token Telegram, chiavi eBay) — NON committare
+config.py
+
+# Stato runtime
+seen_listings.db
+
+# Python
+__pycache__/
+*.pyc
+
+# Foto di riferimento locali (dati personali): versiona solo il README
+rare_cans/*
+!rare_cans/README.txt

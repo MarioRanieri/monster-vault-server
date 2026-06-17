@@ -1,0 +1,9 @@
+# Dipendenze del MONITOR (modalità A — keyword). Installa con: installa.bat
+requests==2.32.3
+
+# Modalità B (verifica foto VLM, opzionale) — quando la attivi:
+#   pip install anthropic
+
+# Gli script di ESPERIMENTO (clip_check.py / dino_check.py / ocr_check.py — falliti,
+# tenuti come storia) usano dipendenze pesanti NON necessarie al monitor:
+#   pip install -r requirements-experiments.txt

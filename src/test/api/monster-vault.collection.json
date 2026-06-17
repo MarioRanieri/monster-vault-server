@@ -1,0 +1,429 @@
+{
+  "info": {
+    "name": "Monster Vault API Tests",
+    "_postman_id": "mv-api-tests-v1",
+    "description": "Test suite automatizzata per il backend Monster Vault.\nEseguire con: newman run monster-vault.collection.json -e local.environment.json\n\nRequisiti: server avviato su {{baseUrl}} con application.properties configurato.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1 — Auth",
+      "item": [
+        {
+          "name": "Login (credenziali corrette) → 200 + token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Risposta contiene token JWT', function () {",
+                  "    var body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('token');",
+                  "    pm.expect(body.token).to.be.a('string').and.not.empty;",
+                  "    pm.environment.set('token', body.token);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\": \"{{adminUsername}}\", \"password\": \"{{adminPassword}}\"}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Login (password errata) → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401 con credenziali errate', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test('Risposta NON contiene token', function () {",
+                  "    var text = pm.response.text();",
+                  "    pm.expect(text).to.not.include('eyJ');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\": \"{{adminUsername}}\", \"password\": \"WRONG_PASSWORD_XYZ\"}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Login (username errato) → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401 con username inesistente', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\": \"nonexistent_user_xyz\", \"password\": \"anypassword\"}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 — Cans (pubblici, senza JWT)",
+      "item": [
+        {
+          "name": "GET /api/cans → 200, array",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Risposta è un array JSON', function () {",
+                  "    var body = pm.response.json();",
+                  "    pm.expect(body).to.be.an('array');",
+                  "});",
+                  "pm.test('Content-Type è application/json', function () {",
+                  "    pm.response.to.have.header('Content-Type');",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/cans"
+          }
+        },
+        {
+          "name": "POST /api/cans senza JWT → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401 senza autenticazione', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"id\": \"test_no_auth\", \"nome\": \"Test\"}"
+            },
+            "url": "{{baseUrl}}/api/cans"
+          }
+        },
+        {
+          "name": "DELETE /api/cans/{id} senza JWT → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401 senza autenticazione', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/cans/qualsiasi_id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 — Cans CRUD (richiede JWT)",
+      "item": [
+        {
+          "name": "POST /api/cans — crea lattina di test",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('testCanId', 'test_newman_' + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 — lattina creata', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Risposta contiene i dati della lattina', function () {",
+                  "    var body = pm.response.json();",
+                  "    pm.expect(body.id).to.eql(pm.environment.get('testCanId'));",
+                  "    pm.expect(body.nome).to.eql('Newman Test Can');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"id\": \"{{testCanId}}\", \"nome\": \"Newman Test Can\", \"sku\": \"TEST-001\", \"produttore\": \"Monster\", \"size\": \"500ml\", \"lingua\": \"EN\", \"top\": \"pull tab\", \"note\": \"\", \"descrizione\": \"Lattina creata dai test Newman\", \"valore\": \"2.50\", \"stato\": \"OK\", \"promo\": \"\", \"p1\": \"\", \"p2\": \"\", \"p3\": \"\", \"p4\": \"\"}"
+            },
+            "url": "{{baseUrl}}/api/cans"
+          }
+        },
+        {
+          "name": "GET /api/cans/{{testCanId}} → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 — lattina trovata', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('ID corrisponde', function () {",
+                  "    var body = pm.response.json();",
+                  "    pm.expect(body.id).to.eql(pm.environment.get('testCanId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/cans/{{testCanId}}"
+          }
+        },
+        {
+          "name": "GET /api/cans/ID_INESISTENTE → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404 per lattina inesistente', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/cans/id_che_non_esiste_mai_xyz_9999"
+          }
+        },
+        {
+          "name": "PUT /api/cans/{{testCanId}} — aggiorna lattina",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 — lattina aggiornata', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Campo aggiornato presente nella risposta', function () {",
+                  "    var body = pm.response.json();",
+                  "    pm.expect(body.nome).to.eql('Newman Test Can UPDATED');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"id\": \"{{testCanId}}\", \"nome\": \"Newman Test Can UPDATED\", \"sku\": \"TEST-001\", \"produttore\": \"Monster\", \"size\": \"500ml\", \"lingua\": \"EN\", \"top\": \"pull tab\", \"note\": \"\", \"descrizione\": \"\", \"valore\": \"3.00\", \"stato\": \"OK\", \"promo\": \"\", \"p1\": \"\", \"p2\": \"\", \"p3\": \"\", \"p4\": \"\"}"
+            },
+            "url": "{{baseUrl}}/api/cans/{{testCanId}}"
+          }
+        },
+        {
+          "name": "POST /api/cans/batch — salvataggio multiplo",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('testBatchId', 'test_newman_batch_' + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 — batch salvato', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Risposta indica il numero di elementi salvati', function () {",
+                  "    var body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('saved');",
+                  "    pm.expect(body.saved).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[{\"id\": \"{{testBatchId}}\", \"nome\": \"Batch Test Can\", \"sku\": \"BATCH-001\", \"produttore\": \"Monster\", \"size\": \"500ml\", \"lingua\": \"EN\", \"top\": \"\", \"note\": \"\", \"descrizione\": \"\", \"valore\": \"\", \"stato\": \"OK\", \"promo\": \"\", \"p1\": \"\", \"p2\": \"\", \"p3\": \"\", \"p4\": \"\"}]"
+            },
+            "url": "{{baseUrl}}/api/cans/batch"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 — Delete All (verifica header obbligatorio)",
+      "item": [
+        {
+          "name": "DELETE /api/cans SENZA header → 400 (BUG FIX)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400 senza X-Confirm-Delete — bug fix verificato', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Nessuna lattina eliminata (richiesta rifiutata)', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/cans"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 — Cleanup (elimina lattine di test)",
+      "item": [
+        {
+          "name": "DELETE /api/cans/{{testCanId}} → 204",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204 — lattina eliminata', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/cans/{{testCanId}}"
+          }
+        },
+        {
+          "name": "DELETE /api/cans/{{testBatchId}} → 204",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204 — lattina batch eliminata', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/cans/{{testBatchId}}"
+          }
+        }
+      ]
+    }
+  ]
+}

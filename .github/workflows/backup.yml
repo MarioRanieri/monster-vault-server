@@ -1,0 +1,62 @@
+name: Backup Firestore
+
+on:
+  schedule:
+    - cron: '0 3 * * 0'  # Every Sunday at 3:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  backup:
+    name: Download collection and push to backups branch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch collection (retry for cold start)
+        run: |
+          STATUS=000
+          for i in 1 2 3 4; do
+            STATUS=$(curl -s -o /tmp/backup.json -w "%{http_code}" --max-time 120 \
+              https://monster-vault-server.onrender.com/api/cans) || STATUS=000
+            [ "$STATUS" = "200" ] && break
+            echo "Attempt $i: status=$STATUS — Render warming up, retry in 30s..."
+            sleep 30
+          done
+          if [ "$STATUS" != "200" ]; then
+            echo "::error::Backup fetch failed after 4 attempts (last status: $STATUS)"; exit 1
+          fi
+          if ! COUNT=$(python3 -c "import json,sys; d=json.load(open('/tmp/backup.json')); print(len(d)) if isinstance(d,list) and d else sys.exit(1)"); then
+            echo "::error::Downloaded file invalid/empty — not overwriting last good backup"; exit 1
+          fi
+          echo "Downloaded $COUNT cans (HTTP $STATUS)"
+
+      - name: Push to backups branch
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          COUNT=$(python3 -c 'import json; print(len(json.load(open("/tmp/backup.json"))))')
+
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+
+          if git ls-remote --exit-code origin backups > /dev/null 2>&1; then
+            git fetch origin backups
+            git checkout backups
+          else
+            git checkout --orphan backups
+            git rm -rf . --quiet 2>/dev/null || true
+          fi
+
+          cp /tmp/backup.json "${DATE}.json"
+          git add "${DATE}.json"
+
+          if git diff --staged --quiet; then
+            echo "Collection unchanged since last backup — nothing to commit"
+          else
+            git commit -m "backup: ${DATE} — ${COUNT} cans"
+            git push origin backups
+          fi
