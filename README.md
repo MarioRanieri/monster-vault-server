@@ -39,6 +39,29 @@
 
 ## Architecture
 
+### System overview
+
+```
+        Browser / PWA  (vanilla JS · installable · offline)
+                │  HTTPS · REST · JWT (stateless)
+                ▼
+        ┌───────────────────────────────────────────┐
+        │  Spring Boot API  (Java 17)                │
+        │  Controller → Service → Repository         │
+        │  SOLID · layered · in-memory cache         │
+        └───────┬───────────────────────┬───────────┘
+                │                        │
+           Firestore (NoSQL)       Cloudinary (photos)
+
+   ── Cross-cutting ──────────────────────────────────────────
+   Observability : /actuator/prometheus → Prometheus → Grafana
+   CI/CD         : GitHub Actions (tests) → Docker image → Render
+   Orchestration : Kubernetes manifests (Deployment/Service) · minikube
+   Companion     : Python eBay monitor → Telegram alerts
+```
+
+### Backend request flow
+
 ```
 HTTP Request
      │
@@ -88,6 +111,10 @@ This makes each component independently testable with mocks.
 | Containerization | Docker (multi-stage build) |
 | Hosting | Render free tier |
 | Frontend | PWA (manifest + service worker), installable as app |
+| Orchestration | Kubernetes (Deployment/Service/ConfigMap/Secret) — local minikube |
+| CI/CD | GitHub Actions — backend tests + frontend Jest |
+| Testing | JUnit, Selenium (E2E), Jest (frontend) |
+| Companion tool | Python eBay monitor (Browse API + Telegram) |
 
 ---
 
