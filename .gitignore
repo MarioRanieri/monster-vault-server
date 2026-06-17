@@ -6,6 +6,7 @@ target/
 ebay-monitor/config.py
 config.py
 firebase-service-account.json
+k8s/secret.yaml
 application.properties
 application-local.properties
 .idea/

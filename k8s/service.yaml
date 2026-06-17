@@ -1,0 +1,14 @@
+# Service = un indirizzo di rete STABILE per i pod. I pod nascono/muoiono e cambiano IP;
+# il Service fa da "centralino" e bilancia il traffico verso i pod sani (quelli readiness=UP).
+apiVersion: v1
+kind: Service
+metadata:
+  name: monster-vault
+spec:
+  type: NodePort                  # espone l'app su una porta del nodo (comodo in minikube)
+  selector:
+    app: monster-vault            # instrada verso i pod con questa label
+  ports:
+    - port: 80                    # porta del Service
+      targetPort: 8080            # porta del container
+      nodePort: 30080             # porta esterna sul nodo (minikube)

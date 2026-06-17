@@ -1,0 +1,13 @@
+# ConfigMap = configurazione NON segreta, separata dall'immagine (12-factor app).
+# Spring fa "relaxed binding": APP_JWT_EXPIRATION -> app.jwt.expiration, ecc.
+# ⚠️ Metti i TUOI valori prima di applicare (questi sono esempi).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: monster-vault-config
+data:
+  APP_JWT_EXPIRATION: "86400000"          # durata token JWT in ms (24h)
+  APP_ADMIN_USERNAME: "RedMghost"
+  FIRESTORE_COLLECTION: "cans"            # nome collezione Firestore (verifica il tuo)
+  CLOUDINARY_CLOUD_NAME: "il-tuo-cloud"   # non segreto (compare negli URL immagine)
+  SERVER_PORT: "8080"

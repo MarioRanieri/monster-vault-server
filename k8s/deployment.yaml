@@ -1,0 +1,52 @@
+# Deployment = "voglio N copie (pod) di questa app, sempre attive". K8s le crea, le riavvia
+# se crashano e le sostituisce nei rilasci. È il cuore dell'auto-healing.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monster-vault
+  labels:
+    app: monster-vault
+spec:
+  replicas: 1                      # 1 copia (puoi alzarlo: K8s ne tiene sempre tante quante ne chiedi)
+  selector:
+    matchLabels:
+      app: monster-vault
+  template:
+    metadata:
+      labels:
+        app: monster-vault
+    spec:
+      containers:
+        - name: monster-vault
+          image: monster-vault:local
+          imagePullPolicy: IfNotPresent     # usa l'immagine caricata in minikube, non la scarica da un registry
+          ports:
+            - containerPort: 8080
+          # Config e segreti iniettati come variabili d'ambiente (da ConfigMap e Secret)
+          envFrom:
+            - configMapRef:
+                name: monster-vault-config
+            - secretRef:
+                name: monster-vault-secret
+          # K8s usa l'endpoint /actuator/health (quello dell'observability!) per sapere
+          # se il pod è PRONTO a ricevere traffico (readiness) e se è VIVO (liveness).
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 20         # dà tempo alla JVM di avviarsi
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 40
+            periodSeconds: 15
+          # Quote di risorse: quanto può chiedere/usare il pod (lo scheduler le usa per piazzarlo)
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "384Mi"
+            limits:
+              cpu: "1"
+              memory: "768Mi"
