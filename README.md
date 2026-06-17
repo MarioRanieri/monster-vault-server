@@ -20,7 +20,7 @@
 - 🖼️ **Three gallery views** — responsive grid, dense list, and a photo "wall"; full‑screen lightbox with pinch‑zoom and keyboard navigation.
 - 📊 **Stats & insights** — collection breakdowns, Top 10 most valuable, and a value‑over‑time timeline.
 - 📱 **Installable PWA** — offline‑ready service worker, add‑to‑home‑screen, mobile‑tuned UI.
-- 🔍 **eBay rarity monitor** *(companion tool)* — a Python service that pings Telegram when rare cans surface on eBay, using CLIP image matching to cut false positives.
+- 🔍 **eBay rarity monitor** *(companion tool)* — a Python service that watches eBay across multiple marketplaces (Browse API + OAuth2) and pings Telegram when rare cans appear, with configurable saved searches and keyword filters.
 - 🔒 **Admin & guest modes** — JWT‑authenticated editing; public, read‑only share links.
 
 ## 📸 Screenshots
