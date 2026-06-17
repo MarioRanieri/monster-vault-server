@@ -84,6 +84,20 @@ public class CanService {
     }
 
     /**
+     * Conteggio "economico" delle lattine attive letto dalla SOLA cache in memoria:
+     * nessuna query a Firestore e nessuna eccezione → sicuro da chiamare ad alta frequenza
+     * (es. da una metrica Micrometer scrapeata ogni pochi secondi).
+     * Ritorna 0 finché la cache non è popolata (prima chiamata a getAll()).
+     */
+    public int cachedActiveCount() {
+        List<Can> snap = cache;
+        if (snap == null) return 0;
+        int n = 0;
+        for (Can c : snap) if (c.getDeletedAt() == null) n++;
+        return n;
+    }
+
+    /**
      * Calcola l'ETag della collezione: hash XOR di (id + updatedAt) per ogni can.
      * Cambia ad ogni creazione, modifica o cancellazione — stabile se nulla cambia.
      * Vive nel service (è il service a definire cosa rende "cambiata" la collezione, SRP);
