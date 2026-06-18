@@ -1,0 +1,4 @@
+# Copia questo file in  terraform.tfvars  (gitignored) e mettici i tuoi valori.
+project_id = "il-tuo-progetto-gcp"
+region     = "europe-west1"
+image      = "europe-west1-docker.pkg.dev/il-tuo-progetto-gcp/monster-vault/app:latest"

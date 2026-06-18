@@ -7,6 +7,12 @@ ebay-monitor/config.py
 config.py
 firebase-service-account.json
 k8s/secret.yaml
+# Terraform (stato e segreti — non versionati)
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.*
+infra/terraform.tfvars
+infra/.terraform.lock.hcl
 application.properties
 application-local.properties
 .idea/

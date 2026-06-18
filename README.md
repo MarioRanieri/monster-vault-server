@@ -57,6 +57,7 @@
    Observability : /actuator/prometheus → Prometheus → Grafana
    CI/CD         : GitHub Actions (tests) → Docker image → Render
    Orchestration : Kubernetes manifests (Deployment/Service) · minikube
+   IaC / Cloud   : Terraform → GCP Cloud Run + Artifact Registry (infra/)
    Companion     : Python eBay monitor → Telegram alerts
 ```
 
@@ -112,6 +113,7 @@ This makes each component independently testable with mocks.
 | Hosting | Render free tier |
 | Frontend | PWA (manifest + service worker), installable as app |
 | Orchestration | Kubernetes (Deployment/Service/ConfigMap/Secret) — local minikube |
+| IaC | Terraform — GCP Cloud Run + Artifact Registry (`infra/`) |
 | CI/CD | GitHub Actions — backend tests + frontend Jest |
 | Testing | JUnit, Selenium (E2E), Jest (frontend) |
 | Companion tool | Python eBay monitor (Browse API + Telegram) |

@@ -84,6 +84,22 @@ class CanServiceTest {
         assertThat(service.getById("1")).isEqualTo(deleted);
     }
 
+    // ── cachedActiveCount (metrica observability) ─────────────────────────────
+
+    @Test
+    void cachedActiveCount_coldCache_returnsZeroWithoutRepo() {
+        assertThat(service.cachedActiveCount()).isZero();
+        verifyNoInteractions(repo);
+    }
+
+    @Test
+    void cachedActiveCount_countsOnlyActiveCans() {
+        Can deleted = can("3", "Deleted");
+        deleted.setDeletedAt(System.currentTimeMillis());
+        warmCache(can("1", "Alpha"), can("2", "Beta"), deleted);
+        assertThat(service.cachedActiveCount()).isEqualTo(2);
+    }
+
     // ── save ──────────────────────────────────────────────────────────────────
 
     @SuppressWarnings("unchecked")

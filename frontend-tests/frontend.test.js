@@ -1089,3 +1089,22 @@ describe('demo / fallback offline', () => {
     expect(writes.length).toBe(0);                                // nessuna scrittura (no batchSave)
   });
 });
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Regressioni guest UX + cleanup (CLIP rimosso, guida guest, timeline gated)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('regressioni guest UX + cleanup', () => {
+  test('nessun riferimento "CLIP" obsoleto nei tooltip del watch', () => {
+    expect(HTML).not.toContain('Monitora su eBay (CLIP)');
+  });
+
+  test('guida guest: rimossa la voce "€ range" (filtro admin-only)', () => {
+    expect(HTML).not.toContain('<strong>€ range</strong> inputs filter');
+  });
+
+  test('stats: timeline "Added over time" mostrata solo ai non-guest', () => {
+    expect(HTML).toContain('if (!isPublicMode) html += renderTimeline();');
+  });
+});

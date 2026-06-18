@@ -2,7 +2,7 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-06-16 (rev 39)  
+**Updated:** 2026-06-17 (rev 40)  
 **Branch:** main  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
@@ -11,7 +11,7 @@
 
 ## Summary
 
-Backend Spring Boot 3.3 (Java 17) con REST API completa per la gestione della collezione Monster Vault. Frontend (`index.html`) migrato per usare esclusivamente le API REST con autenticazione JWT stateless. Deploy su Render free tier con Docker. Codebase refactorizzata secondo principi SOLID e ACID con test suite completa: **59 test unit/integrazione + 58 E2E Selenium (117 totali, 2 skip viewport) + 86 test Jest frontend**. PWA installabile con manifest + service worker + icona PNG locale.
+Backend Spring Boot 3.3 (Java 17) con REST API completa per la gestione della collezione Monster Vault. Frontend (`index.html`) migrato per usare esclusivamente le API REST con autenticazione JWT stateless. Deploy su Render free tier con Docker. Codebase refactorizzata secondo principi SOLID e ACID con test suite completa: **61 test unit/integrazione + 58 E2E Selenium (119 totali, 2 skip viewport) + 89 test Jest frontend**. PWA installabile con manifest + service worker + icona PNG locale.
 
 ---
 
@@ -19,6 +19,12 @@ Backend Spring Boot 3.3 (Java 17) con REST API completa per la gestione della co
 
 ### Changes Made
 
+- [x] **Cloud-native stack (Observability + Kubernetes + IaC) + guest UX/cleanup** (rev 40):
+  - **📊 Observability**: Spring Boot Actuator + Micrometer/Prometheus → `/actuator/prometheus`; stack locale **Prometheus + Grafana** (`observability/` docker-compose); metrica business custom **`monstervault_cans_active`** (gauge legato a `CanService.cachedActiveCount()`, conteggio cache-only economico — nessuna query Firestore, nessuna eccezione). `application.yml` versionato (config NON-segreta) + whitelist endpoint actuator in `SecurityConfig`.
+  - **☸️ Kubernetes** (`k8s/`): manifest per deploy locale su minikube — Deployment (probe su `/actuator/health`), Service (NodePort), ConfigMap, Secret (template; `secret.yaml` gitignored).
+  - **🏗️ IaC / Terraform** (`infra/`): config GCP **Cloud Run + Artifact Registry** (opzione "a secco": `terraform init`/`validate`/`plan`; `apply` documentato per il deploy reale). Stato e `terraform.tfvars` gitignored. ⚠️ Terraform non installato in locale → config scritta con cura, da validare con `terraform validate` lato utente.
+  - **🧹 Guest UX + cleanup CLIP**: timeline "Added over time" nascosta ai guest (`if (!isPublicMode)`, come il Top 10 valore); voce "€ range" rimossa dalla **guida guest** (il filtro era già nascosto ai guest); rimossi i riferimenti **"CLIP"** obsoleti (tooltip watch ×2, label edit, commento `Can.java`, riga README pubblico) — CLIP/DINOv2/OCR erano esperimenti **scartati**.
+  - **Test**: +2 JVM (`CanServiceTest.cachedActiveCount` → **61** backend) e +3 Jest (→ **89**). **README pubblico** aggiornato: Architecture *system overview* + Technology Stack completa (Observability, Kubernetes, IaC, CI/CD, Testing, companion eBay).
 - [x] **🐞 Fix critico: le lattine demo non finiscono più nella collezione** (rev 39):
   - Su mobile, dopo un deploy/cold start l'API è brevemente irraggiungibile → partiva il fallback demo via `applyServerData(MOCK_CANS,…)`, che però eseguiva `migrateStato` + **`batchSaveFS`**: le 2 mock con stato legacy (`MINOR DENTS`→`Minor Dents` = Mango Loco, `DAMAGED`→`Damaged` = Aussie Lemonade) venivano marcate "migrate" e **scritte su Firestore** → l'utente le ritrovava in collezione dopo ogni deploy e le cancellava a mano. Il fallback poteva anche **avvelenare la cache localStorage** con la demo (che poi ricompariva al boot).
   - Fix: nuova **`showDemo(rbtn)` solo-visualizzazione** (niente `saveCache`, niente `batchSaveFS`); i due punti di fallback (errore generico + quota 429) ora la usano al posto di `applyServerData(MOCK_CANS,…)`. **+1 test Jest → 86** (`showDemo` non scrive nulla: no cache, no POST). Verificato in preview: demo mostrata, cache non avvelenata, 0 richieste di scrittura. Commit `2dcce50` (insieme alla rev 38) — **CI verde 86/86 ✓, deploy v17 online ✓**.
