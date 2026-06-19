@@ -1746,27 +1746,28 @@ function updateTopPreview(){
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 // 📱 Mobile: quando la tastiera virtuale copre il campo che stai compilando (es. la
 // descrizione nel modal edit), porta automaticamente il campo in vista.
+function mvIsEditField(el){ return el && el.matches && el.matches('#edit-modal input, #edit-modal textarea, #edit-modal select'); }
+// Porta il campo focalizzato APPENA sopra la tastiera (solo lo stretto necessario, niente "center").
+function mvScrollEditFieldUp(el){
+  var vv=window.visualViewport; if(!vv || !el || !el.closest) return;
+  var modal=el.closest('.modal'); if(!modal) return;
+  var overlap=el.getBoundingClientRect().bottom-(vv.height-14);   // 14px di margine sopra la tastiera
+  if(overlap>0) modal.scrollTop+=overlap;
+}
 document.addEventListener('focusin',function(e){
-  if(e.target && e.target.matches && e.target.matches('#edit-modal input, #edit-modal textarea, #edit-modal select')){
-    setTimeout(function(){ try{ e.target.scrollIntoView({block:'center',behavior:'smooth'}); }catch(_){ e.target.scrollIntoView(); } },300);
-  }
+  if(!mvIsEditField(e.target)) return;
+  if(window.visualViewport){ setTimeout(function(){ mvScrollEditFieldUp(e.target); },220); }   // iOS/Android: scroll preciso
+  else setTimeout(function(){ try{ e.target.scrollIntoView({block:'center',behavior:'smooth'}); }catch(_){ e.target.scrollIntoView(); } },300); // fallback browser senza visualViewport
 });
-// 📱 iOS (anche PWA standalone): la tastiera COPRE il campo senza ridurre il layout viewport,
-// quindi scrollIntoView non basta. Con la visualViewport API: all'apertura della tastiera diamo
-// spazio in fondo al modal e scrolliamo il campo focalizzato SOPRA la tastiera.
+// 📱 iOS (anche PWA standalone): la tastiera COPRE senza ridurre il layout viewport. Con la
+// visualViewport API: all'apertura diamo spazio in fondo e portiamo il campo appena sopra la tastiera.
 (function(){
   var vv=window.visualViewport; if(!vv) return;
   vv.addEventListener('resize',function(){
-    var kb=Math.max(0, window.innerHeight - vv.height);          // altezza tastiera (approx)
+    var kb=Math.max(0, window.innerHeight - vv.height);
     var body=document.querySelector('#edit-modal .modal-body');
-    if(body) body.style.paddingBottom = kb>80 ? (kb+24)+'px' : '';   // spazio per poter scrollare
-    var el=document.activeElement;
-    if(kb>80 && el && el.matches && el.matches('#edit-modal input, #edit-modal textarea, #edit-modal select')){
-      setTimeout(function(){
-        var modal=el.closest('.modal'), r=el.getBoundingClientRect(), overlap=r.bottom-(vv.height-24);
-        if(overlap>0 && modal) modal.scrollTop+=overlap;            // porta il campo sopra la tastiera
-      },60);
-    }
+    if(body) body.style.paddingBottom = kb>80 ? (kb+24)+'px' : '';
+    if(kb>80 && mvIsEditField(document.activeElement)) setTimeout(function(){ mvScrollEditFieldUp(document.activeElement); },60);
   });
 })();
 /**
