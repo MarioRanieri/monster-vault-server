@@ -206,6 +206,7 @@ body.public-mode .vrange-wrap{ display:none !important; }
 .detail-field{background:var(--bg3);border-radius:8px;padding:10px 14px;}
 .detail-field-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;}
 .detail-field-val{font-size:14px;font-weight:500;}
+.detail-field-top .detail-field-lbl{color:inherit;opacity:.7;}
 .detail-note{grid-column:1/-1;background:var(--bg3);border-radius:8px;padding:10px 14px;}
 .detail-note .detail-field-lbl{margin-bottom:6px;}
 .detail-note .detail-field-val{font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;}
@@ -1717,6 +1718,26 @@ function colorizeTop(v){
   }
   return out;
 }
+/** Sfondo del campo Top/Tab nel dettaglio = colore "scritto" (es. PURPLE → viola).
+ *  Usa il PRIMO colore (parts[0]). silver/grey/sconosciuto → '' (lascia normale).
+ *  Colori scuri → testo bianco; colori chiari → testo scuro (leggibilità). */
+function topBg(top){
+  if(!top) return '';
+  var first=String(top).split('/')[0].trim().toLowerCase();
+  var BG={black:'#111',nero:'#111',white:'#eee',bianco:'#eee',
+    gold:'#caa62e',oro:'#caa62e',orange:'#e67e00',arancione:'#e67e00',arancio:'#e67e00',
+    green:'#1f8f3a',verde:'#1f8f3a',lime:'#7bbf00',
+    red:'#c0392b',rosso:'#c0392b',maroon:'#7d2b3e',
+    blue:'#1f6fd6',blu:'#1f6fd6',navy:'#2a3f8f',teal:'#0f8a7e',cyan:'#0e9bb5',
+    yellow:'#d4b500',giallo:'#d4b500',
+    purple:'#6c3fb5',viola:'#6c3fb5',magenta:'#b13fc4',
+    pink:'#cf5a93',rosa:'#cf5a93',
+    brown:'#7a4a1e',marrone:'#7a4a1e',copper:'#8a5320',rame:'#8a5320',bronze:'#8a6224',bronzo:'#8a6224',cream:'#d9cba8'};
+  var bg=BG[first];
+  if(!bg) return '';
+  var light={white:1,bianco:1,yellow:1,giallo:1,cream:1,lime:1,gold:1,oro:1};
+  return 'background:'+bg+';color:'+(light[first]?'#111':'#fff')+';';
+}
 /** Anteprima colorata del Top/Tab nel form di edit (un <input> non può colorare il testo). */
 function updateTopPreview(){
   var el=document.getElementById('e-top'),pv=document.getElementById('e-top-preview');
@@ -3062,15 +3083,22 @@ function buildDetailPhotosHTML(can,id,photos){
 function buildDetailFieldsHTML(can,stCls){
   var fields=[
     {lbl:'SKU',val:can.sku},{lbl:'Manufacturer',val:can.produttore},{lbl:'Country/Language',val:can.lingua},
-    {lbl:'Size',val:can.size},{lbl:'Top / Tab',val:colorizeTop(can.top),isHtml:true},{lbl:'Promo',val:can.promo},
+    {lbl:'Size',val:can.size},{lbl:'Top / Tab',val:colorizeTop(can.top),isHtml:true,top:can.top},{lbl:'Promo',val:can.promo},
     {lbl:'Est. Value',val:can.valore?'€'+parseFloat(can.valore).toLocaleString('en-US'):null,fieldKey:'valore'},
     {lbl:'Condition',val:can.stato,cls:stCls,isBadge:true}
   ];
   var html='<div class="detail-fields">';
   fields.forEach(function(f){
     if(!f.val) return;
-    var attr=f.fieldKey?' data-field="'+f.fieldKey+'"':'';
-    html+='<div class="detail-field"'+attr+'><div class="detail-field-lbl">'+esc(f.lbl)+'</div><div class="detail-field-val">'+(f.isBadge?'<span class="badge '+f.cls+'">'+esc(f.val)+'</span>':(f.isHtml?f.val:esc(f.val)))+'</div></div>';
+    var attr=f.fieldKey?' data-field="'+f.fieldKey+'"':'', cls='detail-field', valHtml;
+    if(f.top){
+      var bg=topBg(f.top);
+      if(bg){ attr+=' style="'+bg+'"'; cls+=' detail-field-top'; valHtml=esc(f.top); }  // sfondo del colore del top
+      else valHtml=f.val;  // silver/sconosciuto: testo colorato (colorizeTop) com'era
+    } else {
+      valHtml=f.isBadge?'<span class="badge '+f.cls+'">'+esc(f.val)+'</span>':(f.isHtml?f.val:esc(f.val));
+    }
+    html+='<div class="'+cls+'"'+attr+'><div class="detail-field-lbl">'+esc(f.lbl)+'</div><div class="detail-field-val">'+valHtml+'</div></div>';
   });
   html+='</div>';
   if(can.note){var noteVals=can.note.split(',').map(function(v){return v.trim();}).filter(Boolean);if(noteVals.length)html+='<div class="detail-note"><div class="detail-field-lbl">Opening</div><div class="opening-badges" style="margin-top:8px">'+noteVals.map(function(v){return'<span class="badge-opening">'+esc(v)+'</span>';}).join('')+'</div></div>';}
