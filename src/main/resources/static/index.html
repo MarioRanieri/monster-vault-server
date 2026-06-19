@@ -1751,6 +1751,24 @@ document.addEventListener('focusin',function(e){
     setTimeout(function(){ try{ e.target.scrollIntoView({block:'center',behavior:'smooth'}); }catch(_){ e.target.scrollIntoView(); } },300);
   }
 });
+// 📱 iOS (anche PWA standalone): la tastiera COPRE il campo senza ridurre il layout viewport,
+// quindi scrollIntoView non basta. Con la visualViewport API: all'apertura della tastiera diamo
+// spazio in fondo al modal e scrolliamo il campo focalizzato SOPRA la tastiera.
+(function(){
+  var vv=window.visualViewport; if(!vv) return;
+  vv.addEventListener('resize',function(){
+    var kb=Math.max(0, window.innerHeight - vv.height);          // altezza tastiera (approx)
+    var body=document.querySelector('#edit-modal .modal-body');
+    if(body) body.style.paddingBottom = kb>80 ? (kb+24)+'px' : '';   // spazio per poter scrollare
+    var el=document.activeElement;
+    if(kb>80 && el && el.matches && el.matches('#edit-modal input, #edit-modal textarea, #edit-modal select')){
+      setTimeout(function(){
+        var modal=el.closest('.modal'), r=el.getBoundingClientRect(), overlap=r.bottom-(vv.height-24);
+        if(overlap>0 && modal) modal.scrollTop+=overlap;            // porta il campo sopra la tastiera
+      },60);
+    }
+  });
+})();
 /**
  * Toast con pulsante Undo e barra di progresso.
  * @param {string} msg - Testo del toast
