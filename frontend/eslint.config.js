@@ -1,18 +1,17 @@
-import js from '@eslint/js';
+// @ts-check
+import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import prettier from 'eslint-config-prettier';
 
-export default tseslint.config(
-  js.configs.recommended,
-  ...tseslint.configs.strict,
+export default [
+  { ignores: ['dist/', 'tests/', 'public/', 'node_modules/'] },
+  eslint.configs.recommended,
+  ...tseslint.configs.recommended,
   prettier,
-  { ignores: ['dist/', 'tests/', 'public/', 'node_modules/', '*.config.*'] },
   {
     files: ['src/**/*.ts'],
     rules: {
-      // ponytail: migrated from vanilla JS, retyping 500+ sites adds no safety
       '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
         { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
@@ -20,4 +19,4 @@ export default tseslint.config(
       'no-prototype-builtins': 'off',
     },
   },
-);
+];
