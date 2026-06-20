@@ -126,6 +126,19 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- ponytail: Selenium E2E retired from the default build — heavy
+                         (~20 min, needs Chrome) and replaced by the Playwright smoke
+                         suite (frontend/tests/e2e) which runs in CI. Run them on demand:
+                         mvn test -Dtest='com.monstervault.e2e.*Test' -->
+                    <excludes>
+                        <exclude>**/e2e/**</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>

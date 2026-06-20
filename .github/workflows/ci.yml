@@ -27,7 +27,7 @@ jobs:
         run: cd frontend && npm ci && npm run build
       - name: Copy frontend into static resources
         run: cp -r frontend/dist/* backend/src/main/resources/static/
-      - name: Run tests
+      - name: Run unit/integration tests (Selenium E2E excluded in pom; E2E covered by the Playwright job)
         run: cd backend && mvn test --no-transfer-progress
 
   frontend:
