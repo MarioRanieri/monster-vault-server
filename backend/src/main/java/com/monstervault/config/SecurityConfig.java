@@ -76,11 +76,13 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/cans", "/api/cans/**").permitAll()
-                        // Tutti gli asset statici in root sono pubblici (es. map.html, map-data.js):
-                        // senza i glob *.html/*.js le pagine nuove finirebbero in anyRequest() → 401.
-                        .requestMatchers("/", "/*.html", "/*.js", "/manifest.json",
-                                "/*.jpg", "/*.png", "/*.ico", "/*.svg", "/*.webmanifest",
-                                "/*.txt", "/*.xml", "/share/**").permitAll()
+                        // Asset statici pubblici. /assets/** copre i bundle Vite (JS/CSS hashati
+                        // in sottocartella); i glob /*.ext coprono i file in root (map.html, sw.js,
+                        // manifest.json, immagini, robots.txt...). Senza /assets/** i bundle Vite
+                        // finirebbero in anyRequest() → 401 e il sito non caricherebbe.
+                        .requestMatchers("/", "/assets/**", "/*.html", "/*.js", "/*.css",
+                                "/manifest.json", "/*.jpg", "/*.png", "/*.ico", "/*.svg",
+                                "/*.webmanifest", "/*.txt", "/*.xml", "/share/**").permitAll()
                         // Observability: endpoint Actuator pubblici per lo scrape di Prometheus
                         // (solo questi 3; /actuator/env, /beans ecc. NON sono esposti — vedi application.yml)
                         .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
