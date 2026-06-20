@@ -1,5 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /api/
-Disallow: /actuator/
-Sitemap: https://monster-vault-server.onrender.com/sitemap.xml
