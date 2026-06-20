@@ -41,7 +41,7 @@ import static org.mockito.Mockito.when;
  *   - @SpringBootTest avvia il server completo su porta casuale
  *   - @MockBean su Firebase/Firestore/Cloudinary evita connessioni reali
  *   - @MockBean AuthService restituisce JWT valido per qualsiasi credenziale
- *   - JWT viene iniettato via localStorage per la maggior parte dei test
+ *   - l'access token viene iniettato in memoria (window) per i test admin (vedi openAsAdmin)
  *   - assumeTrue(chromeAvailable) skippa silenziosamente se Chrome non è installato
  *
  * Ogni test che estende questa classe ottiene:
@@ -138,14 +138,20 @@ abstract class E2EBaseTest {
 
     // ── Navigation helpers ────────────────────────────────────────────────────
 
-    /** Apre l'app con JWT iniettato in localStorage → modalità admin. */
+    /** Apre l'app e forza la modalità admin.
+     *  Nuovo flusso auth: l'access token vive in memoria (non più localStorage) e il
+     *  refresh silenzioso al boot legge un cookie HttpOnly che in E2E non esiste. Quindi
+     *  iniettiamo il token in memoria e forziamo la UI admin via le funzioni esposte su window. */
     protected void openAsAdmin() {
         driver.get(baseUrl);
         waitForPageReady();
         dismissLandingOverlay(); // il landing overlay (z-index:1000) blocca tutti i click
-        String token = jwtUtil.generate("testadmin");
-        js("localStorage.setItem('mv_jwt_token', arguments[0])", token);
-        driver.navigate().refresh(); // sessionStorage.mv_session_started già impostato → overlay non ricompare
+        String token = jwtUtil.generateAccess("testadmin");
+        js("window._accessToken = arguments[0];"
+         + "if (window.state) { window.state.isAdmin = true; } else { window.isAdmin = true; }"
+         + "if (window.restoreAdminMode) window.restoreAdminMode();"
+         + "if (window.applyAuthUI) window.applyAuthUI();"
+         + "if (window.loadFromServer) window.loadFromServer();", token);
         waitForGrid();
         dismissConfotoFilter();
     }
