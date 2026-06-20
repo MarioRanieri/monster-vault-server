@@ -70,26 +70,48 @@ def _note_search_failure(exc):
         _search_stats["last"] = exc
 
 def get_ebay_token():
-    """Token applicativo OAuth (client_credentials), cache finché valido."""
+    """Token applicativo OAuth (client_credentials), cache finché valido.
+    Riprova sugli errori di rete/DNS (tipici all'avvio del PC, quando la rete non è
+    ancora pronta); distingue 'rete giù' da 'credenziali sbagliate'."""
     now = time.time()
     if _token_cache["token"] and now < _token_cache["exp"] - 60:
         return _token_cache["token"]
     basic = base64.b64encode(f"{config.EBAY_CLIENT_ID}:{config.EBAY_CLIENT_SECRET}".encode()).decode()
-    try:
-        r = requests.post(
-            EBAY_OAUTH_URL[config.EBAY_ENV],
-            headers={"Authorization": f"Basic {basic}",
-                     "Content-Type": "application/x-www-form-urlencoded"},
-            data={"grant_type": "client_credentials",
-                  "scope": "https://api.ebay.com/oauth/api_scope"}, timeout=20)
-        r.raise_for_status()
-        j = r.json()
-        _token_cache["token"] = j["access_token"]
-        _token_cache["exp"] = now + int(j.get("expires_in", 7200))
-        return _token_cache["token"]
-    except Exception as exc:
-        print(f"  [ERRORE] OAuth eBay fallito: {exc}")
-        return None
+    attempts = 3
+    for i in range(1, attempts + 1):
+        try:
+            r = requests.post(
+                EBAY_OAUTH_URL[config.EBAY_ENV],
+                headers={"Authorization": f"Basic {basic}",
+                         "Content-Type": "application/x-www-form-urlencoded"},
+                data={"grant_type": "client_credentials",
+                      "scope": "https://api.ebay.com/oauth/api_scope"}, timeout=20)
+            r.raise_for_status()
+            j = r.json()
+            _token_cache["token"] = j["access_token"]
+            _token_cache["exp"] = time.time() + int(j.get("expires_in", 7200))
+            return _token_cache["token"]
+        except requests.exceptions.HTTPError as exc:
+            # 400/401 = credenziali o scope errati: ritentare non aiuta
+            code = exc.response.status_code if exc.response is not None else "?"
+            print(f"  [ERRORE] eBay ha rifiutato le credenziali (HTTP {code}): controlla "
+                  f"EBAY_CLIENT_ID / EBAY_CLIENT_SECRET / EBAY_ENV in config.py.")
+            return None
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as exc:
+            # rete/DNS non pronta (es. subito dopo il boot): riprova
+            if i < attempts:
+                print(f"  [RETE] api.ebay.com non raggiungibile (tentativo {i}/{attempts}); "
+                      f"riprovo tra 5s… ({type(exc).__name__})")
+                time.sleep(5)
+            else:
+                print(f"  [ERRORE] api.ebay.com non raggiungibile dopo {attempts} tentativi: "
+                      f"problema di RETE/DNS, NON delle credenziali. Controlla la connessione "
+                      f"internet e riprova. ({type(exc).__name__})")
+                return None
+        except Exception as exc:
+            print(f"  [ERRORE] OAuth eBay fallito (imprevisto): {exc}")
+            return None
+    return None
 
 
 def search_ebay(marketplace, query, token):
@@ -514,7 +536,7 @@ def run():
     print("  Comando Telegram /delete attivo (cancella i messaggi del bot < 48h).")
     conn = init_db()
     if not get_ebay_token():
-        print("⚠️  Niente token eBay (controlla Client ID/Secret in config.py)."); return
+        print("⚠️  Niente token eBay — vedi il motivo nel messaggio [ERRORE]/[RETE] qui sopra."); return
     if conn.execute("SELECT COUNT(*) FROM seen").fetchone()[0] == 0:
         print("Primo avvio: baseline (gli annunci già online non vengono notificati).")
         establish_baseline(conn, get_ebay_token())
