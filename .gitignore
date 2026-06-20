@@ -23,6 +23,8 @@ teoria_Monster_vault/
 STUDY.md
 frontend/node_modules/
 frontend/dist/
+frontend/test-results/
+frontend/playwright-report/
 frontend/tests/node_modules/
 backend/src/test/api/local.environment.json
 
