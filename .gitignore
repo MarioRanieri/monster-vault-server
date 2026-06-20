@@ -7,7 +7,7 @@ ebay-monitor/config.py
 config.py
 firebase-service-account.json
 k8s/secret.yaml
-# Terraform (stato e segreti — non versionati)
+# Terraform
 infra/.terraform/
 infra/*.tfstate
 infra/*.tfstate.*
@@ -18,6 +18,9 @@ application-local.properties
 .idea/
 *.iml
 .vscode/
-frontend-tests/node_modules/
-src/test/api/local.environment.json
-src/main/resources/static/serve.ps1
+frontend/tests/node_modules/
+backend/src/test/api/local.environment.json
+
+# Frontend files copied into backend at build time (source of truth: frontend/src/)
+backend/src/main/resources/static/*
+!backend/src/main/resources/static/.gitkeep
