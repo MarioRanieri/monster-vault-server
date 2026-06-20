@@ -7,12 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned
-- Refresh token (access + refresh with rotation and revocation)
-- Project restructure into `backend/` + `frontend/`
-- SEO / AEO assets (robots.txt, sitemap.xml, llms.txt, JSON-LD)
-- Frontend modularization (TypeScript + Vite + ESLint + Prettier)
-- Backend code quality pass
+### Added
+- **Refresh token flow** — short-lived access token (15 min) in memory + long-lived refresh token (7 days) in an HttpOnly/Secure/SameSite=Strict cookie; rotation on every refresh, revocation on logout, in-memory `RefreshTokenStore` (SHA-256 hashed). New endpoints `POST /api/auth/logout`; `POST /api/auth/refresh` now reads the cookie. Frontend does silent refresh on 401 and recovers the session at boot.
+- **SEO / AEO assets** — `robots.txt`, `sitemap.xml`, `llms.txt`, JSON-LD structured data, meta description, canonical URL, preconnect hints; `ShareController` (`GET /share/{id}`) serves per-can Open Graph meta for social/chat previews.
+- **Frontend tooling** — Vite bundler, TypeScript strict, ESLint, Prettier; CI gate runs lint + format-check + build.
+
+### Changed
+- **Project restructure** — split into `backend/` (Spring Boot) and `frontend/` (PWA); root `Dockerfile` is now 3-stage (Node build → Maven build → JRE run); CI and `.gitignore` paths updated. Same-origin serving preserved (frontend built into the backend's static resources).
+- **Frontend modularization** — the ~4000-line `index.html` monolith extracted into 7 TypeScript modules (`core`, `ui`, `tools`, `photos`, `share`, `pwa`, `types`); CSS extracted to `styles/main.css`; static assets moved to `public/`; production build is a 102 KB JS + 50 KB CSS bundle.
+- **Backend code quality** — constructor injection throughout (removed field `@Autowired`), unused imports removed, Lombok upgraded to 1.18.38.
+
+### Fixed
+- E2E `openAsAdmin` helper adapted to the in-memory token auth flow (was still injecting the removed `localStorage` token).
 
 ## [0.1.0] - 2026-06-17
 

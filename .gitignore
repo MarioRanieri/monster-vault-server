@@ -18,6 +18,9 @@ application-local.properties
 .idea/
 *.iml
 .vscode/
+# Materiale di studio personale — MAI committare/pushare
+teoria_Monster_vault/
+STUDY.md
 frontend/node_modules/
 frontend/dist/
 frontend/tests/node_modules/
