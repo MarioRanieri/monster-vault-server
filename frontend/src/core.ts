@@ -30,6 +30,7 @@ export const state = {
   statsTlMode: 'months' as string,
   statsTlMetric: 'count' as string,
   deferredInstallPrompt: null as any,
+  guestChosen: false,
 };
 
 // ── API / JWT ──────────────────────────────────────────
@@ -1108,6 +1109,7 @@ export function signIn(): void {
       btn.textContent = 'Sign in';
       _accessToken = data.accessToken;
       localStorage.removeItem(JWT_KEY);
+      state.guestChosen = false;
       state.isAdmin = true;
       const overlay = document.getElementById('auth-overlay');
       if (overlay) overlay.style.display = 'none';
@@ -1126,10 +1128,16 @@ export function signIn(): void {
 }
 
 export function signOut(): void {
-  fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }).catch(function () {});
   _accessToken = null;
   localStorage.removeItem(JWT_KEY);
-  window.location.reload();
+  // Wait for logout to complete so the browser processes the cookie-clearing
+  // Set-Cookie BEFORE reloading; otherwise the reload cancels the request and
+  // the refresh cookie survives, re-logging the user in at boot.
+  fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' })
+    .catch(function () {})
+    .finally(function () {
+      window.location.reload();
+    });
 }
 
 // ── JWT SILENT REFRESH ─────────────────────────────────
@@ -1154,7 +1162,14 @@ export function checkAndRefreshToken(): void {
   }
 }
 
-export function continueAsGuest(): void {
+export function continueAsGuest(explicit = true): void {
+  // explicit = user clicked "Continue as guest" → drop any admin session and
+  // prevent the boot cookie-refresh from silently re-promoting to admin.
+  // explicit = false = same-tab reload default; let the cookie decide.
+  if (explicit) {
+    state.guestChosen = true;
+    state.isAdmin = false;
+  }
   state.isPublicMode = true;
   document.body.classList.add('public-mode');
   const overlay = document.getElementById('auth-overlay');

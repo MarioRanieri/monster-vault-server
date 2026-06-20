@@ -1424,12 +1424,17 @@ export function boot(): void {
   const legacyToken = localStorage.getItem(JWT_KEY);
   if (legacyToken) localStorage.removeItem(JWT_KEY);
 
-  // try to recover session from refresh cookie
+  // try to recover session from refresh cookie — but never override an explicit
+  // "Continue as guest" choice (guestChosen) or a public share link (?public=1).
+  const isShareLink = new URLSearchParams(window.location.search).get('public') === '1';
   _tryRefresh().then(function (ok) {
-    if (ok) {
+    if (ok && !state.guestChosen && !isShareLink) {
       state.isAdmin = true;
       (window as any).restoreAdminMode();
       applyAuthUI();
+      // returning admin: dismiss the landing if still up
+      const landEl = document.getElementById('landing-overlay') as HTMLElement | null;
+      if (landEl && landEl.style.display !== 'none') landEl.style.display = 'none';
       if (!state.cans.length) loadFromServer();
     }
   });
@@ -1461,10 +1466,11 @@ export function boot(): void {
     });
   }
 
-  // Landing -- only on first visit of the tab
+  // Landing -- only on first visit of the tab. On same-tab reload we default to
+  // guest UI but pass explicit=false so a valid admin cookie can still recover.
   if (!state.isPublicMode && sessionStorage.getItem('mv_session_started')) {
     (document.getElementById('landing-overlay') as HTMLElement).style.display = 'none';
-    continueAsGuest();
+    continueAsGuest(false);
   } else {
     (document.getElementById('landing-overlay') as HTMLElement).style.display = 'flex';
     if (!state.isPublicMode) sessionStorage.setItem('mv_session_started', '1');
