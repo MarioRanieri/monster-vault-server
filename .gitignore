@@ -18,6 +18,8 @@ application-local.properties
 .idea/
 *.iml
 .vscode/
+frontend/node_modules/
+frontend/dist/
 frontend/tests/node_modules/
 backend/src/test/api/local.environment.json
 

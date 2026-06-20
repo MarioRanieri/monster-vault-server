@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no"/>
+<title>Monster Vault — World Map</title>
+<meta name="theme-color" content="#0a0a0a"/>
+<link rel="icon" href="/icon.png"/>
+<style>
+  :root{ --bg:#0a0a0a; --bg2:#111511; --bg3:#161b16; --line:#242a24; --text:#e8eee6;
+         --text2:#9aa59a; --text3:#6b746b; --green:#a8ff00; --green-dim:rgba(168,255,0,.10);
+         --red:#e2483f; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{overflow-x:hidden;max-width:100%}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif}
+  header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(10,10,10,.94);backdrop-filter:blur(6px);z-index:20}
+  .back{color:var(--text2);text-decoration:none;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:6px 12px;white-space:nowrap}
+  .back:hover{color:var(--green);border-color:var(--green)}
+  h1{font-size:14.5px;letter-spacing:1.4px;font-weight:700}
+  h1 span{color:var(--green)}
+  .hbtn{background:var(--bg3);border:1px solid var(--line);color:var(--text2);border-radius:8px;padding:6px 12px;font-size:12.5px;cursor:pointer;white-space:nowrap}
+  .hbtn:hover{border-color:var(--green);color:var(--green)}
+  .hbtn.active{background:var(--green);border-color:var(--green);color:#0a0a0a;font-weight:700}
+  .counter{margin-left:auto;background:var(--green-dim);border:1px solid rgba(168,255,0,.25);color:var(--green);border-radius:999px;padding:5px 14px;font-size:12.5px;font-weight:600;white-space:nowrap}
+  .zoom{display:flex;gap:6px}
+  .zoom button{background:var(--bg3);border:1px solid var(--line);color:var(--text);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:15px;line-height:1}
+  .zoom button:hover{border-color:var(--green);color:var(--green)}
+
+  /* PRIMO SCHERMO: mappa + picker riempiono il viewport (altezza via JS). La lista
+     scorre SOTTO. La mappa ha il proprio scroll → lo zoom muove solo la mappa. */
+  #firstview{display:flex;min-height:300px}
+  #map-col{flex:1;display:flex;flex-direction:column;min-width:0}
+  #map-box{flex:1;min-height:0;overflow:auto;padding:12px}
+  #svg-host{transform-origin:0 0;width:100%}
+  #svg-host svg{width:100%;height:auto;display:block}
+  #svg-host path{fill:#161d16;stroke:#262e26;stroke-width:.5;transition:fill .15s}
+  #svg-host .lit, #svg-host .lit path{fill:var(--green);stroke:#3c5a00;cursor:pointer}
+  #svg-host .lit{filter:drop-shadow(0 0 5px rgba(168,255,0,.35))}
+  #svg-host .lit:hover, #svg-host .lit:hover path{fill:#d3ff66}
+  #svg-host .shared, #svg-host .shared path{fill:var(--red);stroke:#7a201b;cursor:pointer}
+  #svg-host .nomon, #svg-host .nomon path{fill:#2a2a2a;stroke:#444}
+
+  /* picker (chips + count + note) — sempre visibile nel primo schermo */
+  #picker{flex-shrink:0;border-top:1px solid var(--line);background:var(--bg);padding:12px 16px}
+  .f-q{font-size:13px;color:var(--text2);margin-bottom:8px;font-weight:600;letter-spacing:.4px}
+  .f-chips{display:flex;gap:8px;flex-wrap:wrap}
+  .fchip{background:var(--bg3);border:1px solid var(--line);color:var(--text2);border-radius:999px;padding:8px 18px;font-size:13px;cursor:pointer;font-weight:600;letter-spacing:.5px}
+  .fchip:hover{border-color:var(--green);color:var(--green)}
+  .fchip.active{background:var(--green);border-color:var(--green);color:#0a0a0a}
+  #f-count{font-size:11.5px;color:var(--text3);margin-top:9px}
+  #f-count b{color:var(--green)}
+  #notes{font-size:10.5px;color:#c9a227;margin-top:5px}
+  .attrib{font-size:9.5px;color:var(--text3);margin-top:6px}
+
+  /* lista raggruppata per nazione — sotto il primo schermo */
+  #list-scroll{display:none;padding:16px;border-top:1px solid var(--line);background:var(--bg2)}
+  #list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;align-items:start}
+  .blk{background:var(--bg);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .blk-h{display:flex;align-items:center;gap:7px;padding:9px 12px;background:var(--bg3);font-size:12.5px;font-weight:700;letter-spacing:.4px}
+  .blk-h img{border-radius:2px}
+  .po{font-size:9.5px;color:#c9a227;border:1px solid #5a4d12;border-radius:4px;padding:1px 5px;font-weight:600;letter-spacing:0}
+  .blk-r{display:flex;justify-content:space-between;gap:10px;padding:6px 12px;font-size:12px;border-top:1px solid rgba(255,255,255,.04);align-items:baseline}
+  .blk-r .nm{line-height:1.3}
+  .blk-r .meta{color:var(--text3);font-size:10.5px;white-space:nowrap;flex-shrink:0}
+  .ptag{color:#c9a227;border:1px solid #5a4d12;border-radius:3px;padding:0 4px;font-size:9px}
+  .muted{color:var(--text3);font-size:12px}
+
+  /* tooltip */
+  #tip{position:fixed;pointer-events:none;background:#0f130f;border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:12.5px;display:none;z-index:50;box-shadow:0 6px 20px rgba(0,0,0,.5);max-width:230px}
+  #tip img{vertical-align:middle;margin-right:6px;border-radius:2px}
+  #tip .t-name{font-weight:700}
+  #tip .t-row{color:var(--text2);margin-top:3px}
+  #tip .t-row b{color:var(--green)}
+
+  /* pannello laterale (click su paese) */
+  #panel{width:0;border-left:1px solid var(--line);background:var(--bg2);overflow-y:auto;transition:width .2s;flex-shrink:0}
+  #panel.open{width:320px}
+  .p-head{position:sticky;top:0;background:var(--bg2);padding:13px 15px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
+  .p-head .p-title{font-weight:700;font-size:14px}
+  .p-head .p-sub{color:var(--text3);font-size:11px;margin-top:1px}
+  .p-close{margin-left:auto;background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer}
+  .p-can{display:flex;gap:10px;padding:9px 15px;border-bottom:1px solid rgba(255,255,255,.04);align-items:center}
+  .p-can img{width:42px;height:42px;object-fit:contain;background:var(--bg3);border-radius:8px;flex-shrink:0}
+  .p-can .ph{width:42px;height:42px;background:var(--bg3);border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:15px}
+  .p-can .n{font-size:12px;font-weight:600;line-height:1.3}
+  .p-can .s{font-size:10px;color:var(--text3);margin-top:2px}
+  .p-can .v{margin-left:auto;color:var(--green);font-size:12px;font-weight:700;white-space:nowrap}
+
+  /* overlay info (legenda + paesi senza lattina) */
+  #info-ov{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:80;display:none;align-items:center;justify-content:center;padding:18px}
+  #info-ov.open{display:flex}
+  .info-card{background:var(--bg2);border:1px solid var(--line);border-radius:14px;max-width:560px;width:100%;max-height:88vh;overflow-y:auto;padding:18px}
+  .info-card h2{font-size:15px;margin-bottom:10px}
+  .info-card h3{font-size:12px;color:var(--text2);letter-spacing:.6px;margin:16px 0 7px;text-transform:uppercase}
+  .leg{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text2);margin:5px 0}
+  .dot{width:13px;height:13px;border-radius:3px;flex-shrink:0}
+  .info-card p{font-size:12px;color:var(--text3);line-height:1.6}
+  .miss-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:3px 10px;margin-top:6px}
+  .miss-grid div{font-size:11.5px;color:var(--text2)}
+  .miss-grid img{vertical-align:middle;margin-right:5px;border-radius:2px}
+
+  .loading{padding:60px 20px;text-align:center;color:var(--text2)}
+  .spin{width:26px;height:26px;border:3px solid var(--line);border-top-color:var(--green);border-radius:50%;margin:0 auto 12px;animation:sp 1s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  @media(max-width:700px){
+    h1{font-size:12px;letter-spacing:.8px}
+    .counter{padding:4px 10px;font-size:11px;margin-left:auto}
+    #panel.open{position:fixed;right:0;top:0;bottom:0;width:86vw;max-width:320px;z-index:60;box-shadow:-10px 0 30px rgba(0,0,0,.6)}
+  }
+</style>
+</head>
+<body>
+<header>
+  <a class="back" href="/">&#8592; Vault</a>
+  <h1>MONSTER <span>VAULT</span> &middot; MAP</h1>
+  <button class="hbtn" id="val-btn" style="display:none" onclick="toggleValues()" title="Show/hide values">&euro;</button>
+  <button class="hbtn" id="info-btn" onclick="openInfo()" title="Legend &amp; missing countries">&#9432; Info</button>
+  <div class="zoom">
+    <button onclick="zoomMap(1)" title="Zoom in">+</button>
+    <button onclick="zoomMap(-1)" title="Zoom out">&minus;</button>
+    <button onclick="zoomMap(0)" title="Reset zoom">&#8634;</button>
+  </div>
+  <div class="counter" id="counter">&#127758; choose a flavour</div>
+</header>
+
+<div id="firstview">
+  <div id="map-col">
+    <div id="map-box">
+      <div class="loading" id="loading"><div class="spin"></div>Loading collection&hellip;<div id="warm" style="display:none;margin-top:8px;font-size:11px;color:var(--text3)">Server warming up (free tier)&hellip;</div></div>
+      <div id="svg-host"></div>
+    </div>
+    <div id="picker" style="display:none">
+      <div class="f-q">Choose a flavour:</div>
+      <div class="f-chips" id="f-chips"></div>
+      <div id="f-count"></div>
+      <div id="notes"></div>
+      <div class="attrib">Map: Simple World Map &copy; Al MacDonald / F. Lekschas &middot; CC BY-SA 3.0 &middot; Flags: flagcdn.com</div>
+    </div>
+  </div>
+  <aside id="panel"></aside>
+</div>
+
+<div id="list-scroll"><div id="list"></div></div>
+
+<div id="tip"></div>
+
+<div id="info-ov" onclick="if(event.target===this)closeInfo()">
+  <div class="info-card" id="info-body"></div>
+</div>
+
+<script src="/map-data.js"></script>
+<script>
+'use strict';
+var MOCK = [
+  {id:'m1',nome:'OG',sku:'0610',lingua:'USA',valore:'120',p1:''},
+  {id:'m2',nome:'OG Mexico',sku:'0312',lingua:'MEXICO',valore:'90',p1:''},
+  {id:'m3',nome:'OG Brazil',sku:'1211',lingua:'BRAZIL',size:'500ml',valore:'40',p1:''},
+  {id:'m4',nome:'OG Brazil',sku:'0322',lingua:'BRAZIL',size:'473ml',valore:'45',p1:''},
+  {id:'m5',nome:'Assault Camo',sku:'0207',lingua:'CANADA',valore:'80',p1:''},
+  {id:'m6',nome:'Khaos Caribbean',sku:'0815',lingua:'CARIBBEAN',valore:'30',p1:''},
+  {id:'m7',nome:'OG Zero Sugar',sku:'0118',lingua:'UK',valore:'5',p1:''},
+  {id:'m8',nome:'OG Pakistan',sku:'0921',lingua:'PAKISTAN',valore:'25',promo:'Limited',p1:''},
+  {id:'m9',nome:'Rehab Lemonade',sku:'0414',lingua:'USA',valore:'18',p1:''},
+  {id:'m10',nome:'Ripper',sku:'0613',lingua:'AUSTRALIA',valore:'22',p1:''}
+];
+var isAdmin=false; // ponytail: map is public-only, price toggle checks this
+
+/* Gusti collezionati (match LARGO sul NOME, confini di parola: "OG Mexico" sì, "Mad Dog" no).
+   GLOBAL_EXCLUDE toglie le varianti che NON colleziono (es. "Zero Sugar"). */
+var GLOBAL_EXCLUDE=[/zero ?sugar/i];
+var FLAVOURS=[
+  {key:'og',      label:'OG',          words:[/\bog\b/i]},
+  {key:'assault', label:'Assault',     words:[/\bassault\b/i]},
+  {key:'rehab',   label:'Rehab Lemon', words:[/\brehab\b/i,/\blemon/i]},
+  {key:'ripper',  label:'Ripper',      words:[/\bripper\b/i]},
+  {key:'khaos',   label:'Khaos',       words:[/\bkhaos\b/i]}
+];
+var allCans=[], currentFlavour=null, showValues=false, usingMock=false;
+var byIso={}, regionsFound={}, unknownFound={}, tinyMissing={};
+
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function euro(v){ return '€'+(Math.round(v*100)/100).toLocaleString('en-US'); }
+/* Nome completo del paese: dizionario → Intl.DisplayNames (tutti i ~250 ISO) → codice */
+var _dn=null; try{ _dn=new Intl.DisplayNames(['en'],{type:'region'}); }catch(e){}
+function isoName(iso){
+  if(iso==='_CARIB') return 'Caribbean';
+  if(MAP_ISO_NAMES[iso]) return MAP_ISO_NAMES[iso];
+  if(_dn){ try{ var d=_dn.of(iso); if(d&&d!==iso) return d; }catch(e){} }
+  return iso;
+}
+/* Bandiera: img flagcdn con fallback EMOJI (su mobile alcune img possono non caricare) */
+function flagEmoji(iso){ iso=String(iso||'').toUpperCase(); if(!/^[A-Z]{2}$/.test(iso)) return '&#127965;&#65039;';
+  return String.fromCodePoint(127397+iso.charCodeAt(0),127397+iso.charCodeAt(1)); }
+function flagImg(iso,size){
+  if(iso==='_CARIB') return '<span style="font-size:15px;margin-right:5px">&#127965;&#65039;</span>';
+  var wh=(size||'20x15').split('x');
+  return '<img src="https://flagcdn.com/'+(size||'20x15')+'/'+iso.toLowerCase()+'.png" width="'+wh[0]+'" height="'+wh[1]+'" alt="'+esc(iso)+'" onerror="this.outerHTML=flagEmoji(this.alt)+\' \'">';
+}
+function isPromo(c){ return !!(c.promo&&String(c.promo).trim()); }
+/* chiave d'ordine dallo SKU (MMYY/MYY = mese+anno): più vecchio prima; non-data in fondo */
+function skuKey(sku){
+  var s=String(sku==null?'':sku).trim();
+  if(/^\d{3,4}$/.test(s)){ var mm=parseInt(s.slice(0,2),10); if(mm>=1&&mm<=12) return (2000+parseInt(s.slice(2),10))*100+mm; }
+  return Infinity;
+}
+
+function buildStats(cans){
+  byIso={}; regionsFound={}; unknownFound={}; tinyMissing={};
+  cans.forEach(function(c){
+    var p=parseLinguaToIsos(c.lingua);
+    p.regions.forEach(function(r){ regionsFound[r]=(regionsFound[r]||0)+1; });
+    p.unknown.forEach(function(u){ unknownFound[u]=(unknownFound[u]||0)+1; });
+    p.isos.forEach(function(iso){
+      if(!byIso[iso]) byIso[iso]={n:0,v:0,cans:[]};
+      byIso[iso].n++; byIso[iso].v+=parseFloat(c.valore)||0; byIso[iso].cans.push(c);
+    });
+  });
+}
+
+function clearMapClasses(){
+  document.querySelectorAll('#svg-host .lit,#svg-host .shared,#svg-host .nomon').forEach(function(el){
+    el.classList.remove('lit','shared','nomon'); el.removeAttribute('data-iso');
+  });
+}
+function lightMap(){
+  var host=document.getElementById('svg-host');
+  clearMapClasses();
+  var lit=0;
+  Object.keys(byIso).forEach(function(iso){
+    var el=host.querySelector('#'+iso.toLowerCase());
+    if(el){ el.classList.add('lit'); el.setAttribute('data-iso',iso); lit++; }
+    else  { tinyMissing[iso]=byIso[iso].n; }
+  });
+  SHARED_CAN_ISO.forEach(function(iso){ var el=host.querySelector('#'+iso.toLowerCase());
+    if(el&&!el.classList.contains('lit')){ el.classList.add('shared'); el.setAttribute('data-iso',iso); } });
+  NO_MONSTER_ISO.forEach(function(iso){ var el=host.querySelector('#'+iso.toLowerCase());
+    if(el&&!el.classList.contains('lit')&&!el.classList.contains('shared')) el.classList.add('nomon'); });
+  document.getElementById('counter').innerHTML='&#127758; <b>'+lit+'</b>&nbsp;countries lit';
+  var notes=[];
+  if(usingMock) notes.push('&#9888;&#65039; Demo data (API not reachable)');
+  Object.keys(tinyMissing).forEach(function(iso){ notes.push(isoName(iso)+' too small for the map'); });
+  if(Object.keys(regionsFound).length) notes.push('Regions not on map: '+Object.keys(regionsFound).join(', '));
+  if(Object.keys(unknownFound).length) notes.push('Unmapped: '+Object.keys(unknownFound).join(', '));
+  document.getElementById('notes').innerHTML=notes.join(' &middot; ');
+}
+
+/* ── tooltip ── */
+var tip=document.getElementById('tip');
+function showTip(e,iso){
+  if(!currentFlavour) return;
+  var d=byIso[iso], shared=SHARED_CAN_ISO.indexOf(iso)>-1;
+  var html='<span class="t-name">'+flagImg(iso)+esc(isoName(iso))+'</span>';
+  if(d){ html+='<div class="t-row"><b>'+d.n+'</b> can'+(d.n>1?'s':'')+(showValues&&isAdmin&&d.v>0?' &middot; <b>'+euro(d.v)+'</b>':'')+'</div><div class="t-row" style="font-size:10.5px">click for the list</div>'; }
+  else if(shared){ html+='<div class="t-row" style="color:var(--red)">exists, but I don’t have it yet</div>'; }
+  else { html+='<div class="t-row">no can</div>'; }
+  tip.innerHTML=html; tip.style.display='block'; moveTip(e);
+}
+function moveTip(e){
+  var x=e.clientX+14,y=e.clientY+14;
+  if(x+tip.offsetWidth>window.innerWidth-8) x=e.clientX-tip.offsetWidth-10;
+  if(y+tip.offsetHeight>window.innerHeight-8) y=e.clientY-tip.offsetHeight-10;
+  tip.style.left=x+'px'; tip.style.top=y+'px';
+}
+function hideTip(){ tip.style.display='none'; }
+
+/* ── pannello paese (click) — prezzo SOLO se showValues (toggle €, come nel vault) ── */
+var openIso=null;
+function openPanel(iso){
+  var d=byIso[iso]; if(!d) return; openIso=iso;
+  var list=d.cans.slice().sort(function(a,b){ return skuKey(a.sku)-skuKey(b.sku)||String(a.sku).localeCompare(String(b.sku)); });
+  var html='<div class="p-head">'+flagImg(iso,'24x18')
+    +'<div><div class="p-title">'+esc(isoName(iso))+'</div><div class="p-sub">'+d.n+' can'+(d.n>1?'s':'')
+    +(showValues&&isAdmin&&d.v>0?' &middot; '+euro(d.v):'')+'</div></div>'
+    +'<button class="p-close" onclick="closePanel()">&#10005;</button></div>';
+  list.forEach(function(c){
+    html+='<div class="p-can">'
+      +(c.p1?'<img src="'+esc(c.p1)+'" loading="lazy" onerror="this.outerHTML=\'<div class=ph>&#129380;</div>\'"/>':'<div class="ph">&#129380;</div>')
+      +'<div><div class="n">'+esc(c.nome||'—')+(isPromo(c)?' <span class="ptag">promo</span>':'')+'</div><div class="s">SKU '+esc(c.sku||'—')+(c.size?' · '+esc(c.size):'')+'</div></div>'
+      +(showValues&&isAdmin&&parseFloat(c.valore)>0?'<div class="v">'+euro(parseFloat(c.valore))+'</div>':'')
+      +'</div>';
+  });
+  var p=document.getElementById('panel'); p.innerHTML=html; p.classList.add('open'); p.scrollTop=0;
+}
+function closePanel(){ openIso=null; document.getElementById('panel').classList.remove('open'); }
+function toggleValues(){ showValues=!showValues; document.getElementById('val-btn').classList.toggle('active',showValues); if(openIso) openPanel(openIso); }
+
+function zoomMap(dir){
+  var host=document.getElementById('svg-host');
+  var s=parseFloat(host.dataset.scale||'1');
+  s=dir===0?1:Math.min(5,Math.max(1,s+dir*0.5));
+  host.dataset.scale=s; host.style.width=(s*100)+'%';
+}
+
+/* ── flavour picker + lista raggruppata per nazione ── */
+function renderChips(){
+  document.getElementById('f-chips').innerHTML=FLAVOURS.map(function(f){
+    return '<span class="fchip" data-key="'+f.key+'" onclick="selectFlavour(\''+f.key+'\')">'+esc(f.label)+'</span>';
+  }).join('');
+}
+function resetMap(){
+  currentFlavour=null; byIso={};
+  clearMapClasses(); closePanel();
+  document.querySelectorAll('.fchip').forEach(function(c){ c.classList.remove('active'); });
+  document.getElementById('counter').innerHTML='&#127758; choose a flavour';
+  document.getElementById('f-count').innerHTML=''; document.getElementById('notes').innerHTML='';
+  document.getElementById('list-scroll').style.display='none';
+  document.getElementById('list').innerHTML='';
+}
+function selectFlavour(key){
+  if(key===currentFlavour){ resetMap(); return; }   // ri-click sullo stesso = reset (mappa vuota)
+  currentFlavour=key;
+  document.querySelectorAll('.fchip').forEach(function(c){ c.classList.toggle('active',c.dataset.key===key); });
+  var f=FLAVOURS.filter(function(x){return x.key===key;})[0];
+  var matches=allCans.filter(function(c){
+    var n=String(c.nome||'');
+    if(GLOBAL_EXCLUDE.some(function(re){return re.test(n);})) return false;
+    return f.words.every(function(re){ return re.test(n); });
+  });
+  buildStats(matches);
+  lightMap();
+  document.getElementById('f-count').innerHTML='<b>'+matches.length+'</b> can'+(matches.length===1?'':'s')+' &middot; <b>'+Object.keys(byIso).length+'</b> countries';
+  renderList(matches);
+  document.getElementById('list-scroll').style.display='block';
+}
+/* Gruppi per la LISTA: come la mappa, ma le lattine CARIBBEAN finiscono in UN solo
+   blocco "Caribbean" (sulla mappa restano accese tutte le isole). */
+function listGroups(c){
+  var isos=parseLinguaToIsos(c.lingua).isos.slice();
+  if(/\bCARIBBEAN\b/i.test(String(c.lingua||''))){
+    var car=MAP_EXPAND['CARIBBEAN']||[];
+    isos=isos.filter(function(i){ return car.indexOf(i)===-1; });
+    isos.push('_CARIB');
+  }
+  return isos;
+}
+/* Lista: blocchi per nazione (alfabetico), bandiera nel titolo, righe ordinate per SKU.
+   Niente promo, TRANNE se la nazione ha SOLO promo → la mostro e la segnalo. */
+function renderList(matches){
+  var groups={};
+  matches.forEach(function(c){
+    listGroups(c).forEach(function(g){ (groups[g]=groups[g]||[]).push(c); });
+  });
+  var keys=Object.keys(groups).sort(function(a,b){ return isoName(a).localeCompare(isoName(b)); });
+  var html='';
+  keys.forEach(function(g){
+    var cans=groups[g], nonPromo=cans.filter(function(c){return !isPromo(c);});
+    var promoOnly=nonPromo.length===0, show=(promoOnly?cans:nonPromo).slice()
+      .sort(function(a,b){ return skuKey(a.sku)-skuKey(b.sku)||String(a.sku).localeCompare(String(b.sku)); });
+    html+='<div class="blk"><div class="blk-h">'+flagImg(g,'20x15')+esc(isoName(g))
+      +(promoOnly?' <span class="po">promo only</span>':'')+'</div>';
+    show.forEach(function(c){
+      html+='<div class="blk-r"><span class="nm">'+esc(c.nome||'—')+(isPromo(c)?' <span class="ptag">promo</span>':'')
+        +'</span><span class="meta">'+esc(c.sku||'—')+(c.size?' · '+esc(c.size):'')+'</span></div>';
+    });
+    html+='</div>';
+  });
+  document.getElementById('list').innerHTML=html||'<div class="muted">No cans for this flavour</div>';
+}
+
+/* ── info overlay: legenda + paesi senza una mia lattina ── */
+function computeMissing(){
+  var lit={}; allCans.forEach(function(c){ parseLinguaToIsos(c.lingua).isos.forEach(function(i){ lit[i]=1; }); });
+  var host=document.getElementById('svg-host');
+  var all=Array.from(host.querySelectorAll('[id]')).map(function(e){return e.id.toUpperCase();}).filter(function(id){return /^[A-Z]{2}$/.test(id);});
+  all=all.filter(function(v,i){ return all.indexOf(v)===i; });
+  return all.filter(function(iso){ return !lit[iso]&&SHARED_CAN_ISO.indexOf(iso)===-1&&NO_MONSTER_ISO.indexOf(iso)===-1; })
+            .sort(function(a,b){ return isoName(a).localeCompare(isoName(b)); });
+}
+function openInfo(){
+  var miss=computeMissing();
+  var html='<div style="display:flex;justify-content:space-between;align-items:center"><h2>&#127758; Map legend</h2>'
+    +'<button class="p-close" onclick="closeInfo()">&#10005;</button></div>'
+    +'<div class="leg"><span class="dot" style="background:var(--green)"></span> You have a can from this country</div>'
+    +'<div class="leg"><span class="dot" style="background:var(--red)"></span> The can exists but I don&rsquo;t have it yet (to be marked from my missing-list, e.g. OG Indonesia)</div>'
+    +'<div class="leg"><span class="dot" style="background:#161d16;border:1px solid #333"></span> No can (for now: includes countries that use another country&rsquo;s can)</div>'
+    +'<h3>Caribbean</h3><p>The <b>CARIBBEAN</b> label lights all Caribbean islands <b>except</b> Dominican Republic, Trinidad &amp; Tobago and Jamaica, which have (or will have) their own can.</p>'
+    +'<h3>Countries without a can of yours ('+miss.length+')</h3>'
+    +'<p style="margin-bottom:6px">Review this list and tell me, country by country, whether Monster makes a can there (you’re missing it) or not (no Monster) — I’ll mark them accordingly.</p>'
+    +'<div class="miss-grid">'+miss.map(function(iso){ return '<div>'+flagImg(iso,'16x12')+esc(isoName(iso))+'</div>'; }).join('')+'</div>';
+  document.getElementById('info-body').innerHTML=html;
+  document.getElementById('info-ov').classList.add('open');
+}
+function closeInfo(){ document.getElementById('info-ov').classList.remove('open'); }
+
+/* ── layout: primo schermo = viewport (mappa+picker); la lista scorre sotto ── */
+function fitFirstView(){
+  var h=document.querySelector('header').offsetHeight;
+  document.getElementById('firstview').style.height=(window.innerHeight-h)+'px';
+}
+window.addEventListener('resize',fitFirstView);
+
+function attachEvents(){
+  var host=document.getElementById('svg-host');
+  function countryEl(t){ var el=t.closest('[id]'); return (el&&/^[a-z]{2}$/i.test(el.id))?el:null; }
+  host.addEventListener('mouseover',function(e){ var el=countryEl(e.target); if(el) showTip(e,el.id.toUpperCase()); });
+  host.addEventListener('mousemove',function(e){ if(tip.style.display==='block') moveTip(e); });
+  host.addEventListener('mouseout',hideTip);
+  host.addEventListener('click',function(e){ var el=e.target.closest('.lit'); if(el) openPanel(el.getAttribute('data-iso')); });
+}
+
+/* pinch-zoom a 2 dita sulla SOLA mappa (mobile): scala #svg-host dentro #map-box */
+(function(){
+  var box=document.getElementById('map-box'), host=document.getElementById('svg-host');
+  var d0=0, s0=1;
+  function dist(t){ return Math.hypot(t[0].clientX-t[1].clientX, t[0].clientY-t[1].clientY); }
+  box.addEventListener('touchstart',function(e){
+    if(e.touches.length===2){ d0=dist(e.touches); s0=parseFloat(host.dataset.scale||'1'); }
+  },{passive:true});
+  box.addEventListener('touchmove',function(e){
+    if(e.touches.length===2&&d0){
+      e.preventDefault();
+      var s=Math.min(5,Math.max(1,s0*dist(e.touches)/d0));
+      host.dataset.scale=s; host.style.width=(s*100)+'%';
+    }
+  },{passive:false});
+  box.addEventListener('touchend',function(){ d0=0; },{passive:true});
+})();
+
+var warmTimer=setTimeout(function(){ var w=document.getElementById('warm'); if(w) w.style.display='block'; },5000);
+Promise.all([
+  fetch('/world-map.svg').then(function(r){ if(!r.ok) throw 0; return r.text(); }),
+  fetch('/api/cans').then(function(r){ if(!r.ok) throw 0; return r.json(); }).catch(function(){ usingMock=true; return MOCK; })
+]).then(function(res){
+  clearTimeout(warmTimer);
+  document.getElementById('loading').style.display='none';
+  document.getElementById('svg-host').innerHTML=res[0];
+  allCans=res[1]||[];
+  renderChips();
+  document.getElementById('picker').style.display='';
+  if(isAdmin) document.getElementById('val-btn').style.display='';
+  if(usingMock) document.getElementById('notes').innerHTML='&#9888;&#65039; Demo data (API not reachable)';
+  attachEvents();
+  fitFirstView();
+}).catch(function(){
+  document.getElementById('loading').innerHTML='&#9888;&#65039; Could not load the map. <a href="/" style="color:var(--green)">Back to Vault</a>';
+});
+</script>
+</body>
+</html>
