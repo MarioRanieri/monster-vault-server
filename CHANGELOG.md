@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Refresh token flow** — short-lived access token (15 min) in memory + long-lived refresh token (7 days) in an HttpOnly/Secure/SameSite=Strict cookie; rotation on every refresh, revocation on logout, in-memory `RefreshTokenStore` (SHA-256 hashed). New endpoints `POST /api/auth/logout`; `POST /api/auth/refresh` now reads the cookie. Frontend does silent refresh on 401 and recovers the session at boot.
 - **SEO / AEO assets** — `robots.txt`, `sitemap.xml`, `llms.txt`, JSON-LD structured data, meta description, canonical URL, preconnect hints; `ShareController` (`GET /share/{id}`) serves per-can Open Graph meta for social/chat previews.
 - **Frontend tooling** — Vite bundler, TypeScript strict, ESLint, Prettier; CI gate runs lint + format-check + build.
+- **Playwright E2E smoke tests** — 4 tests against the built frontend with the API mocked (no backend/DB), failing on any uncaught JS error; dedicated CI job installs Chromium and runs them (the Selenium E2E never ran in CI for lack of a browser).
 
 ### Changed
 - **Project restructure** — split into `backend/` (Spring Boot) and `frontend/` (PWA); root `Dockerfile` is now 3-stage (Node build → Maven build → JRE run); CI and `.gitignore` paths updated. Same-origin serving preserved (frontend built into the backend's static resources).
@@ -18,7 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Backend code quality** — constructor injection throughout (removed field `@Autowired`), unused imports removed, Lombok upgraded to 1.18.38.
 
 ### Fixed
-- E2E `openAsAdmin` helper adapted to the in-memory token auth flow (was still injecting the removed `localStorage` token).
+- **Vite asset 401 (white screen)** — `SecurityConfig` now permits `/assets/**` (and `/*.css`); the hashed Vite bundles fell through to `authenticated()` and returned 401, so no JS/CSS loaded.
+- **Broken cross-module calls** — `main.ts` exposes every module export on `window` (via `Object.assign`); 10 functions called through `(window as any).fn()` were never assigned, crashing render (grid/map-return), photo arrows, edit/add, upload, and filters.
+- **Sign-out / guest** — `signOut` now awaits `/api/auth/logout` before reload so the refresh cookie is actually cleared; an explicit "Continue as guest" no longer gets silently re-promoted to admin by the boot cookie-refresh.
+- **E2E `openAsAdmin`** helper adapted to the in-memory token auth flow (was still injecting the removed `localStorage` token).
+- Removed the misleading "reset zoom" (↺) button from the map.
 
 ## [0.1.0] - 2026-06-17
 

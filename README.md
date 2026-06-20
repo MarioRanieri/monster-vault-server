@@ -4,12 +4,13 @@
 
 ![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3-6DB33F?logo=springboot&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-bundler-646CFF?logo=vite&logoColor=white)
 ![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8?logo=pwa&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-86%20Jest%20%2B%20117%20JVM-success)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Live demo](https://img.shields.io/badge/demo-live-success?logo=render&logoColor=white)](https://monster-vault-server.onrender.com)
 
-**Monster Vault** is a full‑stack app for managing a large Monster Energy can collection (1,800+ cans). A Spring Boot 3.3 / Java 17 backend exposes a stateless JWT REST API (Firestore + Cloudinary); the frontend is a single‑file vanilla‑JS Progressive Web App served from the same origin — no CORS, no build step.
+**Monster Vault** is a full‑stack app for managing a large Monster Energy can collection (1,800+ cans). It's a monorepo: a **`backend/`** Spring Boot 3.3 / Java 17 service exposing a stateless JWT REST API (Firestore + Cloudinary), and a **`frontend/`** TypeScript Progressive Web App (modular, bundled with Vite). The built frontend is embedded into the backend's static resources at build time, so it's served same‑origin — no CORS. Auth uses a short‑lived access token plus a rotating refresh token in an HttpOnly cookie.
 
 **🔗 Live demo:** https://monster-vault-server.onrender.com
 
@@ -42,8 +43,8 @@
 ### System overview
 
 ```
-        Browser / PWA  (vanilla JS · installable · offline)
-                │  HTTPS · REST · JWT (stateless)
+        Browser / PWA  (TypeScript modules · Vite · installable · offline)
+                │  HTTPS · REST · JWT access token + refresh cookie (stateless)
                 ▼
         ┌───────────────────────────────────────────┐
         │  Spring Boot API  (Java 17)                │
@@ -55,9 +56,10 @@
 
    ── Cross-cutting ──────────────────────────────────────────
    Observability : /actuator/prometheus → Prometheus → Grafana
-   CI/CD         : GitHub Actions (tests) → Docker image → Render
+   CI/CD         : GitHub Actions (backend tests · frontend lint/build · Playwright E2E) → Docker → Render
    Orchestration : Kubernetes manifests (Deployment/Service) · minikube
    IaC / Cloud   : Terraform → GCP Cloud Run + Artifact Registry (infra/)
+   SEO / AEO     : robots.txt · sitemap.xml · llms.txt · JSON-LD · /share/{id} OG meta
    Companion     : Python eBay monitor → Telegram alerts
 ```
 
@@ -74,15 +76,17 @@ SecurityConfig     ← decides if the route is public or requires authentication
      │
      ▼
 Controller         ← receives the HTTP request, delegates to services
-  ├── AuthController   → POST /api/auth/login
-  └── CanController    → CRUD /api/cans, photo upload
+  ├── AuthController   → POST /api/auth/login · /refresh (cookie) · /logout
+  ├── CanController    → CRUD /api/cans, photo upload
+  └── ShareController  → GET /share/{id} (dynamic Open Graph meta)
 
      │
      ▼
 Service            ← business logic
-  ├── AdminAuthService  → verifies credentials, generates JWT
+  ├── AdminAuthService  → verifies credentials, issues access + refresh tokens (rotation)
   ├── CanService        → in-memory cache + delegates to repository
   └── CloudinaryService → uploads photos to Cloudinary
+  + RefreshTokenStore   → in-memory store of active refresh tokens (SHA-256 hashed)
 
      │
      ▼
@@ -105,17 +109,17 @@ This makes each component independently testable with mocks.
 | Database | Google Firestore (Firebase Admin SDK 9.3.0, paginated 500 docs/page) |
 | Photo storage | Cloudinary |
 | Validation | Jakarta Validation (`@NotBlank`) |
-| Boilerplate reduction | Lombok 1.18.34 (`@Data`, `@Slf4j`) — compatible with JDK 21+ |
+| Boilerplate reduction | Lombok 1.18.38 (`@Data`, `@Slf4j`) |
 | Rate limiting | Bucket4j 8.10.1 — 10 login attempts/min per IP (LRU-bounded IP map) |
 | API docs | SpringDoc OpenAPI 2.6.0 — Swagger UI at `/swagger-ui.html` |
 | Observability | Spring Boot Actuator, Micrometer, Prometheus, Grafana |
-| Containerization | Docker (multi-stage build) |
+| Containerization | Docker (3-stage: Node/Vite build → Maven build → JRE runtime) |
 | Hosting | Render free tier |
-| Frontend | PWA (manifest + service worker), installable as app |
+| Frontend | TypeScript (strict) · Vite bundler · ESLint · Prettier · PWA (manifest + service worker) |
 | Orchestration | Kubernetes (Deployment/Service/ConfigMap/Secret) — local minikube |
 | IaC | Terraform — GCP Cloud Run + Artifact Registry (`infra/`) |
-| CI/CD | GitHub Actions — backend tests + frontend Jest |
-| Testing | JUnit, Selenium (E2E), Jest (frontend) |
+| CI/CD | GitHub Actions — backend tests · frontend lint/format/build · Playwright E2E |
+| Testing | JUnit + Mockito · Selenium (E2E) · Playwright (frontend smoke) |
 | Companion tool | Python eBay monitor (Browse API + Telegram) |
 
 ---
@@ -126,17 +130,19 @@ This makes each component independently testable with mocks.
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| POST | `/api/auth/login` | Public | Returns a JWT token on valid credentials |
-| POST | `/api/auth/refresh` | JWT | Silent refresh — returns a fresh JWT for a still-valid token |
+| POST | `/api/auth/login` | Public | Valid credentials → access token in body + refresh token in an HttpOnly cookie |
+| POST | `/api/auth/refresh` | Refresh cookie | Reads the refresh cookie, rotates it, returns a fresh access token |
+| POST | `/api/auth/logout` | Refresh cookie | Revokes the refresh token and clears the cookie |
 
-**Request body:**
+**Request body (login):**
 ```json
 { "username": "admin", "password": "yourpassword" }
 ```
 **Response 200:**
 ```json
-{ "token": "<JWT>" }
+{ "accessToken": "<short-lived JWT>" }
 ```
+…plus a `Set-Cookie: mv_refresh=<JWT>; HttpOnly; Secure; SameSite=Strict; Path=/api/auth`.
 **Response 401:** Invalid credentials.
 
 ---
@@ -183,17 +189,22 @@ X-Confirm-Delete: all
 ```
 1. Client → POST /api/auth/login { username, password }
 2. Server → BCrypt verifies password against stored hash
-3. Server → generates signed JWT (HMAC-SHA256, 24h expiry)
-4. Client ← { "token": "eyJ..." }
+3. Server → issues an access token (HMAC-SHA256, ~15 min, type=access)
+            and a refresh token (~7 days, type=refresh) stored in RefreshTokenStore
+4. Client ← { "accessToken": "eyJ..." }  +  Set-Cookie: mv_refresh (HttpOnly)
+            access token kept in memory (not localStorage → XSS-resilient)
 
-5. Client → GET /api/cans  Authorization: Bearer eyJ...
-6. JwtFilter → verifies JWT signature and expiry
-7. JwtFilter → sets authentication in SecurityContext
-8. SecurityConfig → allows the request
-9. Client ← [ { id: "...", nome: "...", ... }, ... ]
+5. Client → GET /api/cans  Authorization: Bearer eyJ...   (writes require this)
+6. JwtFilter → accepts ONLY access tokens (checks the `type` claim)
+
+7. On 401 (access expired) → client POSTs /api/auth/refresh (cookie sent
+   automatically) → server rotates the refresh token, returns a new access
+   token → client retries the original request. On boot the same call
+   silently restores the session from the cookie.
+8. Logout → POST /api/auth/logout revokes the refresh token + clears the cookie.
 ```
 
-The server is **stateless**: no sessions, no cookies. Every request carries its own JWT.
+The server is **stateless** for access (signature-verified JWT); the only server-side state is the in-memory set of active refresh-token hashes (rotation/revocation), which resets on restart — acceptable for a single-admin app.
 
 ---
 
@@ -218,37 +229,46 @@ cache = [Can, ...]  → warm cache: all reads served from memory
 
 ## Project Structure
 
+Monorepo with two top-level apps. The frontend is built and copied into the backend's
+`static/` at Docker build time, so production serves everything same-origin.
+
 ```
-src/main/java/com/monstervault/
-├── MonsterVaultApplication.java          # Entry point
-├── model/
-│   └── Can.java                          # Data model; photoAt: Long; p1Id-p4Id: Cloudinary public_id
-├── config/
-│   ├── FirebaseConfig.java               # Firebase Admin SDK init + Firestore bean
-│   ├── SecurityConfig.java               # Spring Security: routes, JWT filter, BCrypt
-│   ├── WebConfig.java                    # Registers LoginRateLimitInterceptor on /api/auth/login
-│   └── OpenApiConfig.java                # SpringDoc OpenAPI: JWT Bearer "Authorize" button
-├── security/
-│   ├── TokenValidator.java               # Interface: isValid, getUsername
-│   ├── TokenGenerator.java               # Interface: generate
-│   ├── JwtUtil.java                      # Implements both interfaces (HMAC-SHA256)
-│   ├── JwtFilter.java                    # HTTP filter: reads Bearer token per request
-│   └── LoginRateLimitInterceptor.java    # Bucket4j: 10 req/min per IP on login
-├── repository/
-│   ├── CanRepository.java                # Interface: CRUD contract
-│   └── FirestoreCanRepository.java       # Firestore implementation (paginated, WriteBatch)
-├── service/
-│   ├── AuthService.java                  # Interface: authenticate → Optional<String>
-│   ├── AdminAuthService.java             # Implementation: BCrypt + TokenGenerator
-│   ├── CanService.java                   # Cache + photo orchestration (update/delete/upload with Cloudinary cleanup)
-│   ├── PhotoStorage.java                 # Interface: upload, uploadFromUrl, delete(urlOrId), deleteFolder()
-│   └── CloudinaryService.java            # Cloudinary: upload, delete (URL or publicId), deleteFolder (prefix API)
-├── controller/
-│   ├── AuthController.java               # POST /api/auth/login
-│   ├── CanController.java                # CRUD + photo endpoints
-│   └── GlobalExceptionHandler.java       # @RestControllerAdvice: 400/429/500 error handling
-└── exception/
-    └── FirestoreQuotaExceededException.java  # Custom exception for Firestore 429
+.
+├── Dockerfile                            # 3-stage: Vite build → Maven build → JRE runtime
+├── backend/                              # Spring Boot service
+│   ├── pom.xml
+│   └── src/main/java/com/monstervault/
+│       ├── MonsterVaultApplication.java
+│       ├── model/Can.java                # photoAt: Long; p1Id-p4Id: Cloudinary public_id
+│       ├── config/                       # FirebaseConfig, SecurityConfig, WebConfig, OpenApiConfig
+│       ├── security/
+│       │   ├── TokenValidator / TokenGenerator   # interfaces (access + refresh aware)
+│       │   ├── JwtUtil.java              # HMAC-SHA256; access/refresh tokens, `type` claim
+│       │   ├── JwtFilter.java            # accepts only access tokens
+│       │   ├── RefreshTokenStore.java    # in-memory active refresh tokens (SHA-256 hashed)
+│       │   └── LoginRateLimitInterceptor.java
+│       ├── repository/                   # CanRepository + FirestoreCanRepository
+│       ├── service/
+│       │   ├── AuthService / AdminAuthService     # login → AuthResponse, refresh+rotation, logout
+│       │   ├── AuthResponse.java         # record(accessToken, refreshToken)
+│       │   ├── CanService.java           # cache + photo orchestration
+│       │   └── PhotoStorage / CloudinaryService
+│       ├── controller/                   # AuthController, CanController, ShareController, GlobalExceptionHandler
+│       └── exception/FirestoreQuotaExceededException.java
+└── frontend/                             # TypeScript PWA (Vite)
+    ├── index.html                        # Vite entry (markup only)
+    ├── vite.config.ts · tsconfig.json · eslint.config.js · .prettierrc
+    ├── src/
+    │   ├── main.ts                       # entry: wires modules, exposes them on window
+    │   ├── core.ts                       # state, API, auth, cache, utils
+    │   ├── ui.ts                         # filters, views, detail, edit, boot
+    │   ├── tools.ts                      # stats, value calculator, import/export
+    │   ├── photos.ts · share.ts · pwa.ts · types.ts
+    │   └── styles/main.css
+    ├── public/                           # sw.js, map.html, manifest.json, robots.txt, sitemap.xml, llms.txt, images
+    └── tests/
+        ├── frontend.test.js              # legacy Jest unit suite
+        └── e2e/smoke.spec.ts             # Playwright smoke tests (run in CI)
 ```
 
 ---
@@ -256,10 +276,10 @@ src/main/java/com/monstervault/
 ## Running Locally
 
 ### Prerequisites
-- **JDK 17** (recommended — matches the Docker/Render target). JDK 21+ also works with Lombok 1.18.34.
-- Maven 3.9.x
-- A `src/main/resources/application.properties` file (not committed — see below)
-- A `src/main/resources/firebase-service-account.json` file (not committed)
+- **JDK 17** (matches the Docker/Render target)
+- Maven 3.9.x · **Node 22** (for the frontend build)
+- A `backend/src/main/resources/application.properties` file (not committed — see below)
+- A `backend/src/main/resources/firebase-service-account.json` file (not committed)
 
 ### application.properties
 
@@ -269,62 +289,72 @@ firestore.collection=cans
 app.admin.username=YourAdminUsername
 app.admin.password=$2a$10$<bcrypt_hash_of_your_password>
 app.jwt.secret=<random_string_at_least_32_chars>
-app.jwt.expiration=86400000
+app.jwt.access-expiration=900000        # access token, 15 min
+app.jwt.refresh-expiration=604800000    # refresh token, 7 days
+app.jwt.refresh-cookie-secure=false     # set false only for local HTTP dev
 cloudinary.cloud-name=<your_cloud_name>
 cloudinary.api-key=<your_api_key>
 cloudinary.api-secret=<your_api_secret>
 firebase.service-account=src/main/resources/firebase-service-account.json
 ```
 
-### Run Tests
+### Frontend (dev)
 
 ```bash
-# Maven wrapper (Windows, PowerShell) — JDK 17 recommended (matches Docker/Render)
+cd frontend
+npm ci
+npm run dev        # Vite dev server on :5173, proxies /api → :8080
+# build + checks:
+npm run build      # tsc --noEmit && vite build → dist/
+npm run lint && npm run format:check
+npm run test:e2e   # Playwright smoke tests (needs `npx playwright install chromium` once)
+```
+
+### Backend (tests + run)
+
+```bash
+cd backend
+# Windows (PowerShell) — JDK 17 (avoid JDK 25: Lombok TypeTag::UNKNOWN)
 $env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.0.14.7-hotspot"
 .\mvnw.cmd test
+.\mvnw.cmd spring-boot:run     # serves API + whatever is in src/main/resources/static/
 
-# Linux / macOS (or JDK 21+, Lombok 1.18.34 is compatible)
+# Linux / macOS
 mvn test
 ```
 
-> The Windows wrapper `mvnw.cmd` requires CRLF line endings and the
-> `-Dmaven.multiModuleProjectDirectory` flag to run; both are enforced
-> (`.gitattributes` pins `*.cmd` to CRLF). Avoid JDK 25 locally — it fails
-> Lombok annotation processing (`TypeTag::UNKNOWN`); use JDK 17.
-
-### Start the Server
-
-```bash
-JAVA_HOME="C:/Program Files/Eclipse Adoptium/jdk-17.0.14.7-hotspot" \
-  mvn spring-boot:run
-```
+> To serve the frontend locally from Spring Boot, build it first and copy the
+> output: `npm --prefix frontend run build && cp -r frontend/dist/* backend/src/main/resources/static/`.
+> The Docker build does this automatically.
+> The Windows wrapper `mvnw.cmd` requires CRLF line endings (`.gitattributes` pins `*.cmd`).
 
 ---
 
 ## Test Suite
 
-### Backend — 59 unit/integration + 58 E2E, 0 failures
+### Backend — 82 unit/integration + 58 E2E (Selenium)
 
-| File | Tests | What it covers |
-|---|---|---|
-| `CanServiceTest` | 19 | Cache warm/cold, save/update/softDelete/restore/permanentDelete with Cloudinary cleanup, InOrder save-before-delete, publicId preference, deleteFolder, Cloudinary failure resilience |
-| `AdminAuthServiceTest` | 7 | Correct/wrong credentials, BCrypt short-circuit, JWT refresh (valid/invalid/null) |
-| `JwtUtilTest` | 4 | Token generation, validation, username extraction, invalid token |
-| `AuthControllerTest` | 3 | Login success / wrong password / wrong username |
-| `CanControllerTest` | 16 | Full CRUD with/without JWT, soft-delete/restore/permanent, @Valid enforcement, deleteAll header |
-| `SecurityHeadersTest` | 10 | ETag deterministic/mutable/304, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy |
+| File | What it covers |
+|---|---|
+| `CanServiceTest` | Cache warm/cold, save/update/softDelete/restore/permanentDelete with Cloudinary cleanup, InOrder save-before-delete, deleteFolder, failure resilience |
+| `AdminAuthServiceTest` | Login → `AuthResponse`, refresh with rotation, logout/revocation |
+| `RefreshTokenStoreTest` | store / isActive / revoke / revokeAllForUser, SHA-256 hashing |
+| `JwtUtilTest` | Access vs refresh tokens, `type` claim, dual expirations, invalid/expired |
+| `AuthControllerTest` | Login sets HttpOnly cookie + access body, refresh rotates cookie, logout clears it |
+| `CanControllerTest` | Full CRUD with/without JWT, soft-delete/restore/permanent, @Valid, deleteAll header |
+| `SecurityHeadersTest` | ETag/304, CSP, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy |
 
-Controller tests use `@WebMvcTest` with `@Import({SecurityConfig.class, JwtUtil.class})` — required to load the JWT filter in the test context, otherwise all requests return 401/403.
+Controller tests use `@WebMvcTest` with `@Import({SecurityConfig.class, JwtUtil.class})` so the JWT filter loads in the test context.
 
-**E2E (Selenium, headless Chrome)** — `AdminFlowE2ETest` (25), `GuestFlowE2ETest` (14), `ResponsiveE2ETest` (19) = 58 tests. Base class mocks Firebase/Firestore/repository/storage and injects the JWT via `localStorage`. 2 responsive tests are `assumeTrue`-skipped on Windows (headless Chrome clamps the viewport to ~480px) and pass on the Linux CI runner. Full run: `Tests run: 117, Failures: 0, Errors: 0, Skipped: 2`.
+**E2E (Selenium, headless Chrome)** — `AdminFlowE2ETest`, `GuestFlowE2ETest`, `ResponsiveE2ETest` = 58 tests. The base class mocks Firebase/Firestore/repository/storage; admin tests inject the access token into memory and force admin UI via the window-exposed functions (the new in-memory auth flow). **These need a local Chrome and are skipped on the CI runner** — run them locally with `mvn test`.
 
-### Frontend — 86 tests, 0 failures
+### Frontend — Playwright smoke (CI) + legacy Jest
 
-Located in `frontend-tests/` (Jest + jsdom). Each test loads the real `index.html` in jsdom and exercises production code directly. Run with:
-
-```bash
-cd frontend-tests && npm test
-```
+- **Playwright smoke** (`frontend/tests/e2e/smoke.spec.ts`, runs in CI): builds the frontend, serves it via `vite preview` with the API mocked (`page.route`), and asserts the app loads, the grid renders, photo detail opens, admin Add opens the edit modal, and vault→map→back still renders — **failing on any uncaught JS error**. This catches the kind of cross-module wiring bug a browserless suite can't.
+  ```bash
+  cd frontend && npx playwright install chromium && npm run test:e2e
+  ```
+- **Legacy Jest** (`frontend/tests/frontend.test.js`, jsdom): pure-function and behaviour tests against the pre-modularization `src/index.html`; kept as a reference suite. `cd frontend/tests && npm ci && npm test`.
 
 | Suite | Tests | What it covers |
 |---|---|---|
@@ -357,10 +387,10 @@ cd frontend-tests && npm test
 
 ### API — Newman collection
 
-Located in `src/test/api/monster-vault.collection.json`. Run with:
+Located in `backend/src/test/api/monster-vault.collection.json`. Run with:
 
 ```bash
-newman run src/test/api/monster-vault.collection.json -e src/test/api/local.environment.json
+newman run backend/src/test/api/monster-vault.collection.json -e backend/src/test/api/local.environment.json
 ```
 
 Covers: Auth (login OK/wrong-password/wrong-username), public GET, JWT-protected CRUD, batch save, `DELETE /api/cans` header enforcement, and self-cleaning test data.
@@ -380,7 +410,8 @@ The app is containerized with a multi-stage Dockerfile and deployed on Render fr
 | `APP_ADMIN_USERNAME` | Admin username |
 | `APP_ADMIN_PASSWORD` | BCrypt hash of admin password |
 | `APP_JWT_SECRET` | JWT signing secret (min. 32 chars) |
-| `APP_JWT_EXPIRATION` | Token expiry in ms (e.g. `86400000` = 24h) |
+| `APP_JWT_ACCESS_EXPIRATION` | Access token expiry in ms (e.g. `900000` = 15 min) |
+| `APP_JWT_REFRESH_EXPIRATION` | Refresh token expiry in ms (e.g. `604800000` = 7 days) |
 | `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name |
 | `CLOUDINARY_API_KEY` | Cloudinary API key |
 | `CLOUDINARY_API_SECRET` | Cloudinary API secret |
@@ -393,7 +424,7 @@ The app is containerized with a multi-stage Dockerfile and deployed on Render fr
 
 ## Key Design Decisions
 
-**Stateless JWT over sessions** — no server-side state, horizontally scalable, works naturally with Render's ephemeral containers.
+**Access token + refresh token (rotation)** — a short-lived access token (15 min) is kept in memory and sent as `Authorization: Bearer` (XSS-resilient — not in localStorage); a long-lived refresh token (7 days) lives in an HttpOnly/Secure/SameSite=Strict cookie. Each refresh rotates the token (single-use) and is revoked on logout. Access stays stateless (signature-verified); only the small set of active refresh-token hashes is held in memory.
 
 **Interface-based architecture (SOLID DIP)** — `CanService` depends on `CanRepository`, not on `FirestoreCanRepository`. Switching persistence layer means writing one new class, not modifying existing ones.
 

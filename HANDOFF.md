@@ -2,7 +2,7 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-06-17 (rev 40)  
+**Updated:** 2026-06-20 (rev 41)  
 **Branch:** main  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
@@ -11,13 +11,24 @@
 
 ## Summary
 
-Backend Spring Boot 3.3 (Java 17) con REST API completa per la gestione della collezione Monster Vault. Frontend (`index.html`) migrato per usare esclusivamente le API REST con autenticazione JWT stateless. Deploy su Render free tier con Docker. Codebase refactorizzata secondo principi SOLID e ACID con test suite completa: **61 test unit/integrazione + 58 E2E Selenium (119 totali, 2 skip viewport) + 89 test Jest frontend**. PWA installabile con manifest + service worker + icona PNG locale.
+Monorepo: **`backend/`** Spring Boot 3.3 (Java 17), REST API stateless con JWT; **`frontend/`** PWA in **TypeScript** modulare bundlata con **Vite** (build embeddata nelle static del backend a build-time → stesso origin, no CORS). Auth con **access token (15 min, in memoria) + refresh token (7 gg, cookie HttpOnly, rotazione + revoca**). Deploy su Render con **Dockerfile 3-stage** (Node/Vite → Maven → JRE). SEO/AEO (robots/sitemap/llms.txt/JSON-LD/`/share/{id}`). Test: **82 unit/integrazione backend + 58 E2E Selenium (skip in CI senza Chrome) + smoke test Playwright (in CI) + suite Jest legacy**.
 
 ---
 
 ## Work Completed
 
 ### Changes Made
+
+- [x] **Refactoring strutturale (rev 41, 2026-06-20)** — 6 fasi, tutte committate e in produzione:
+  - **Fase 1 — CHANGELOG**: aggiunto `CHANGELOG.md` (Keep a Changelog + SemVer).
+  - **Fase 2 — Refresh token**: `JwtUtil` con due tipi di token (claim `type`, access 15 min / refresh 7 gg, scadenze configurabili); `RefreshTokenStore` (ConcurrentHashMap di hash SHA-256, rotazione + revoca); `AuthService.authenticate→AuthResponse`, `refresh` con rotazione, `logout`; `AuthController` setta cookie HttpOnly/Secure/SameSite=Strict, refresh legge+ruota il cookie, nuovo `/logout`; `JwtFilter` accetta solo access token. Frontend: token in memoria (non più localStorage), `apiCall` su 401 → refresh → retry, recupero sessione al boot dal cookie. Lombok 1.18.34→1.18.38.
+  - **Fase 3 — Restructure**: split `backend/` + `frontend/`; Dockerfile e CI con i nuovi path; `.gitignore` aggiornato; frontend buildato e copiato in `static/` a build-time.
+  - **Fase 4 — SEO/AEO**: `robots.txt`, `sitemap.xml`, `llms.txt`, JSON-LD, meta description/canonical/preconnect; `ShareController` (`GET /share/{id}`) con OG meta dinamici per lattina.
+  - **Fase 5 — Code quality backend**: constructor injection ovunque (rimosso `@Autowired` su campo), import inutilizzati rimossi.
+  - **Fase 6 — Frontend modulare**: monolite `index.html` (~4000 righe) estratto in 7 moduli TS (`core/ui/tools/photos/share/pwa/types`) + Vite + ESLint + Prettier; entry `frontend/index.html`, asset in `public/`, CSS in `styles/main.css`; Dockerfile 3-stage; CI con lint/format/build.
+  - **Fix di produzione post-refactor**: (a) `/assets/**` aggiunto alla whitelist di `SecurityConfig` (i bundle Vite davano 401 → sito bianco); (b) `main.ts` espone TUTTI gli export via `Object.assign(window, …)` (10 funzioni bridge mancanti rompevano render/frecce-foto/edit/upload/filtri); (c) `signOut` attende il logout prima del reload + scelta guest non viene più sovrascritta dal cookie; (d) rimosso il pulsante "reset zoom" confuso dalla mappa.
+  - **Test E2E Playwright**: 4 smoke test (`frontend/tests/e2e/smoke.spec.ts`) contro il frontend buildato con API mockata; job CI dedicato che installa Chromium → **finalmente E2E che girano in CI** (i Selenium restano, skippati in CI senza Chrome).
+  - ⚠️ **Ambiente locale**: usare **JDK 17** per Maven (JDK 25 rompe Lombok: `TypeTag::UNKNOWN`). I PDF di studio (`OneDrive\…\teoria_Monster_vault`) sono ora obsoleti — da rigenerare col nuovo stack.
 
 - [x] **Cloud-native stack (Observability + Kubernetes + IaC) + guest UX/cleanup** (rev 40):
   - **📊 Observability**: Spring Boot Actuator + Micrometer/Prometheus → `/actuator/prometheus`; stack locale **Prometheus + Grafana** (`observability/` docker-compose); metrica business custom **`monstervault_cans_active`** (gauge legato a `CanService.cachedActiveCount()`, conteggio cache-only economico — nessuna query Firestore, nessuna eccezione). `application.yml` versionato (config NON-segreta) + whitelist endpoint actuator in `SecurityConfig`.
