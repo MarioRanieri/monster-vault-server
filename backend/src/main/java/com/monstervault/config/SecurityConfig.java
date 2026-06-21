@@ -2,14 +2,23 @@ package com.monstervault.config;
 
 import com.monstervault.security.JwtFilter;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.header.writers.StaticHeadersWriter;
@@ -33,6 +42,8 @@ import org.springframework.security.web.header.writers.StaticHeadersWriter;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
 
     private final JwtFilter jwtFilter;
 
@@ -83,9 +94,11 @@ public class SecurityConfig {
                         .requestMatchers("/", "/assets/**", "/*.html", "/*.js", "/*.css",
                                 "/manifest.json", "/*.jpg", "/*.png", "/*.ico", "/*.svg",
                                 "/*.webmanifest", "/*.txt", "/*.xml", "/share/**").permitAll()
-                        // Observability: endpoint Actuator pubblici per lo scrape di Prometheus
-                        // (solo questi 3; /actuator/env, /beans ecc. NON sono esposti — vedi application.yml)
-                        .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
+                        // Observability: /health (lo usa anche il health check di Render) e /info
+                        // restano pubblici. /prometheus espone metriche dettagliate → protetto con
+                        // HTTP Basic (vedi metricsUser): Prometheus fa lo scrape con basic_auth.
+                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers("/actuator/prometheus").hasRole("METRICS")
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html",
                                 "/v3/api-docs/**", "/v3/api-docs").permitAll()
                         .anyRequest().authenticated()
@@ -94,6 +107,9 @@ public class SecurityConfig {
                         .authenticationEntryPoint((req, res, ex) ->
                                 res.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"))
                 )
+                // HTTP Basic solo per lo scrape di /actuator/prometheus. Le API REST usano JWT
+                // (Bearer): il JwtFilter ignora il Basic, quindi i due meccanismi convivono.
+                .httpBasic(Customizer.withDefaults())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
@@ -101,5 +117,28 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    /**
+     * Utente (in memoria) che Prometheus usa per autenticarsi sullo scrape di /actuator/prometheus.
+     * Credenziali da env: METRICS_USER (default "metrics") e METRICS_PASSWORD.
+     * Se METRICS_PASSWORD non è impostata, si genera una password casuale: l'app parte comunque
+     * ma lo scrape è impossibile finché non la imposti (endpoint di fatto bloccato, mai aperto).
+     */
+    @Bean
+    public UserDetailsService metricsUser(
+            PasswordEncoder encoder,
+            @Value("${metrics.user:metrics}") String user,
+            @Value("${metrics.password:}") String password) {
+        if (password.isBlank()) {
+            password = UUID.randomUUID().toString();
+            log.warn("METRICS_PASSWORD non impostata: /actuator/prometheus protetto con password "
+                    + "casuale. Imposta METRICS_PASSWORD per consentire lo scrape di Prometheus.");
+        }
+        UserDetails metrics = User.withUsername(user)
+                .password(encoder.encode(password))
+                .roles("METRICS")
+                .build();
+        return new InMemoryUserDetailsManager(metrics);
     }
 }

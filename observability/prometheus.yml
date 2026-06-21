@@ -4,8 +4,13 @@ global:
 
 scrape_configs:
   # App in LOCALE (mvnw spring-boot:run sull'host, porta 8080).
+  # /actuator/prometheus è protetto: avvia l'app con METRICS_PASSWORD impostata
+  # (es. METRICS_PASSWORD=dev) e usa la stessa qui sotto.
   - job_name: monster-vault-local
     metrics_path: /actuator/prometheus
+    basic_auth:
+      username: metrics
+      password: "dev"
     static_configs:
       # Su Docker Desktop (Windows/Mac) 'host.docker.internal' = la tua macchina.
       # Su Linux: usa l'IP dell'host, oppure aggiungi extra_hosts nel compose.
@@ -13,8 +18,13 @@ scrape_configs:
 
   # --- Alternativa: scrape dell'app LIVE su Render (metriche di PRODUZIONE) ---
   # Decommenta per vedere in Grafana i numeri veri del sito online.
+  # /actuator/prometheus è protetto con HTTP Basic: usa le stesse credenziali
+  # impostate su Render (METRICS_USER / METRICS_PASSWORD).
   # - job_name: monster-vault-prod
   #   scheme: https
   #   metrics_path: /actuator/prometheus
+  #   basic_auth:
+  #     username: metrics
+  #     password: "INCOLLA_QUI_METRICS_PASSWORD"
   #   static_configs:
   #     - targets: ["monster-vault-server.onrender.com"]

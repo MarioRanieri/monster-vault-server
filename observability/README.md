@@ -7,11 +7,16 @@ Micrometer su `/actuator/prometheus`), **Prometheus** le raccoglie nel tempo, **
 App Spring (/actuator/prometheus)  ──scrape ogni 5s──▶  Prometheus  ──query──▶  Grafana (dashboard)
 ```
 
+> 🔒 **`/actuator/prometheus` è protetto da password** (HTTP Basic). `/actuator/health` e
+> `/actuator/info` restano pubblici. Credenziali via env: `METRICS_USER` (default `metrics`) e
+> `METRICS_PASSWORD`. In locale il `prometheus.yml` usa `metrics` / `dev`, quindi avvia l'app con
+> `METRICS_PASSWORD=dev`. In produzione (Render) imposta le stesse env e mettile nel job `-prod`.
+
 ## Avvio (3 passi)
 
 1. **Avvia l'app** (in un terminale, dalla root del progetto):
    ```bash
-   ./mvnw spring-boot:run        # gira su http://localhost:8080
+   METRICS_PASSWORD=dev ./mvnw spring-boot:run    # gira su http://localhost:8080
    ```
 2. **Avvia lo stack** (in un altro terminale):
    ```bash
@@ -41,5 +46,8 @@ In Grafana: **Dashboards → New → Import → ID `4701` → Load → seleziona
 > I contatori salgono e basta; `rate()` li trasforma in "al secondo", che è ciò che vuoi nei grafici.
 
 ## Monitorare la PRODUZIONE
-In `prometheus.yml` c'è un job commentato `monster-vault-prod`: decommentalo per raccogliere le
-metriche del sito **live** su Render (è già esposto su HTTPS).
+1. Su Render → **Environment** aggiungi `METRICS_PASSWORD` (e opzionalmente `METRICS_USER`).
+2. In `prometheus.yml` decommenta il job `monster-vault-prod` e incolla la stessa password nel
+   blocco `basic_auth`. Riavvia: `docker compose restart prometheus`.
+
+L'app è già esposta su HTTPS; ora lo scrape passa autenticato.
