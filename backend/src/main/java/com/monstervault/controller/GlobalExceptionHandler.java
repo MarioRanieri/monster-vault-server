@@ -8,6 +8,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -65,6 +66,16 @@ public class GlobalExceptionHandler {
                 "error", "quota_exceeded",
                 "message", e.getMessage()
         ));
+    }
+
+    /**
+     * Risorsa statica inesistente (es. /favicon.ico richiesto dal browser).
+     * È un 404, non un errore del server: gestito a parte così non finisce nel
+     * catch-all sotto, che lo trasformerebbe in 500 sporcando i log con stack trace.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Void> handleNoResource(NoResourceFoundException e) {
+        return ResponseEntity.notFound().build();
     }
 
     @ExceptionHandler(Exception.class)
