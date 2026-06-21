@@ -21,4 +21,8 @@ Object.defineProperty(window, '_accessToken', {
 });
 
 ui.boot();
+// Attach the photo-editor crop listeners (mouse + touch). Lost in the modular
+// refactor: the fn existed but was never called, so drag-to-crop was dead —
+// most visibly on mobile, where touch-crop is the main interaction.
+photos.initPhotoEditorListeners();
 registerSW();
