@@ -2564,6 +2564,9 @@ body.public-mode .share-view-btn {
   align-items: center;
   justify-content: center;
   overflow-y: auto;
+  /* senza questo, overflow-y:auto fa calcolare overflow-x a "auto" → scrollbar
+     orizzontale su mobile quando un figlio sfora. Clip esplicito. */
+  overflow-x: hidden;
   padding: 2rem 1.25rem;
   transition:
     opacity 0.4s ease,
@@ -2616,8 +2619,9 @@ body.public-mode .share-view-btn {
   position: absolute;
   left: 50%;
   top: 52%;
-  width: 340px;
-  height: 340px;
+  /* min(...) così su schermi stretti (<340px) il glow non sfora la viewport */
+  width: min(340px, 88vw);
+  height: min(340px, 88vw);
   transform: translate(-50%, -50%);
   background: radial-gradient(circle, rgba(168, 255, 0, 0.18), transparent 62%);
   filter: blur(18px);
@@ -2645,11 +2649,13 @@ body.public-mode .share-view-btn {
 }
 .land-wordmark {
   margin: 0;
+  max-width: 100%;
   font-family: 'Bebas Neue', sans-serif;
   font-weight: 400;
-  font-size: clamp(48px, 12vw, 88px);
+  /* min 34px (non 48) così "MONSTER VAULT" entra anche su schermi da ~320px */
+  font-size: clamp(34px, 12vw, 88px);
   line-height: 0.9;
-  letter-spacing: 3px;
+  letter-spacing: 2px;
   color: #f2f2f2;
 }
 .land-wordmark span {
@@ -2886,6 +2892,25 @@ body.public-mode .share-view-btn {
 @media (max-width: 640px) {
   html {
     overflow-x: hidden;
+  }
+  /* Landing — letter-spacing e padding ridotti così eyebrow/sub/wordmark
+     entrano nella larghezza anche su telefoni stretti (320–360px) */
+  #landing-overlay {
+    padding: 1.5rem 0.9rem;
+  }
+  .land-eyebrow {
+    font-size: 9.5px;
+    letter-spacing: 1.5px;
+    margin-bottom: 1.4rem;
+  }
+  .land-sub {
+    letter-spacing: 4px;
+  }
+  .land-stats {
+    gap: 1.6rem;
+  }
+  .land-notice {
+    font-size: 10px;
   }
   /* Header */
   .header {
