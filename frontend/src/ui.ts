@@ -1366,6 +1366,22 @@ export function loadFromServer(force?: boolean): void {
       state.cans = cached;
       if (migrateStato(state.cans).length) saveCache();
       applyLoaded();
+      // stale-while-revalidate: mostra subito la cache, poi aggiorna in
+      // background così chi torna vede conteggi/dati freschi senza Refresh
+      // manuale. Silenzioso e re-render solo se qualcosa è cambiato; in caso
+      // di errore (es. quota Firestore) resta la cache.
+      fetchWithRetry(1)
+        .then(function (fresh: Can[]) {
+          if (JSON.stringify(fresh) !== JSON.stringify(state.cans)) {
+            state.cans = fresh;
+            migrateStato(state.cans);
+            saveCache();
+            applyLoaded();
+          }
+        })
+        .catch(function () {
+          /* offline o quota: la vista in cache resta valida */
+        });
       return;
     }
   }
