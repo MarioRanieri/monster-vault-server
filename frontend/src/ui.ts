@@ -1295,6 +1295,15 @@ export function applyLoaded(): void {
     }).length;
     document.getElementById('land-total')!.textContent = String(state.cans.length);
     document.getElementById('land-photos')!.textContent = String(withPhoto);
+
+    // landing "what's new" notice — add/remove strings here as work lands
+    const notices = ['Aggiunta foto in corso — potrebbe volerci settimane 📸'];
+    const noticeEl = document.getElementById('land-notice');
+    const msgEl = document.getElementById('land-notice-msg');
+    if (noticeEl && msgEl && notices.length) {
+      msgEl.textContent = notices[0];
+      noticeEl.style.display = 'inline-flex';
+    }
   }
   updateCacheBar();
 }

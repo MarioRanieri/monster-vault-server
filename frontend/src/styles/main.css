@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap');
 
 :root {
   --bg: #0a0a0a;
@@ -2558,71 +2558,25 @@ body.public-mode .share-view-btn {
 #landing-overlay {
   position: fixed;
   inset: 0;
-  background: #030303 url('landing-bg.jpg') center/cover no-repeat;
+  background: #000;
   z-index: 1000;
   display: none;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  overflow-y: auto;
+  padding: 2rem 1.25rem;
   transition:
     opacity 0.4s ease,
     transform 0.4s ease;
 }
-.land-glow {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.62);
-  pointer-events: none;
-}
-.land-scanlines {
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 3px,
-    rgba(0, 0, 0, 0.08) 3px,
-    rgba(0, 0, 0, 0.08) 4px
-  );
-  pointer-events: none;
-}
-.land-hud {
-  position: absolute;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 9px;
-  letter-spacing: 2px;
-  color: rgba(168, 255, 0, 0.28);
-  text-transform: uppercase;
-  line-height: 1.8;
-}
-.land-hud-tl {
-  top: 1.5rem;
-  left: 1.5rem;
-}
-.land-hud-tr {
-  top: 1.5rem;
-  right: 1.5rem;
-  text-align: right;
-}
-.land-hud-bl {
-  bottom: 1.5rem;
-  left: 1.5rem;
-}
-.land-hud-br {
-  bottom: 1.5rem;
-  right: 1.5rem;
-  text-align: right;
-}
-.land-content {
+.land-inner {
   position: relative;
-  z-index: 2;
+  width: 100%;
+  max-width: 520px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 1.25rem;
-  max-width: 400px;
-  width: 100%;
   animation: landIn 0.7s ease both;
 }
 @keyframes landIn {
@@ -2632,142 +2586,300 @@ body.public-mode .share-view-btn {
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
-.land-m-icon {
-  width: 44px;
-  height: 44px;
-  margin-bottom: 0.75rem;
-  filter: drop-shadow(0 0 18px rgba(168, 255, 0, 0.55));
+.land-eyebrow {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #5f5f5f;
+  margin-bottom: 1.8rem;
 }
-.land-title {
+.land-eyebrow b {
+  color: #a8ff00;
+  font-weight: 700;
+}
+
+/* hero: the real Monster claw. The page is pure black (#000) like the claw's
+   own background, so the JPG's black merges seamlessly — no box, no halo.
+   The soft radial glow sits BEHIND the claw (circular, not the image bounds). */
+.land-claw-wrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.3rem;
+}
+.land-claw-wrap::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  width: 340px;
+  height: 340px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(168, 255, 0, 0.18), transparent 62%);
+  filter: blur(18px);
+  pointer-events: none;
+  z-index: 0;
+}
+.land-claw {
+  position: relative;
+  z-index: 1;
+  display: block;
+  height: clamp(140px, 26vh, 220px);
+  width: auto;
+  mix-blend-mode: screen;
+  animation: landClawIn 0.8s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+@keyframes landClawIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.land-wordmark {
+  margin: 0;
   font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(42px, 9vw, 68px);
+  font-weight: 400;
+  font-size: clamp(48px, 12vw, 88px);
   line-height: 0.9;
-  letter-spacing: 4px;
-  color: #f0f0f0;
+  letter-spacing: 3px;
+  color: #f2f2f2;
 }
-.land-title span {
+.land-wordmark span {
   color: #a8ff00;
 }
-.land-subtitle {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(13px, 2.5vw, 18px);
-  letter-spacing: 10px;
-  color: rgba(168, 255, 0, 0.55);
-  margin-bottom: 0.25rem;
-}
-.land-tagline {
-  font-size: 10px;
-  letter-spacing: 3px;
-  color: #3a3a3a;
+.land-sub {
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 6px;
   text-transform: uppercase;
-  margin-bottom: 1.25rem;
+  color: #5f5f5f;
+  margin-top: 0.7rem;
+}
+
+/* flavor-spectrum bar — the color signature */
+.land-bar {
+  height: 6px;
+  width: 200px;
+  border-radius: 999px;
+  margin: 1.7rem 0;
+  background: linear-gradient(100deg, #9b6dff, #36d6c3, #a8ff00, #ffb22e, #ff2e2e, #ff4f87);
+  transform-origin: center;
+  animation: landBarIn 0.6s ease 0.3s both;
+}
+@keyframes landBarIn {
+  from {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
 }
 .land-stats {
   display: flex;
   align-items: center;
-  gap: 2rem;
-  margin-bottom: 1.5rem;
-  padding: 0.7rem 1.5rem;
-  border: 1px solid rgba(168, 255, 0, 0.1);
-  border-radius: 8px;
-  background: rgba(168, 255, 0, 0.025);
+  gap: 2.2rem;
+  margin-bottom: 2.2rem;
 }
 .land-stat {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2px;
+  gap: 3px;
 }
-.land-stat-num {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 30px;
-  color: #a8ff00;
+.land-stat b {
+  font-family: 'Space Mono', monospace;
+  font-weight: 700;
+  font-size: 27px;
+  color: #f2f2f2;
   line-height: 1;
-  min-width: 60px;
 }
-.land-stat-lbl {
-  font-size: 8px;
+.land-stat span {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
   letter-spacing: 2px;
-  color: #444;
   text-transform: uppercase;
+  color: #5f5f5f;
 }
 .land-stat-div {
   width: 1px;
-  height: 34px;
-  background: rgba(168, 255, 0, 0.13);
+  height: 30px;
+  background: #222;
 }
 .land-btns {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 11px;
   width: 100%;
-  max-width: 280px;
+  max-width: 340px;
+}
+.land-btn-enter,
+.land-btn-admin {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 19px;
+  letter-spacing: 3px;
+  padding: 15px 28px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition:
+    transform 0.12s,
+    filter 0.15s,
+    border-color 0.15s,
+    color 0.15s,
+    background 0.15s;
 }
 .land-btn-enter {
   background: #a8ff00;
   color: #000;
-  border: none;
-  border-radius: 7px;
-  padding: 12px 24px;
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 17px;
-  letter-spacing: 3px;
-  cursor: pointer;
-  transition:
-    filter 0.15s,
-    transform 0.1s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
+  border: 1px solid transparent;
 }
 .land-btn-enter:hover {
   filter: brightness(1.1);
-  transform: translateY(-1px);
-}
-.land-btn-photos {
-  background: transparent;
-  color: #a8ff00;
-  border: 1px solid rgba(168, 255, 0, 0.3);
-  border-radius: 7px;
-  padding: 10px 24px;
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 15px;
-  letter-spacing: 2px;
-  cursor: pointer;
-  transition: all 0.15s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-.land-btn-photos:hover {
-  background: rgba(168, 255, 0, 0.06);
-  border-color: rgba(168, 255, 0, 0.6);
+  transform: translateY(-2px);
 }
 .land-btn-admin {
-  background: rgba(255, 255, 255, 0.05);
-  color: #dcdcdc;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 7px;
-  padding: 10px 24px;
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 15px;
-  letter-spacing: 2px;
-  cursor: pointer;
-  transition: all 0.15s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
+  background: transparent;
+  color: #cfcfcf;
+  border: 1px solid #2c2c2c;
 }
 .land-btn-admin:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.45);
+  border-color: #666;
   color: #fff;
+  transform: translateY(-2px);
+}
+.land-btn-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  letter-spacing: 2px;
+  opacity: 0.55;
+}
+.land-btn-enter:focus-visible,
+.land-btn-admin:focus-visible {
+  outline: 2px solid #a8ff00;
+  outline-offset: 3px;
+}
+
+.land-map-link {
+  margin-top: 1.1rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: #8a8a8a;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+.land-map-link:hover {
+  color: #a8ff00;
+  border-color: rgba(168, 255, 0, 0.5);
+}
+
+.land-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 2.4rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: #4a4a4a;
+}
+.land-footer a {
+  display: inline-flex;
+  color: #4a4a4a;
+  transition: color 0.15s;
+}
+.land-footer a:hover {
+  color: #a8ff00;
+}
+.land-footer svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* appearing "what's new" notice */
+.land-notice {
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1.6rem;
+  padding: 8px 12px 8px 13px;
+  border: 1px solid rgba(168, 255, 0, 0.22);
+  background: rgba(168, 255, 0, 0.05);
+  border-radius: 999px;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  color: #cdd6c2;
+  animation: landNoticeIn 0.45s ease 0.1s both;
+}
+@keyframes landNoticeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.land-live {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #a8ff00;
+  flex: none;
+  animation: landPulse 2s infinite;
+}
+@keyframes landPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(168, 255, 0, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(168, 255, 0, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(168, 255, 0, 0);
+  }
+}
+.land-notice-x {
+  background: none;
+  border: none;
+  color: #7d8a6e;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+.land-notice-x:hover {
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .land-inner,
+  .land-claw,
+  .land-bar,
+  .land-notice {
+    animation: none;
+  }
+  .land-claw,
+  .land-bar {
+    opacity: 1;
+    transform: none;
+  }
+  .land-live {
+    animation: none;
+  }
 }
 
 /* ── MOBILE ── */

@@ -822,7 +822,7 @@ export function buildStatsData(): {
 } {
   const total = state.cans.length;
   const withPhoto = state.cans.filter(function (c) {
-    return !!c.p1;
+    return !!(c.p1 || c.p2 || c.p3 || c.p4);
   }).length;
   const promo = state.cans.filter(function (c) {
     return !!c.promo;
