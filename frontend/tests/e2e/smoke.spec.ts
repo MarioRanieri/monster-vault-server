@@ -31,7 +31,7 @@ test('guest: page loads, grid renders cans, no JS errors', async ({ page }) => {
   const errors = trackPageErrors(page);
   await mockApi(page, false);
   await page.goto('/');
-  await page.getByRole('button', { name: /guest access/i }).click();
+  await page.getByRole('button', { name: /enter the collection/i }).click();
   await expect(page.locator('#grid .card').first()).toBeVisible();
   await expect(page.locator('#grid .card')).toHaveCount(CANS.length);
   expect(errors, errors.join('\n')).toHaveLength(0);
@@ -40,7 +40,7 @@ test('guest: page loads, grid renders cans, no JS errors', async ({ page }) => {
 test('guest: clicking a card opens the detail panel', async ({ page }) => {
   await mockApi(page, false);
   await page.goto('/');
-  await page.getByRole('button', { name: /guest access/i }).click();
+  await page.getByRole('button', { name: /enter the collection/i }).click();
   await page.locator('#grid .card').first().click();
   await expect(page.locator('#detail-panel')).toHaveClass(/open/);
 });
@@ -59,7 +59,7 @@ test('vault → map → back: grid still renders (no infinite loading)', async (
   const errors = trackPageErrors(page);
   await mockApi(page, false);
   await page.goto('/');
-  await page.getByRole('button', { name: /guest access/i }).click();
+  await page.getByRole('button', { name: /enter the collection/i }).click();
   await expect(page.locator('#grid .card').first()).toBeVisible();
   // real user flow: Map button → "← Vault" link (not browser-back/bfcache)
   await page.locator('#btn-map').click();
