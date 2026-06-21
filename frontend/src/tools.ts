@@ -472,7 +472,7 @@ export function buildStatsData(): {
   const cans = getCans();
   const total = cans.length;
   const withPhoto = cans.filter(function (c) {
-    return c.p1;
+    return c.p1 || c.p2 || c.p3 || c.p4;
   }).length;
   const promo = cans.filter(function (c) {
     return c.promo;
