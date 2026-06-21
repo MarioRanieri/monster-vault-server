@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-21
+
 ### Added
 - **Refresh token flow** — short-lived access token (15 min) in memory + long-lived refresh token (7 days) in an HttpOnly/Secure/SameSite=Strict cookie; rotation on every refresh, revocation on logout, in-memory `RefreshTokenStore` (SHA-256 hashed). New endpoints `POST /api/auth/logout`; `POST /api/auth/refresh` now reads the cookie. Frontend does silent refresh on 401 and recovers the session at boot.
 - **SEO / AEO assets** — `robots.txt`, `sitemap.xml`, `llms.txt`, JSON-LD structured data, meta description, canonical URL, preconnect hints; `ShareController` (`GET /share/{id}`) serves per-can Open Graph meta for social/chat previews.
@@ -17,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Project restructure** — split into `backend/` (Spring Boot) and `frontend/` (PWA); root `Dockerfile` is now 3-stage (Node build → Maven build → JRE run); CI and `.gitignore` paths updated. Same-origin serving preserved (frontend built into the backend's static resources).
 - **Frontend modularization** — the ~4000-line `index.html` monolith extracted into 7 TypeScript modules (`core`, `ui`, `tools`, `photos`, `share`, `pwa`, `types`); CSS extracted to `styles/main.css`; static assets moved to `public/`; production build is a 102 KB JS + 50 KB CSS bundle.
 - **Backend code quality** — constructor injection throughout (removed field `@Autowired`), unused imports removed, Lombok upgraded to 1.18.38.
+- **Landing redesign** — replaced the sci-fi "HUD" landing with a "Flavor Spectrum" hero: a claw-slash mark revealing a Monster flavor-color band, a Monster claw-M logo, a monospace stats ledger wired to live counts, and a dismissible "what's new" notice. "With photo" now counts cans with ≥1 of the 4 photo slots.
+- **Release docs** — added a "Release & rollback" section to the README (branch+PR + CI gate, Render build-fail safety net, health check, rollback).
 
 ### Fixed
 - **Vite asset 401 (white screen)** — `SecurityConfig` now permits `/assets/**` (and `/*.css`); the hashed Vite bundles fell through to `authenticated()` and returned 401, so no JS/CSS loaded.

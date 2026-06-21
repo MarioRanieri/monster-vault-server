@@ -420,6 +420,25 @@ The app is containerized with a multi-stage Dockerfile and deployed on Render fr
 - **Login:** retries `/api/auth/login` up to 3× (3s apart) on 5xx; shows "Server warming up…" message in the auth card after 5s
 - **Data load:** retries `GET /api/cans` up to 3× (2s apart) on 5xx; updates the loading message to "Server warming up… Free tier cold start · usually 30–50s" on the first retry
 
+### Release & rollback
+
+Deploys are automatic: pushing to `main` triggers a Render build from the root `Dockerfile`.
+
+**Safety net (already in place):** if the Docker build fails, Render keeps the **current live version running** — a broken build never takes the site down. Render also won't promote an instance that fails its **Health Check Path** (`/actuator/health`), so a build that compiles but boots broken won't go live either.
+
+**Workflow for risky changes** (refactors, dependency bumps, schema changes):
+
+1. Work on a branch and open a PR — CI (`.github/workflows/ci.yml`) must be green before merge.
+2. `main` is branch-protected: the three CI checks (backend tests; frontend lint/format/build; Playwright E2E) are **required status checks**, so only green code reaches Render.
+3. Merge → Render auto-deploys `main`.
+
+**Rollback** (if a deploy misbehaves at runtime):
+
+- Render dashboard → service → **Rollback** to the previous good deploy (instant), or
+- `git revert <bad-commit> && git push` to roll forward to a clean state.
+
+**Versioning:** Semantic Versioning, tracked in [`CHANGELOG.md`](CHANGELOG.md). Tag releases with `git tag vX.Y.Z` so a known-good commit is always pinnable.
+
 ---
 
 ## Key Design Decisions
