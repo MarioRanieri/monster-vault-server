@@ -127,7 +127,6 @@ public class SecurityConfig {
      */
     @Bean
     public UserDetailsService metricsUser(
-            PasswordEncoder encoder,
             @Value("${metrics.user:metrics}") String user,
             @Value("${metrics.password:}") String password) {
         if (password.isBlank()) {
@@ -135,8 +134,11 @@ public class SecurityConfig {
             log.warn("METRICS_PASSWORD non impostata: /actuator/prometheus protetto con password "
                     + "casuale. Imposta METRICS_PASSWORD per consentire lo scrape di Prometheus.");
         }
+        // Encoder costruito qui, non iniettato: nei @WebMvcTest il PasswordEncoder è un @MockBean
+        // (encode() → null), che farebbe fallire il caricamento del context. BCrypt è BCrypt:
+        // il DaoAuthenticationProvider in produzione verifica con lo stesso algoritmo.
         UserDetails metrics = User.withUsername(user)
-                .password(encoder.encode(password))
+                .password(new BCryptPasswordEncoder().encode(password))
                 .roles("METRICS")
                 .build();
         return new InMemoryUserDetailsManager(metrics);
