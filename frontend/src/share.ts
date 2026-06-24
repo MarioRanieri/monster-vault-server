@@ -101,7 +101,6 @@ export function copyToClipboard(text: string, cb?: () => void): void {
 // ── SHARE SHEET (detail view) ──────────────────────────
 
 export function toggleShareSheet(): void {
-  if (state.isPublicMode) return;
   const sheet = document.getElementById('share-sheet');
   if (!sheet) return;
   const opening = !sheet.classList.contains('open');
@@ -121,7 +120,6 @@ export function toggleShareSheet(): void {
 }
 
 export function shareCanLink(mode: string): void {
-  if (state.isPublicMode) return;
   const sheet = document.getElementById('share-sheet');
   if (sheet) sheet.classList.remove('open');
   const id = state.detailCurrentId;
@@ -181,7 +179,6 @@ export function shareCanLink(mode: string): void {
 }
 
 export function shareFilteredView(): void {
-  if (state.isPublicMode) return;
   const base = window.location.href.split('?')[0];
   const p = new URLSearchParams();
   p.set('public', '1');

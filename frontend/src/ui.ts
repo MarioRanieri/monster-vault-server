@@ -204,7 +204,7 @@ export function applyFilters(keepPage?: boolean): void {
     ? 'inline'
     : 'none';
   const svBtn = document.getElementById('share-view-btn');
-  if (svBtn) svBtn.style.display = hasF && !state.isPublicMode ? 'inline-block' : 'none';
+  if (svBtn) svBtn.style.display = 'inline-block';
   renderActiveView();
   populateFilters();
   saveFilters();

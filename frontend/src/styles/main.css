@@ -320,7 +320,6 @@ body.public-mode #del-btn,
 body.public-mode .lb-edit-btn,
 body.public-mode .detail-edit-btn,
 body.public-mode #detail-edit-btn,
-body.public-mode #detail-share-btn,
 body.public-mode .stats-row .valore-btn,
 body.public-mode #stat-valore,
 body.public-mode #stat-valore-lbl,
@@ -1351,9 +1350,6 @@ body.light .filter-select option {
 .share-view-btn:hover {
   color: var(--text);
   border-color: rgba(255, 255, 255, 0.25);
-}
-body.public-mode .share-view-btn {
-  display: none !important;
 }
 .share-sheet-wrap {
   position: relative;
