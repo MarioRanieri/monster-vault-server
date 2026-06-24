@@ -1036,8 +1036,7 @@ export function statsFilter(field: string, value: string): void {
       state.filteredList.length + ' of ' + getCans().length + ' cans';
     document.getElementById('reset-filters-btn')!.style.display = 'inline';
     const svBtn2 = document.getElementById('share-view-btn');
-    if (svBtn2)
-      (svBtn2 as HTMLElement).style.display = 'inline-block';
+    if (svBtn2) (svBtn2 as HTMLElement).style.display = 'inline-block';
     (window as any).renderActiveView();
     window.scrollTo({
       top: document.getElementById('filter-bar')!.offsetTop - 70,
