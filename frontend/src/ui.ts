@@ -1493,12 +1493,12 @@ export function boot(): void {
 
   // Landing -- only on first visit of the tab. On same-tab reload we default to
   // guest UI but pass explicit=false so a valid admin cookie can still recover.
-  if (!state.isPublicMode && sessionStorage.getItem('mv_session_started')) {
+  if (state.isPublicMode || sessionStorage.getItem('mv_session_started')) {
     (document.getElementById('landing-overlay') as HTMLElement).style.display = 'none';
-    continueAsGuest(false);
+    if (!state.isPublicMode) continueAsGuest(false);
   } else {
     (document.getElementById('landing-overlay') as HTMLElement).style.display = 'flex';
-    if (!state.isPublicMode) sessionStorage.setItem('mv_session_started', '1');
+    sessionStorage.setItem('mv_session_started', '1');
   }
 
   // price toggle
