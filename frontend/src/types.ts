@@ -30,8 +30,8 @@ export interface Can {
 export interface ActiveChips {
   promo: boolean;
   full: boolean;
-  confoto: boolean;
-  nofoto: boolean;
+  withphoto: boolean;
+  nophotos: boolean;
 }
 
 export interface FilterState {

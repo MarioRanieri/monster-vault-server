@@ -215,7 +215,7 @@ export function closeLanding(photoFilter?: boolean, adminLogin?: boolean): void 
   }, 380);
   if (photoFilter)
     setTimeout(() => {
-      (window as any).toggleChip('confoto');
+      (window as any).toggleChip('withphoto');
     }, 420);
 }
 

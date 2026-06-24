@@ -232,8 +232,8 @@ abstract class E2EBaseTest {
      */
     protected void dismissConfotoFilter() {
         js("if(typeof activeChips!=='undefined'){" +
-           "  activeChips.confoto=false;" +
-           "  activeChips.nofoto=false;" +
+           "  activeChips.withphoto=false;" +
+           "  activeChips.nophotos=false;" +
            "  if(typeof applyFilters==='function') applyFilters();" +
            "}");
         // Attende che almeno una card sia nel DOM

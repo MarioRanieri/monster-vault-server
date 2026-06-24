@@ -67,8 +67,8 @@ export function canMatchesFilters(
   if (state.activeChips.promo && !c.promo) return false;
   if (state.activeChips.full && !(c.note && c.note.toUpperCase().indexOf('FULL') !== -1))
     return false;
-  if (state.activeChips.confoto && !c.p1) return false;
-  if (state.activeChips.nofoto && c.p1) return false;
+  if (state.activeChips.withphoto && !c.p1) return false;
+  if (state.activeChips.nophotos && c.p1) return false;
   for (let i = 0; i < filterFields.length; i++) {
     if (i === skipIdx) continue;
     if (selectVals[filterFields[i]] && (c as any)[filterFields[i]] !== selectVals[filterFields[i]])
@@ -186,8 +186,8 @@ export function applyFilters(keepPage?: boolean): void {
     (document.getElementById('search-input') as HTMLInputElement).value ||
     state.activeChips.promo ||
     state.activeChips.full ||
-    state.activeChips.confoto ||
-    state.activeChips.nofoto ||
+    state.activeChips.withphoto ||
+    state.activeChips.nophotos ||
     ((document.getElementById('fl-vmin') as HTMLInputElement | null)?.value !== '' &&
       (document.getElementById('fl-vmin') as HTMLInputElement | null)?.value != null) ||
     ((document.getElementById('fl-vmax') as HTMLInputElement | null)?.value !== '' &&
@@ -215,7 +215,7 @@ export function resetFilters(): void {
   filterKeys.forEach(function (id) {
     (document.getElementById(id) as HTMLSelectElement).value = '';
   });
-  (['promo', 'full', 'confoto', 'nofoto'] as const).forEach(function (k) {
+  (['promo', 'full', 'withphoto', 'nophotos'] as const).forEach(function (k) {
     (state.activeChips as any)[k] = false;
     document.getElementById('chip-' + k)!.classList.remove('active');
   });
@@ -240,13 +240,13 @@ export function toggleChip(key: string): void {
   document
     .getElementById('chip-' + key)!
     .classList.toggle('active', (state.activeChips as any)[key]);
-  if (key === 'confoto' && state.activeChips.confoto) {
-    state.activeChips.nofoto = false;
-    document.getElementById('chip-nofoto')!.classList.remove('active');
+  if (key === 'withphoto' && state.activeChips.withphoto) {
+    state.activeChips.nophotos = false;
+    document.getElementById('chip-nophotos')!.classList.remove('active');
   }
-  if (key === 'nofoto' && state.activeChips.nofoto) {
-    state.activeChips.confoto = false;
-    document.getElementById('chip-confoto')!.classList.remove('active');
+  if (key === 'nophotos' && state.activeChips.nophotos) {
+    state.activeChips.withphoto = false;
+    document.getElementById('chip-withphoto')!.classList.remove('active');
   }
   applyFilters();
 }

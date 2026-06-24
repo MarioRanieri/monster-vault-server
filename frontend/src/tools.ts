@@ -736,10 +736,10 @@ export function updateChipCounts(): void {
     full: cans.filter(function (c) {
       return !!(c.note && c.note.toUpperCase().indexOf('FULL') !== -1);
     }).length,
-    confoto: cans.filter(function (c) {
+    withphoto: cans.filter(function (c) {
       return !!c.p1;
     }).length,
-    nofoto: cans.filter(function (c) {
+    nophotos: cans.filter(function (c) {
       return !c.p1;
     }).length,
   };
@@ -951,7 +951,7 @@ export function openStatsModal(): void {
     '<div style="flex:1;min-width:90px;background:var(--bg3);border-radius:10px;padding:12px;text-align:center;cursor:pointer" onclick="statsFilter(\'promo\',\'1\')" onmouseover="this.style.background=\'var(--bg4)\'" onmouseout="this.style.background=\'var(--bg3)\'"><div style="font-size:26px;font-weight:700;color:#f5a623">' +
     sd.promo +
     '</div><div style="font-size:10px;letter-spacing:.5px;color:var(--text3);margin-top:2px">PROMO</div></div>' +
-    '<div style="flex:1;min-width:90px;background:var(--bg3);border-radius:10px;padding:12px;text-align:center;cursor:pointer" onclick="statsFilter(\'confoto\',\'1\')" onmouseover="this.style.background=\'var(--bg4)\'" onmouseout="this.style.background=\'var(--bg3)\'"><div style="font-size:26px;font-weight:700;color:var(--green)">' +
+    '<div style="flex:1;min-width:90px;background:var(--bg3);border-radius:10px;padding:12px;text-align:center;cursor:pointer" onclick="statsFilter(\'withphoto\',\'1\')" onmouseover="this.style.background=\'var(--bg4)\'" onmouseout="this.style.background=\'var(--bg3)\'"><div style="font-size:26px;font-weight:700;color:var(--green)">' +
     sd.pct +
     '%</div><div style="font-size:10px;letter-spacing:.5px;color:var(--text3);margin-top:2px">WITH PHOTO</div></div>' +
     '<div style="flex:1;min-width:90px;background:var(--bg3);border-radius:10px;padding:12px;text-align:center;cursor:pointer" onclick="statsFilter(\'full\',\'1\')" onmouseover="this.style.background=\'var(--bg4)\'" onmouseout="this.style.background=\'var(--bg3)\'"><div style="font-size:26px;font-weight:700;color:#8b5cf6">' +
@@ -983,11 +983,11 @@ export function openStatsModal(): void {
       '<div style="font-size:10px;color:var(--text3);margin-top:4px">click →</div></div>';
   });
   html +=
-    '<div style="background:var(--bg3);border-radius:8px;padding:12px 18px;text-align:center;cursor:pointer" onclick="statsFilter(\'confoto\',\'1\')" onmouseover="this.style.background=\'var(--bg4)\'" onmouseout="this.style.background=\'var(--bg3)\'"><div style="font-size:22px;font-weight:700;margin-bottom:4px">' +
+    '<div style="background:var(--bg3);border-radius:8px;padding:12px 18px;text-align:center;cursor:pointer" onclick="statsFilter(\'withphoto\',\'1\')" onmouseover="this.style.background=\'var(--bg4)\'" onmouseout="this.style.background=\'var(--bg3)\'"><div style="font-size:22px;font-weight:700;margin-bottom:4px">' +
     sd.withPhoto +
     '</div><span class="badge badge-photo">With photo</span><div style="font-size:10px;color:var(--text3);margin-top:4px">click →</div></div>';
   html +=
-    '<div style="background:var(--bg3);border-radius:8px;padding:12px 18px;text-align:center;cursor:pointer" onclick="statsFilter(\'nofoto\',\'1\')" onmouseover="this.style.background=\'var(--bg4)\'" onmouseout="this.style.background=\'var(--bg3)\'"><div style="font-size:22px;font-weight:700;margin-bottom:4px">' +
+    '<div style="background:var(--bg3);border-radius:8px;padding:12px 18px;text-align:center;cursor:pointer" onclick="statsFilter(\'nophotos\',\'1\')" onmouseover="this.style.background=\'var(--bg4)\'" onmouseout="this.style.background=\'var(--bg3)\'"><div style="font-size:22px;font-weight:700;margin-bottom:4px">' +
     (sd.total - sd.withPhoto) +
     '</div><span class="badge" style="background:var(--bg4);color:var(--text3)">No photo</span><div style="font-size:10px;color:var(--text3);margin-top:4px">click →</div></div>';
   html +=
@@ -1023,7 +1023,7 @@ export function statsFilter(field: string, value: string): void {
   filterKeys.forEach(function (id: string) {
     (document.getElementById(id) as HTMLSelectElement).value = '';
   });
-  ['promo', 'full', 'confoto', 'nofoto'].forEach(function (k) {
+  ['promo', 'full', 'withphoto', 'nophotos'].forEach(function (k) {
     (state.activeChips as unknown as Record<string, boolean>)[k] = false;
     document.getElementById('chip-' + k)!.classList.remove('active');
   });
@@ -1048,12 +1048,12 @@ export function statsFilter(field: string, value: string): void {
   const fieldIdx = filterFields.indexOf(field);
   if (fieldIdx >= 0) {
     (document.getElementById(filterKeys[fieldIdx]) as HTMLSelectElement).value = value;
-  } else if (field === 'confoto') {
-    state.activeChips.confoto = true;
-    document.getElementById('chip-confoto')!.classList.add('active');
-  } else if (field === 'nofoto') {
-    state.activeChips.nofoto = true;
-    document.getElementById('chip-nofoto')!.classList.add('active');
+  } else if (field === 'withphoto') {
+    state.activeChips.withphoto = true;
+    document.getElementById('chip-withphoto')!.classList.add('active');
+  } else if (field === 'nophotos') {
+    state.activeChips.nophotos = true;
+    document.getElementById('chip-nophotos')!.classList.add('active');
   } else if (field === 'promo') {
     state.activeChips.promo = true;
     document.getElementById('chip-promo')!.classList.add('active');

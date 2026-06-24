@@ -8,7 +8,7 @@ export const state = {
   cans: [] as Can[],
   filteredList: [] as Can[],
   showPrice: JSON.parse(localStorage.getItem('mv_showprice') || 'false') as boolean,
-  activeChips: { promo: false, full: false, confoto: false, nofoto: false } as ActiveChips,
+  activeChips: { promo: false, full: false, withphoto: false, nophotos: false } as ActiveChips,
   editingId: null as string | null,
   saving: false,
   pendingFiles: { 1: null, 2: null, 3: null, 4: null } as Record<number, File | null>,
@@ -1275,8 +1275,8 @@ export function restoreFilters(): void {
     const f = JSON.parse(localStorage.getItem(MV_FILTERS_KEY) || 'null') as FilterState | null;
     if (!f) {
       (document.getElementById('sort-select') as HTMLSelectElement).value = 'added-desc';
-      state.activeChips.confoto = true;
-      document.getElementById('chip-confoto')?.classList.add('active');
+      state.activeChips.withphoto = true;
+      document.getElementById('chip-withphoto')?.classList.add('active');
       return;
     }
     (document.getElementById('search-input') as HTMLInputElement).value = f.q || '';

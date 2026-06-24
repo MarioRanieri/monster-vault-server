@@ -1193,36 +1193,36 @@ body.light .filter-select option {
 .filter-chip-full.active .chip-count {
   background: rgba(0, 180, 255, 0.2);
 }
-.filter-chip-confoto {
+.filter-chip-withphoto {
   border-color: rgba(168, 85, 247, 0.4);
   color: #a855f7;
 }
-.filter-chip-confoto:hover {
+.filter-chip-withphoto:hover {
   border-color: #a855f7;
   color: #a855f7;
 }
-.filter-chip-confoto.active {
+.filter-chip-withphoto.active {
   background: rgba(168, 85, 247, 0.15);
   border-color: #a855f7;
   color: #a855f7;
 }
-.filter-chip-confoto.active .chip-count {
+.filter-chip-withphoto.active .chip-count {
   background: rgba(168, 85, 247, 0.2);
 }
-.filter-chip-nofoto {
+.filter-chip-nophotos {
   border-color: rgba(255, 71, 87, 0.4);
   color: #ff4757;
 }
-.filter-chip-nofoto:hover {
+.filter-chip-nophotos:hover {
   border-color: #ff4757;
   color: #ff4757;
 }
-.filter-chip-nofoto.active {
+.filter-chip-nophotos.active {
   background: rgba(255, 71, 87, 0.15);
   border-color: #ff4757;
   color: #ff4757;
 }
-.filter-chip-nofoto.active .chip-count {
+.filter-chip-nophotos.active .chip-count {
   background: rgba(255, 71, 87, 0.2);
 }
 .filter-tools {
