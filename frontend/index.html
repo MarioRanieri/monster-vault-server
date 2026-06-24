@@ -50,7 +50,6 @@
       }
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <link rel="stylesheet" href="/src/styles/main.css" />
   </head>
   <body>
@@ -534,70 +533,6 @@
       </svg>
       Browsing <strong id="public-owner-name" style="margin-left: 4px">a collector</strong>'s
       collection — read-only
-    </div>
-
-    <!-- SHARE MODAL -->
-    <div class="modal-backdrop" id="share-modal">
-      <div class="modal" role="dialog" aria-modal="true" style="max-width: 480px">
-        <div class="modal-header">
-          <div class="modal-title">Share Collection</div>
-          <button class="modal-close" aria-label="Close" onclick="closeModal('share-modal')">
-            &#x2715;
-          </button>
-        </div>
-        <div class="modal-body">
-          <p style="font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 1rem">
-            Generate a public link to show your collection to other collectors.<br />Visitors cannot
-            <strong style="color: var(--text)">edit</strong> anything or see
-            <strong style="color: var(--text)">values</strong>.
-          </p>
-          <div class="field" style="margin-bottom: 1rem">
-            <label>Your collector name</label>
-            <input
-              type="text"
-              id="share-name-input"
-              placeholder="e.g. RedMghost"
-              style="
-                background: var(--bg3);
-                border: 1px solid var(--border2);
-                border-radius: 6px;
-                color: var(--text);
-                font-family: 'DM Sans', sans-serif;
-                font-size: 13px;
-                padding: 9px 12px;
-                outline: none;
-                width: 100%;
-              "
-              oninput="updateShareUrl()"
-            />
-          </div>
-          <label
-            style="
-              font-size: 11px;
-              color: var(--text3);
-              text-transform: uppercase;
-              letter-spacing: 1px;
-            "
-            >Public link</label
-          >
-          <div class="share-url-wrap">
-            <input
-              type="text"
-              class="share-url-input"
-              id="share-url-display"
-              readonly
-              placeholder="Enter your name above..."
-            />
-            <button class="share-copy-btn" onclick="copyShareUrl()">Copy</button>
-          </div>
-          <div id="share-qr" style="display: none; text-align: center; margin: 16px 0"></div>
-          <div class="share-steps">
-            <strong>How it works</strong>
-            1. Enter your name · 2. Copy the link · 3. Share it<br />
-            Anyone opening the link sees your collection in <em>read-only</em> mode, without prices.
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- HELP MODAL -->

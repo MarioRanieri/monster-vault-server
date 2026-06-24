@@ -1,5 +1,5 @@
 // ── Monster Vault — Share module ───────────────────────────────────────────
-// Share links, QR code, filtered-view sharing, landing overlay.
+// Share links, filtered-view sharing, landing overlay.
 
 import type { Can } from './types';
 import { OWNER_NAME, state, toast } from './core';
@@ -12,67 +12,6 @@ export function openHelpModal(): void {
   document.getElementById('help-admin-content')!.style.display = admin ? 'flex' : 'none';
   document.getElementById('help-guest-content')!.style.display = admin ? 'none' : 'flex';
   document.getElementById('help-modal')!.classList.add('open');
-}
-
-// ── SHARE MODAL ────────────────────────────────────────
-
-export function openShareModal(): void {
-  (document.getElementById('share-name-input') as HTMLInputElement).value =
-    localStorage.getItem('mv_share_name') || '';
-  updateShareUrl();
-  document.getElementById('share-modal')!.classList.add('open');
-}
-
-export function updateShareUrl(): void {
-  const name = (document.getElementById('share-name-input') as HTMLInputElement).value.trim();
-  localStorage.setItem('mv_share_name', name);
-  const base = window.location.href.split('?')[0];
-  const url = name ? base + '?public=1&name=' + encodeURIComponent(name) : '';
-  (document.getElementById('share-url-display') as HTMLInputElement).value =
-    url || '— enter your name above —';
-  renderShareQR(url);
-}
-
-/** Generate a QR code SVG for the public link (client-side, CSP-safe). */
-function renderShareQR(url: string): void {
-  const box = document.getElementById('share-qr');
-  if (!box) return;
-  if (!url || typeof (window as any).qrcode === 'undefined') {
-    box.style.display = 'none';
-    box.innerHTML = '';
-    return;
-  }
-  try {
-    const qr = (window as any).qrcode(0, 'M');
-    qr.addData(url);
-    qr.make();
-    box.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
-    const svg = box.querySelector('svg');
-    if (svg) {
-      svg.removeAttribute('width');
-      svg.removeAttribute('height');
-      svg.style.cssText =
-        'width:164px;height:164px;background:#fff;padding:10px;border-radius:10px';
-    }
-    box.style.display = 'block';
-  } catch (_e) {
-    box.style.display = 'none';
-    box.innerHTML = '';
-  }
-}
-
-export function copyShareUrl(): void {
-  const url = (document.getElementById('share-url-display') as HTMLInputElement).value;
-  if (!url || url.startsWith('—')) return;
-  navigator.clipboard
-    .writeText(url)
-    .then(() => {
-      toast('Link copied ✓');
-      (window as any).closeModal('share-modal');
-    })
-    .catch(() => {
-      (document.getElementById('share-url-display') as HTMLInputElement).select();
-    });
 }
 
 export function copyToClipboard(text: string, cb?: () => void): void {
