@@ -1474,7 +1474,7 @@ export function boot(): void {
   if (state.isPublicMode) {
     document.body.classList.add('public-mode');
     (document.getElementById('public-banner') as HTMLElement).style.display = 'flex';
-    const owner = params.get('name') || 'a collector';
+    const owner = params.get('name') || 'RedMghost';
     const ownerName = decodeURIComponent(owner);
     document.getElementById('public-owner-name')!.textContent = ownerName;
     document.title = ownerName + "'s Collection — Monster Vault";

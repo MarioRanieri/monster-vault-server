@@ -2,7 +2,7 @@
 // Share links, QR code, filtered-view sharing, landing overlay.
 
 import type { Can } from './types';
-import { state, toast } from './core';
+import { OWNER_NAME, state, toast } from './core';
 
 // ── HELP MODAL ─────────────────────────────────────────
 
@@ -129,14 +129,8 @@ export function shareCanLink(mode: string): void {
   const can = state.cans.find((c: Can) => c.id === id);
   if (!can) return;
   const base = window.location.href.split('?')[0];
-  const name = localStorage.getItem('mv_share_name') || '';
-  if (!name) {
-    toast('Set your name in "Share Collection" first');
-    setTimeout(openShareModal, 400);
-    return;
-  }
-  const url =
-    base + '?public=1&name=' + encodeURIComponent(name) + '&can=' + encodeURIComponent(id);
+  const name = OWNER_NAME;
+  const url = base + '?public=1&can=' + encodeURIComponent(id);
 
   if (mode === 'link') {
     copyToClipboard(url, () => {
@@ -188,16 +182,9 @@ export function shareCanLink(mode: string): void {
 
 export function shareFilteredView(): void {
   if (state.isPublicMode) return;
-  const name = localStorage.getItem('mv_share_name') || '';
-  if (!name) {
-    toast('Set your name in "Share Collection" first');
-    setTimeout(openShareModal, 400);
-    return;
-  }
   const base = window.location.href.split('?')[0];
   const p = new URLSearchParams();
   p.set('public', '1');
-  p.set('name', name);
   const q = (document.getElementById('search-input') as HTMLInputElement).value;
   const lng = (document.getElementById('fl-lingua') as HTMLSelectElement).value;
   const sz = (document.getElementById('fl-size') as HTMLSelectElement).value;

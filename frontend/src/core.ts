@@ -36,6 +36,7 @@ export const state = {
 // ── API / JWT ──────────────────────────────────────────
 export const API = '';
 export const JWT_KEY = 'mv_jwt_token';
+export const OWNER_NAME = 'RedMghost';
 let _accessToken: string | null = null;
 let _refreshing: Promise<boolean> | null = null;
 
