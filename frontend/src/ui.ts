@@ -1423,7 +1423,7 @@ export function boot(): void {
   // try to recover session from refresh cookie — but never override an explicit
   // "Continue as guest" choice (guestChosen) or a public share link (?public=1).
   const isShareLink = new URLSearchParams(window.location.search).get('public') === '1';
-  _tryRefresh().then(function (ok) {
+  void _tryRefresh().then(function (ok) {
     if (ok && !state.guestChosen && !isShareLink) {
       state.isAdmin = true;
       (window as any).restoreAdminMode();

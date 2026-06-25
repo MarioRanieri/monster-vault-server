@@ -613,7 +613,7 @@ export function uploadNext(
     return;
   }
   btn.textContent = 'Compressing photo ' + n + '...';
-  compressImage(state.pendingFiles[n] as File).then((compressed: File) => {
+  void compressImage(state.pendingFiles[n] as File).then((compressed: File) => {
     btn.textContent = 'Uploading photo ' + n + '...';
     uploadCloud(compressed, canId, n)
       .then((url: string) => {
