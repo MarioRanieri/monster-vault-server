@@ -1,19 +1,20 @@
 // ═══════════════════════════════════════════════════════
-//  MONSTER VAULT — Google Sheets ↔ Firestore Sync
+//  MONSTER VAULT — Google Sheets ↔ Backend Sync
 //  (Google Apps Script, bound to the "Monster Vault Sync" sheet)
 //
-//  Talks DIRECTLY to Firestore (REST API) with a service account —
-//  it does NOT go through the Spring backend.
+//  Talks to the Spring backend REST API (NOT to the database directly).
+//  Since the Firestore→MongoDB migration the old service-account/Firestore
+//  path is gone: the sheet now logs in as admin and uses the public/JWT API.
 //
-//  SETUP (one-time):
-//    The service-account JSON is NOT stored in this file (this repo is public).
-//    Project → Settings → Script properties → add:
-//        SERVICE_ACCOUNT_JSON  =  <the full service-account JSON, one line>
+//  SETUP (one-time) — Project → Settings → Script properties:
+//      MV_USERNAME  =  <admin username>
+//      MV_PASSWORD  =  <admin password>
+//      BACKEND_URL  =  https://monster-vault-server.onrender.com   (optional, this is the default)
 //    See README.md in this folder.
 // ═══════════════════════════════════════════════════════
 
 var SHEET_NAME = 'Monster Vault Sync';
-var COLLECTION = 'cans';
+var BACKEND_DEFAULT = 'https://monster-vault-server.onrender.com';
 
 var COLUMNS = [
   'MV_ID', 'NOME', 'SKU', 'PRODUTTORE', 'SIZE',
@@ -21,167 +22,90 @@ var COLUMNS = [
   'OPENING', 'CONDITIONS', 'MORE INFO'
 ];
 
-// Text fields push/pull manage. Photos (p1..p4, p1Id..p4Id) and server-managed
-// fields (updatedAt, deletedAt, photoAt, watch) are NEVER written by the push.
+// Text fields the push manages. Photos (p1..p4, p1Id..p4Id) and server-managed
+// fields (updatedAt, deletedAt, photoAt) are preserved by merging onto the
+// existing can — they are NEVER overwritten by a push.
 var TEXT_FIELDS = ['id','nome','sku','produttore','size','lingua','top','promo','valore','note','stato','descrizione'];
 
-// ── CREDENTIALS (from Script Properties — no secret in source) ──
-var _SA = null;
-function sa_() {
-  if (_SA) return _SA;
-  var raw = PropertiesService.getScriptProperties().getProperty('SERVICE_ACCOUNT_JSON');
-  if (!raw) {
+// ── CONFIG (from Script Properties — no secret in source) ──
+function backendUrl_() {
+  var u = PropertiesService.getScriptProperties().getProperty('BACKEND_URL') || BACKEND_DEFAULT;
+  return u.replace(/\/+$/, '');
+}
+function creds_() {
+  var p = PropertiesService.getScriptProperties();
+  var u = p.getProperty('MV_USERNAME'), pw = p.getProperty('MV_PASSWORD');
+  if (!u || !pw) {
     throw new Error(
-      'Manca SERVICE_ACCOUNT_JSON nelle Script Properties.\n' +
-      'Project → Settings → Script properties → SERVICE_ACCOUNT_JSON = <JSON service account>. Vedi README.'
+      'Mancano MV_USERNAME / MV_PASSWORD nelle Script Properties.\n' +
+      'Project → Settings → Script properties. Vedi README.'
     );
   }
-  _SA = JSON.parse(raw);
-  return _SA;
+  return { username: u, password: pw };
 }
-function projectId_() { return sa_().project_id; }
 
 // ── MENU ────────────────────────────────────────────────
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('🥤 Monster Vault')
-    .addItem('⬇️  Scarica da Firestore → Sheet (completo)', 'pullFromFirestore')
+    .addItem('⬇️  Scarica dal backend → Sheet (completo)', 'pullFromBackend')
     .addItem('⚡  Scarica solo novità (incrementale)',       'pullIncremental')
-    .addItem('⬆️  Carica Sheet → Firestore',                 'pushToFirestore')
+    .addItem('⬆️  Carica Sheet → backend',                   'pushToBackend')
     .addSeparator()
     .addItem('🔄  Reset sync incrementale',                  'resetIncrementalSync')
     .addToUi();
 }
 
-// ── AUTH ────────────────────────────────────────────────
+// ── BACKEND API ─────────────────────────────────────────
+
+// POST /api/auth/login → accessToken (JWT). Cached per execution.
+var _TOKEN = null;
 function getAccessToken() {
-  var sa    = sa_();
-  var now   = Math.floor(Date.now() / 1000);
-  var claim = {
-    iss: sa.client_email,
-    scope: 'https://www.googleapis.com/auth/datastore',
-    aud: sa.token_uri,
-    exp: now + 3600,
-    iat: now
-  };
-  var header  = Utilities.base64EncodeWebSafe(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
-  var payload = Utilities.base64EncodeWebSafe(JSON.stringify(claim));
-  var toSign  = header + '.' + payload;
-  var sig = Utilities.base64EncodeWebSafe(
-    Utilities.computeRsaSha256Signature(toSign, sa.private_key)
-  );
-  var resp = UrlFetchApp.fetch(sa.token_uri, {
+  if (_TOKEN) return _TOKEN;
+  var resp = UrlFetchApp.fetch(backendUrl_() + '/api/auth/login', {
     method: 'post',
-    contentType: 'application/x-www-form-urlencoded',
-    payload: 'grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=' + toSign + '.' + sig,
+    contentType: 'application/json',
+    payload: JSON.stringify(creds_()),
     muteHttpExceptions: true
   });
-  var data = JSON.parse(resp.getContentText());
-  if (!data.access_token) throw new Error('Token error: ' + resp.getContentText());
-  return data.access_token;
+  if (resp.getResponseCode() !== 200)
+    throw new Error('Login fallito (' + resp.getResponseCode() + '): ' + resp.getContentText());
+  var token = JSON.parse(resp.getContentText()).accessToken;
+  if (!token) throw new Error('Login: nessun accessToken nella risposta.');
+  _TOKEN = token;
+  return token;
 }
 
-// ── FIRESTORE HELPERS ───────────────────────────────────
-
-// All documents (paginated)
-function firestoreGet(token) {
-  var allDocs = [], pageToken = null;
-  do {
-    var url = 'https://firestore.googleapis.com/v1/projects/' + projectId_() +
-              '/databases/(default)/documents/' + COLLECTION + '?pageSize=300';
-    if (pageToken) url += '&pageToken=' + encodeURIComponent(pageToken);
-    var resp = UrlFetchApp.fetch(url, {
-      headers: { Authorization: 'Bearer ' + token },
-      muteHttpExceptions: true
-    });
-    var data = JSON.parse(resp.getContentText());
-    if (data.documents) allDocs = allDocs.concat(data.documents);
-    pageToken = data.nextPageToken || null;
-  } while (pageToken);
-  return allDocs;
+// GET /api/cans — lattine attive (le soft-deleted sono già escluse dal backend).
+// Endpoint pubblico: nessun token necessario per il pull.
+function fetchCans() {
+  var resp = UrlFetchApp.fetch(backendUrl_() + '/api/cans', { muteHttpExceptions: true });
+  if (resp.getResponseCode() !== 200)
+    throw new Error('GET /api/cans (' + resp.getResponseCode() + '): ' + resp.getContentText());
+  return JSON.parse(resp.getContentText()) || [];
 }
 
-// Documents with updatedAt > since
-function firestoreQueryUpdated(token, since) {
-  var url = 'https://firestore.googleapis.com/v1/projects/' + projectId_() +
-            '/databases/(default)/documents:runQuery';
-  var body = {
-    structuredQuery: {
-      from: [{ collectionId: COLLECTION }],
-      where: {
-        fieldFilter: {
-          field: { fieldPath: 'updatedAt' },
-          op: 'GREATER_THAN',
-          value: { integerValue: String(since) }
-        }
-      }
-    }
-  };
-  var resp = UrlFetchApp.fetch(url, {
+// POST /api/cans/batch — upsert per id. Gli oggetti vanno inviati COMPLETI (foto incluse):
+// il backend sovrascrive l'intero documento, quindi un push parziale cancellerebbe le foto.
+function batchSave(token, cans) {
+  if (!cans.length) return;
+  var resp = UrlFetchApp.fetch(backendUrl_() + '/api/cans/batch', {
     method: 'post',
     contentType: 'application/json',
     headers: { Authorization: 'Bearer ' + token },
-    payload: JSON.stringify(body),
-    muteHttpExceptions: true
-  });
-  var data = JSON.parse(resp.getContentText());
-  return data
-    .filter(function(r) { return r.document; })
-    .map(function(r) { return r.document; });
-}
-
-// Save a document (updateMask: only TEXT_FIELDS + updatedAt → photos & soft-delete untouched)
-function firestoreSet(token, docId, fields) {
-  var maskFields = TEXT_FIELDS.concat(['updatedAt']);
-  var mask = maskFields.map(function(f) { return 'updateMask.fieldPaths=' + f; }).join('&');
-  var url = 'https://firestore.googleapis.com/v1/projects/' + projectId_() +
-            '/databases/(default)/documents/' + COLLECTION + '/' + docId + '?' + mask;
-  var body = { fields: {} };
-  TEXT_FIELDS.forEach(function(k) {
-    body.fields[k] = { stringValue: String(fields[k] || '') };
-  });
-  body.fields['updatedAt'] = { integerValue: String(Date.now()) };
-  var resp = UrlFetchApp.fetch(url, {
-    method: 'patch',
-    contentType: 'application/json',
-    headers: { Authorization: 'Bearer ' + token },
-    payload: JSON.stringify(body),
+    payload: JSON.stringify(cans),
     muteHttpExceptions: true
   });
   if (resp.getResponseCode() >= 400)
-    throw new Error('Firestore error: ' + resp.getContentText());
+    throw new Error('POST /api/cans/batch (' + resp.getResponseCode() + '): ' + resp.getContentText());
 }
 
-function docToObj(doc) {
-  var obj = {};
-  if (!doc.fields) return obj;
-  Object.keys(doc.fields).forEach(function(k) {
-    var f = doc.fields[k];
-    obj[k] = f.stringValue  !== undefined ? f.stringValue  :
-             f.integerValue !== undefined ? String(f.integerValue) :
-             f.doubleValue  !== undefined ? String(f.doubleValue)  :
-             f.booleanValue !== undefined ? String(f.booleanValue) : '';
-  });
-  return obj;
-}
-
-// Soft-deleted? The app sets deletedAt (ms) when a can is in the trash;
-// those must NOT appear in the sheet (and must never be re-uploaded).
-function isDeleted(doc) {
-  if (!doc.fields || !doc.fields.deletedAt) return false;
-  var f = doc.fields.deletedAt;
-  var v = f.integerValue !== undefined ? Number(f.integerValue)
-        : f.doubleValue  !== undefined ? Number(f.doubleValue) : 0;
-  return v > 0;
-}
-
-// ── PULL (full): Firestore → Sheet ──────────────────────
-function pullFromFirestore() {
+// ── PULL (full): backend → Sheet ────────────────────────
+function pullFromBackend() {
   var ui = SpreadsheetApp.getUi();
   try {
-    var token = getAccessToken();
-    var docs  = firestoreGet(token).filter(function(d) { return !isDeleted(d); });
-    if (!docs.length) { ui.alert('Nessuna lattina trovata su Firestore.'); return; }
+    var cans = fetchCans();
+    if (!cans.length) { ui.alert('Nessuna lattina trovata sul backend.'); return; }
 
     var ss    = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
@@ -189,10 +113,7 @@ function pullFromFirestore() {
     sheet.getRange(1, 1, 1, COLUMNS.length).setValues([COLUMNS]);
     styleHeader(sheet);
 
-    var rows = docs.map(function(doc) {
-      var obj = docToObj(doc);
-      return COLUMNS.map(function(col) { return obj[colToField(col)] || ''; });
-    });
+    var rows = cans.map(canToRow);
     if (rows.length) sheet.getRange(2, 1, rows.length, COLUMNS.length).setValues(rows);
 
     sheet.autoResizeColumns(1, COLUMNS.length);
@@ -213,14 +134,12 @@ function pullIncremental() {
 
   if (lastSync === 0) {
     ui.alert('Prima run: eseguo il pull completo.');
-    pullFromFirestore();
+    pullFromBackend();
     return;
   }
 
   try {
-    var token = getAccessToken();
-    var docs  = firestoreQueryUpdated(token, lastSync);
-
+    var cans  = fetchCans();
     var ss    = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName(SHEET_NAME);
     if (!sheet) throw new Error('Foglio "' + SHEET_NAME + '" non trovato. Fai prima il pull completo.');
@@ -229,29 +148,29 @@ function pullIncremental() {
     var rowMap = {};
     for (var i = 1; i < data.length; i++) {
       var rowId = String(data[i][0] || '').trim();
-      if (rowId) rowMap[rowId] = i + 1;
+      if (rowId) rowMap[rowId] = i + 1; // 1-based sheet row
     }
 
+    var activeIds = {};
     var added = 0, updated = 0, trashed = 0;
-    docs.forEach(function(doc) {
-      var mvId = doc.name.split('/').pop();
-
-      // a can moved to the trash since last sync → remove its row if present
-      if (isDeleted(doc)) {
-        if (rowMap[mvId]) { sheet.deleteRow(rowMap[mvId]); trashed++; }
-        return;
-      }
-
-      var obj = docToObj(doc);
-      var row = COLUMNS.map(function(col) { return obj[colToField(col)] || ''; });
-      if (rowMap[mvId]) {
-        sheet.getRange(rowMap[mvId], 1, 1, COLUMNS.length).setValues([row]);
+    cans.forEach(function(can) {
+      activeIds[can.id] = true;
+      var updatedAt = Number(can.updatedAt || 0);
+      if (updatedAt <= lastSync && rowMap[can.id]) return; // unchanged, già presente
+      var row = canToRow(can);
+      if (rowMap[can.id]) {
+        sheet.getRange(rowMap[can.id], 1, 1, COLUMNS.length).setValues([row]);
         updated++;
       } else {
         sheet.appendRow(row);
         added++;
       }
     });
+
+    // Righe la cui can non è più attiva (cestino o cancellata) → rimuovi, dal basso verso l'alto.
+    var toDelete = [];
+    Object.keys(rowMap).forEach(function(id) { if (!activeIds[id]) toDelete.push(rowMap[id]); });
+    toDelete.sort(function(a, b) { return b - a; }).forEach(function(r) { sheet.deleteRow(r); trashed++; });
 
     if (!added && !updated && !trashed) { ui.alert('Già aggiornato — nessuna novità.'); return; }
     props.setProperty('lastSyncTimestamp', String(Date.now()));
@@ -261,10 +180,10 @@ function pullIncremental() {
   }
 }
 
-// ── PUSH: Sheet → Firestore ─────────────────────────────
-function pushToFirestore() {
+// ── PUSH: Sheet → backend ───────────────────────────────
+function pushToBackend() {
   var ui = SpreadsheetApp.getUi();
-  if (ui.alert('Caricare su Firestore?', 'Vengono aggiornati solo i campi testuali. Foto e cestino non vengono toccati.', ui.ButtonSet.YES_NO) !== ui.Button.YES) return;
+  if (ui.alert('Caricare sul backend?', 'Vengono aggiornati solo i campi testuali. Foto e cestino non vengono toccati.', ui.ButtonSet.YES_NO) !== ui.Button.YES) return;
 
   try {
     var token = getAccessToken();
@@ -272,26 +191,39 @@ function pushToFirestore() {
     var sheet = ss.getSheetByName(SHEET_NAME);
     if (!sheet) throw new Error('Foglio "' + SHEET_NAME + '" non trovato.');
 
+    // Mappa delle can esistenti: per fare merge e PRESERVARE foto + campi server.
+    var existing = {};
+    fetchCans().forEach(function(c) { existing[c.id] = c; });
+
     var data    = sheet.getDataRange().getValues();
     var headers = data[0].map(function(h) { return String(h).trim(); });
-    var rows    = data.slice(1).filter(function(r) { return r.some(function(c) { return c !== ''; }); });
-    var added = 0, updated = 0, skipped = 0;
+    var rows    = data.slice(1);
+    var toSave = [], added = 0, updated = 0, skipped = 0;
 
     rows.forEach(function(row, ri) {
+      if (!row.some(function(c) { return c !== ''; })) return; // riga vuota
       var obj = {};
       headers.forEach(function(h, i) { obj[h] = String(row[i] || '').trim(); });
       if (!obj['NOME'] && !obj['SKU']) { skipped++; return; }
 
       var mvId = obj['MV_ID'] || ('can_' + canHash(obj));
 
-      firestoreSet(token, mvId, {
-        id: mvId, nome: obj['NOME']||'', sku: obj['SKU']||'',
-        produttore: obj['PRODUTTORE']||'', size: obj['SIZE']||'',
-        lingua: obj['LINGUA']||'', top: obj['TOP/TAB']||'',
-        promo: obj['PROMO']||'', valore: obj['VALORE (STIMA)']||'',
-        note: obj['OPENING']||'', stato: obj['CONDITIONS']||'OK',
-        descrizione: obj['MORE INFO']||''
-      });
+      // Parti dalla can esistente (foto, p*Id, deletedAt, photoAt restano intatti),
+      // sovrascrivi solo i campi testuali. Se è nuova, oggetto fresco.
+      var can = existing[mvId] || {};
+      can.id          = mvId;
+      can.nome        = obj['NOME'] || '';
+      can.sku         = obj['SKU'] || '';
+      can.produttore  = obj['PRODUTTORE'] || '';
+      can.size        = obj['SIZE'] || '';
+      can.lingua      = obj['LINGUA'] || '';
+      can.top         = obj['TOP/TAB'] || '';
+      can.promo       = obj['PROMO'] || '';
+      can.valore      = obj['VALORE (STIMA)'] || '';
+      can.note        = obj['OPENING'] || '';
+      can.stato       = obj['CONDITIONS'] || 'OK';
+      can.descrizione = obj['MORE INFO'] || '';
+      toSave.push(can);
 
       if (obj['MV_ID']) {
         updated++;
@@ -302,6 +234,7 @@ function pushToFirestore() {
       }
     });
 
+    batchSave(token, toSave);
     ui.alert('✅ Sync completato!\n\n• Aggiornate: ' + updated + '\n• Nuove: ' + added + '\n• Saltate: ' + skipped);
   } catch(e) {
     ui.alert('❌ Errore: ' + e.message);
@@ -315,6 +248,15 @@ function resetIncrementalSync() {
 }
 
 // ── UTILS ───────────────────────────────────────────────
+
+// can (JSON dal backend) → riga del foglio nell'ordine di COLUMNS.
+function canToRow(can) {
+  return COLUMNS.map(function(col) {
+    var v = can[colToField(col)];
+    return v === undefined || v === null ? '' : String(v);
+  });
+}
+
 function colToField(col) {
   var map = {
     'MV_ID':'id','NOME':'nome','SKU':'sku','PRODUTTORE':'produttore',
