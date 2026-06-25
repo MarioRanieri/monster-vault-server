@@ -299,14 +299,12 @@ def telegram_command_listener():
                 if chat_id != str(config.TELEGRAM_CHAT_ID) or not text.startswith("/delete"):
                     continue
                 cmd_id = msg.get("message_id", 0)
-                n = delete_bot_messages(cmd_id)
-                try:   # cancella anche il comando /delete stesso
+                delete_bot_messages(cmd_id)
+                try:   # cancella anche il comando /delete stesso (unico feedback: sparisce)
                     requests.post(f"{url}/deleteMessage",
                                   data={"chat_id": config.TELEGRAM_CHAT_ID, "message_id": cmd_id}, timeout=15)
                 except Exception:
                     pass
-                _tg_text(f"🗑️ Cancellati {n} messaggi del bot." if n else
-                         "Niente da cancellare (i messaggi oltre 48h non sono eliminabili da un bot).")
         except Exception:
             time.sleep(5)
 
