@@ -27,13 +27,19 @@ public class ShareController {
         }
         String title = esc(can.getNome() != null ? can.getNome() : "Monster Can");
         String desc = esc(can.getDescrizione() != null ? can.getDescrizione() : "Monster Energy can collection");
-        String image = can.getP1() != null ? can.getP1() : "https://monster-vault-server.onrender.com/social-preview.png";
+        String image = can.getP1() != null
+                ? can.getP1().replace("/image/upload/", "/image/upload/c_fill,w_1200,h_630,g_auto/")
+                : "https://monster-vault-server.onrender.com/social-preview.png";
         String appUrl = "/?public=1&can=" + id;
 
         return "<!DOCTYPE html><html><head>"
                 + "<meta property=\"og:title\" content=\"" + title + " — Monster Vault\"/>"
                 + "<meta property=\"og:description\" content=\"" + desc + "\"/>"
                 + "<meta property=\"og:image\" content=\"" + esc(image) + "\"/>"
+                + "<meta property=\"og:url\" content=\"https://monster-vault-server.onrender.com/share/" + id + "\"/>"
+                + "<meta property=\"og:image:width\" content=\"1200\"/>"
+                + "<meta property=\"og:image:height\" content=\"630\"/>"
+                + "<meta property=\"og:image:alt\" content=\"" + title + "\"/>"
                 + "<meta property=\"og:type\" content=\"website\"/>"
                 + "<meta name=\"twitter:card\" content=\"summary_large_image\"/>"
                 + "<meta http-equiv=\"refresh\" content=\"0;url=" + appUrl + "\"/>"
