@@ -1155,28 +1155,6 @@ export function signOut(): void {
     });
 }
 
-// ── JWT SILENT REFRESH ─────────────────────────────────
-export function checkAndRefreshToken(): void {
-  const token = getToken();
-  if (!token || !state.isAdmin) return;
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    if (!payload.exp) return;
-    const remaining = payload.exp * 1000 - Date.now();
-    if (remaining <= 0) return;
-    if (remaining < 2 * 60 * 1000) {
-      _tryRefresh().then(function (ok) {
-        if (!ok) {
-          state.isAdmin = false;
-          applyAuthUI();
-        }
-      });
-    }
-  } catch (_e) {
-    /* ignore */
-  }
-}
-
 export function continueAsGuest(explicit = true): void {
   // explicit = user clicked "Continue as guest" → drop any admin session and
   // prevent the boot cookie-refresh from silently re-promoting to admin.
