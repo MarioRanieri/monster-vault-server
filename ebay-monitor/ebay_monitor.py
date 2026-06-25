@@ -234,21 +234,32 @@ def _tg_text(text):
     except Exception:
         pass
 
-def delete_bot_messages(up_to_id):
-    """Cancella a ritroso i messaggi del bot prima di up_to_id (fino a DELETE_SCAN_BACK).
-    Telegram rifiuta quelli non del bot o più vecchi di 48h: contiamo solo i cancellati."""
-    scan = getattr(config, "DELETE_SCAN_BACK", 300)
-    deleted = 0
-    for mid in range(up_to_id - 1, max(0, up_to_id - scan - 1), -1):
+def _delete_one(mid):
+    """True se il messaggio è stato cancellato. Un solo retry sul 429 (rate limit)
+    rispettando retry_after, così la concorrenza non lascia messaggi indietro."""
+    for attempt in (1, 2):
         try:
             r = requests.post(f"{_tg_url()}/deleteMessage",
                               data={"chat_id": config.TELEGRAM_CHAT_ID, "message_id": mid}, timeout=15)
-            if r.ok and r.json().get("ok"):
-                deleted += 1
+            if r.status_code == 429 and attempt == 1:
+                retry_after = (r.json().get("parameters") or {}).get("retry_after", 1)
+                time.sleep(min(retry_after, 30) + 0.1)
+                continue
+            return bool(r.ok and r.json().get("ok"))
         except Exception:
-            pass
-        time.sleep(0.05)   # gentile col rate limit Telegram
-    return deleted
+            return False
+    return False
+
+def delete_bot_messages(up_to_id):
+    """Cancella a ritroso i messaggi del bot prima di up_to_id (fino a DELETE_SCAN_BACK).
+    Telegram rifiuta quelli non del bot o più vecchi di 48h: contiamo solo i cancellati.
+    Le cancellazioni vanno in parallelo (DELETE_WORKERS) così la conferma in chat arriva
+    in pochi secondi invece che dopo DELETE_SCAN_BACK round-trip in serie."""
+    scan = getattr(config, "DELETE_SCAN_BACK", 300)
+    workers = getattr(config, "DELETE_WORKERS", 12)
+    ids = range(up_to_id - 1, max(0, up_to_id - scan - 1), -1)
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        return sum(ex.map(_delete_one, ids))
 
 def telegram_command_listener():
     """[Thread daemon] Long-polling getUpdates: gestisce /delete dalla chat autorizzata."""
