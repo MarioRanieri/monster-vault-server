@@ -38,8 +38,11 @@ export function copyToClipboard(text: string, cb?: () => void): void {
 }
 
 // ── SHARE SHEET (detail view) ──────────────────────────
-
 export function toggleShareSheet(): void {
+  if ('share' in navigator && matchMedia('(pointer: coarse)').matches && state.detailCurrentId) {
+    shareCanLink('native');
+    return;
+  }
   const sheet = document.getElementById('share-sheet');
   if (!sheet) return;
   const opening = !sheet.classList.contains('open');
@@ -65,9 +68,8 @@ export function shareCanLink(mode: string): void {
   if (!id) return;
   const can = state.cans.find((c: Can) => c.id === id);
   if (!can) return;
-  const base = window.location.href.split('?')[0];
   const name = OWNER_NAME;
-  const url = base + '?public=1&can=' + encodeURIComponent(id);
+  const url = window.location.origin + '/share/' + encodeURIComponent(id);
 
   if (mode === 'link') {
     copyToClipboard(url, () => {
@@ -84,6 +86,12 @@ export function shareCanLink(mode: string): void {
   if (can.sku) parts.push('SKU: ' + can.sku);
   if (isFull) parts.push('FULL');
 
+  if (mode === 'native') {
+    navigator
+      .share({ title: can.nome || 'Monster Vault', text: parts.join(' · '), url })
+      .catch(() => {});
+    return;
+  }
   if (mode === 'text') {
     parts.push(url);
     copyToClipboard(parts.join(' · '), () => {
