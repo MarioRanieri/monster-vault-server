@@ -27,7 +27,7 @@ public class ShareController {
         }
         String title = esc(can.getNome() != null ? can.getNome() : "Monster Can");
         String desc = esc(can.getDescrizione() != null ? can.getDescrizione() : "Monster Energy can collection");
-        String image = can.getP1() != null
+        String image = can.getP1() != null && !can.getP1().isBlank()
                 ? can.getP1().replace("/image/upload/", "/image/upload/c_fill,w_1200,h_630,g_auto/")
                 : "https://monster-vault-server.onrender.com/social-preview.png";
         String appUrl = "/?public=1&can=" + id;
