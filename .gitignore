@@ -27,9 +27,6 @@ frontend/test-results/
 frontend/playwright-report/
 frontend/tests/node_modules/
 backend/src/test/api/local.environment.json
-# Local collection data exports (sheet snapshot / dumps) — public repo, keep out of git
-tools/sheet-sync/*.csv
-tools/sheet-sync/*.xlsx
 
 # Frontend files copied into backend at build time (source of truth: frontend/src/)
 backend/src/main/resources/static/*
