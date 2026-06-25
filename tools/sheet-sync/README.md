@@ -1,5 +1,10 @@
 # Monster Vault — Sheet ↔ Firestore sync
 
+> ⚠️ **Deprecated (2026-06-25).** The backend migrated from Firestore to MongoDB. This tool
+> talks **directly to Firestore**, so it no longer reflects live data and is effectively
+> broken. It needs a rewrite to go through the Spring REST API (or the Mongo driver) before
+> it can be used again.
+
 A Google Apps Script (`MonsterVaultSync.gs`) bound to the **"Monster Vault Sync"**
 Google Sheet. It syncs the **text fields** of the collection between the sheet and
 Firestore, talking **directly to Firestore** (REST API + service account) — it does

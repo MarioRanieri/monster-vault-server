@@ -10,7 +10,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Live demo](https://img.shields.io/badge/demo-live-success?logo=render&logoColor=white)](https://monster-vault-server.onrender.com)
 
-**Monster Vault** is a full‑stack app for managing a large Monster Energy can collection (1,800+ cans). It's a monorepo: a **`backend/`** Spring Boot 3.3 / Java 17 service exposing a stateless JWT REST API (Firestore + Cloudinary), and a **`frontend/`** TypeScript Progressive Web App (modular, bundled with Vite). The built frontend is embedded into the backend's static resources at build time, so it's served same‑origin — no CORS. Auth uses a short‑lived access token plus a rotating refresh token in an HttpOnly cookie.
+**Monster Vault** is a full‑stack app for managing a large Monster Energy can collection (1,800+ cans). It's a monorepo: a **`backend/`** Spring Boot 3.3 / Java 17 service exposing a stateless JWT REST API (MongoDB + Cloudinary), and a **`frontend/`** TypeScript Progressive Web App (modular, bundled with Vite). The built frontend is embedded into the backend's static resources at build time, so it's served same‑origin — no CORS. Auth uses a short‑lived access token plus a rotating refresh token in an HttpOnly cookie.
 
 **🔗 Live demo:** https://monster-vault-server.onrender.com
 
@@ -52,7 +52,7 @@
         │  SOLID · layered · in-memory cache         │
         └───────┬───────────────────────┬───────────┘
                 │                        │
-           Firestore (NoSQL)       Cloudinary (photos)
+           MongoDB (NoSQL)         Cloudinary (photos)
 
    ── Cross-cutting ──────────────────────────────────────────
    Observability : /actuator/prometheus → Prometheus → Grafana
@@ -91,7 +91,7 @@ Service            ← business logic
      │
      ▼
 Repository         ← data persistence
-  └── FirestoreCanRepository → reads/writes to Firestore (Google Firebase)
+  └── MongoCanRepository → reads/writes to MongoDB Atlas
 ```
 
 Every layer depends on **interfaces**, not on concrete classes (SOLID Dependency Inversion Principle).
@@ -106,7 +106,7 @@ This makes each component independently testable with mocks.
 | Framework | Spring Boot 3.3.0 (Java 17) |
 | Security | Spring Security + JWT (jjwt 0.12.3) |
 | Password hashing | BCrypt |
-| Database | Google Firestore (Firebase Admin SDK 9.3.0, paginated 500 docs/page) |
+| Database | MongoDB Atlas (Spring Data MongoDB) |
 | Photo storage | Cloudinary |
 | Validation | Jakarta Validation (`@NotBlank`) |
 | Boilerplate reduction | Lombok 1.18.38 (`@Data`, `@Slf4j`) |
@@ -156,7 +156,7 @@ This makes each component independently testable with mocks.
 | POST | `/api/cans` | JWT | Creates a new can |
 | PUT | `/api/cans/{id}` | JWT | Updates an existing can (orphan photos cleaned from Cloudinary) |
 | DELETE | `/api/cans/{id}` | JWT | Soft-deletes a can (sets `deletedAt`; hidden from `GET`, photos kept) |
-| DELETE | `/api/cans/{id}/permanent` | JWT | Permanent delete — removes from Firestore + Cloudinary |
+| DELETE | `/api/cans/{id}/permanent` | JWT | Permanent delete — removes from MongoDB + Cloudinary |
 | PUT | `/api/cans/{id}/restore` | JWT | Restores a soft-deleted can |
 | POST | `/api/cans/batch` | JWT | Atomically saves multiple cans (Excel import) |
 | DELETE | `/api/cans` | JWT + header | Deletes the entire collection |
@@ -176,7 +176,7 @@ X-Confirm-Delete: all
 | POST | `/api/cans/{id}/photo/{slot}/from-url` | JWT | Upload a photo from an external URL |
 
 - `slot` is 1–4 (each can has up to 4 photos: p1, p2, p3, p4)
-- Photos are stored on Cloudinary; the returned HTTPS URL is saved in Firestore
+- Photos are stored on Cloudinary; the returned HTTPS URL is saved in MongoDB
 
 **File upload** — `multipart/form-data`, field name: `file`  
 **URL upload** — JSON body: `{ "url": "https://example.com/image.jpg" }`  
@@ -210,20 +210,20 @@ The server is **stateless** for access (signature-verified JWT); the only server
 
 ## In-Memory Cache
 
-`CanService` maintains a thread-safe in-memory cache of the entire collection to avoid hitting the Firestore daily read quota (50,000 reads/day free tier with ~1,800 documents).
+`CanService` maintains a thread-safe in-memory cache of the entire collection so reads are served from memory instead of a database round-trip on every request — lower latency, and the DB is queried only on a cold cache or after a write.
 
 ```
-cache = null        → cold cache: next getAll() reads from Firestore
-cache = []          → known empty collection: no Firestore read needed
+cache = null        → cold cache: next getAll() reads from MongoDB
+cache = []          → known empty collection: no DB read needed
 cache = [Can, ...]  → warm cache: all reads served from memory
 ```
 
 **Thread safety:**
 - `volatile` keyword: ensures every thread sees the latest written value
 - `CopyOnWriteArrayList`: allows concurrent reads without blocking
-- `synchronized` + double-checked locking in `getAll()`: prevents two threads from loading Firestore simultaneously on the first request
+- `synchronized` + double-checked locking in `getAll()`: prevents two threads from loading from MongoDB simultaneously on the first request
 
-**ACID Consistency:** if any Firestore write fails, the cache is set to `null` so the next read reloads from the database — cache and Firestore can never diverge.
+**ACID Consistency:** if any MongoDB write fails, the cache is set to `null` so the next read reloads from the database — cache and DB can never diverge.
 
 ---
 
@@ -240,21 +240,20 @@ Monorepo with two top-level apps. The frontend is built and copied into the back
 │   └── src/main/java/com/monstervault/
 │       ├── MonsterVaultApplication.java
 │       ├── model/Can.java                # photoAt: Long; p1Id-p4Id: Cloudinary public_id
-│       ├── config/                       # FirebaseConfig, SecurityConfig, WebConfig, OpenApiConfig
+│       ├── config/                       # SecurityConfig, WebConfig, OpenApiConfig, MetricsConfig
 │       ├── security/
 │       │   ├── TokenValidator / TokenGenerator   # interfaces (access + refresh aware)
 │       │   ├── JwtUtil.java              # HMAC-SHA256; access/refresh tokens, `type` claim
 │       │   ├── JwtFilter.java            # accepts only access tokens
 │       │   ├── RefreshTokenStore.java    # in-memory active refresh tokens (SHA-256 hashed)
 │       │   └── LoginRateLimitInterceptor.java
-│       ├── repository/                   # CanRepository + FirestoreCanRepository
+│       ├── repository/                   # CanRepository + MongoCanRepository
 │       ├── service/
 │       │   ├── AuthService / AdminAuthService     # login → AuthResponse, refresh+rotation, logout
 │       │   ├── AuthResponse.java         # record(accessToken, refreshToken)
 │       │   ├── CanService.java           # cache + photo orchestration
 │       │   └── PhotoStorage / CloudinaryService
-│       ├── controller/                   # AuthController, CanController, ShareController, GlobalExceptionHandler
-│       └── exception/FirestoreQuotaExceededException.java
+│       └── controller/                   # AuthController, CanController, ShareController, GlobalExceptionHandler
 └── frontend/                             # TypeScript PWA (Vite)
     ├── index.html                        # Vite entry (markup only)
     ├── vite.config.ts · tsconfig.json · eslint.config.js · .prettierrc
@@ -279,13 +278,13 @@ Monorepo with two top-level apps. The frontend is built and copied into the back
 - **JDK 17** (matches the Docker/Render target)
 - Maven 3.9.x · **Node 22** (for the frontend build)
 - A `backend/src/main/resources/application.properties` file (not committed — see below)
-- A `backend/src/main/resources/firebase-service-account.json` file (not committed)
+- A MongoDB connection URI — a local `mongod`, or a free [MongoDB Atlas](https://www.mongodb.com/atlas) cluster
 
 ### application.properties
 
 ```properties
 server.port=8080
-firestore.collection=cans
+spring.data.mongodb.uri=mongodb://localhost:27017/monstervault   # or your Atlas SRV URI
 app.admin.username=YourAdminUsername
 app.admin.password=$2a$10$<bcrypt_hash_of_your_password>
 app.jwt.secret=<random_string_at_least_32_chars>
@@ -295,8 +294,10 @@ app.jwt.refresh-cookie-secure=false     # set false only for local HTTP dev
 cloudinary.cloud-name=<your_cloud_name>
 cloudinary.api-key=<your_api_key>
 cloudinary.api-secret=<your_api_secret>
-firebase.service-account=src/main/resources/firebase-service-account.json
 ```
+
+> In production the Mongo URI comes from the `SPRING_DATA_MONGODB_URI` env var (Render),
+> so it never lives in the repo.
 
 ### Frontend (dev)
 
@@ -346,7 +347,7 @@ mvn test
 
 Controller tests use `@WebMvcTest` with `@Import({SecurityConfig.class, JwtUtil.class})` so the JWT filter loads in the test context.
 
-**E2E (Selenium, headless Chrome)** — `AdminFlowE2ETest`, `GuestFlowE2ETest`, `ResponsiveE2ETest` = 58 tests. The base class mocks Firebase/Firestore/repository/storage; admin tests inject the access token into memory and force admin UI via the window-exposed functions (the new in-memory auth flow). **These need a local Chrome and are skipped on the CI runner** — run them locally with `mvn test`.
+**E2E (Selenium, headless Chrome)** — `AdminFlowE2ETest`, `GuestFlowE2ETest`, `ResponsiveE2ETest` = 58 tests. The base class mocks the repository/storage; admin tests inject the access token into memory and force admin UI via the window-exposed functions (the new in-memory auth flow). **These need a local Chrome and are skipped on the CI runner** — run them locally with `mvn test`.
 
 ### Frontend — Playwright smoke (CI) + legacy Jest
 
@@ -405,8 +406,7 @@ The app is containerized with a multi-stage Dockerfile and deployed on Render fr
 
 | Variable | Description |
 |---|---|
-| `FIREBASE_CREDENTIALS_JSON` | Base64-encoded Firebase service account JSON |
-| `FIRESTORE_COLLECTION` | Firestore collection name (e.g. `cans`) |
+| `SPRING_DATA_MONGODB_URI` | MongoDB Atlas connection string (`mongodb+srv://…/monstervault`) |
 | `APP_ADMIN_USERNAME` | Admin username |
 | `APP_ADMIN_PASSWORD` | BCrypt hash of admin password |
 | `APP_JWT_SECRET` | JWT signing secret (min. 32 chars) |
@@ -445,9 +445,9 @@ Deploys are automatic: pushing to `main` triggers a Render build from the root `
 
 **Access token + refresh token (rotation)** — a short-lived access token (15 min) is kept in memory and sent as `Authorization: Bearer` (XSS-resilient — not in localStorage); a long-lived refresh token (7 days) lives in an HttpOnly/Secure/SameSite=Strict cookie. Each refresh rotates the token (single-use) and is revoked on logout. Access stays stateless (signature-verified); only the small set of active refresh-token hashes is held in memory.
 
-**Interface-based architecture (SOLID DIP)** — `CanService` depends on `CanRepository`, not on `FirestoreCanRepository`. Switching persistence layer means writing one new class, not modifying existing ones.
+**Interface-based architecture (SOLID DIP)** — `CanService` depends on `CanRepository`, not on `MongoCanRepository`. Switching persistence layer means writing one new class, not modifying existing ones — exactly how this project migrated from Firestore to MongoDB Atlas: one new adapter, zero changes to the service or controllers.
 
-**In-memory cache instead of CDN/Redis** — free and sufficient for a single-user app. The cache is invalidated on any write failure to maintain consistency with Firestore.
+**In-memory cache instead of CDN/Redis** — free and sufficient for a single-user app. The cache is invalidated on any write failure to maintain consistency with the database.
 
 **`deleteAll` requires a confirmation header** — prevents accidental erasure of 1,800+ documents from a misfire or curl typo.
 
@@ -463,6 +463,6 @@ Deploys are automatic: pushing to `main` triggers a Render build from the root `
 
 **`photoAt` timestamp** — each Can has a `photoAt: Long` field set to the current epoch milliseconds whenever any photo slot (p1–p4) is saved. The "Recently Photographed" sort uses this to surface recently-photographed cans first; cans with no photos (photoAt = null) sort to the bottom.
 
-**Cloudinary cleanup order (safety invariant)** — Firestore is always written/deleted *before* touching Cloudinary. If the DB operation fails, photos are never deleted and the state remains consistent. If the Cloudinary operation fails, at worst photos are orphaned on Cloudinary (recoverable), but the DB is always correct. `deleteAll()` uses `deleteResourcesByPrefix` (one Admin API call per 1000 resources) instead of N individual `destroy()` calls.
+**Cloudinary cleanup order (safety invariant)** — MongoDB is always written/deleted *before* touching Cloudinary. If the DB operation fails, photos are never deleted and the state remains consistent. If the Cloudinary operation fails, at worst photos are orphaned on Cloudinary (recoverable), but the DB is always correct. `deleteAll()` uses `deleteResourcesByPrefix` (one Admin API call per 1000 resources) instead of N individual `destroy()` calls.
 
 **Cloudinary `publicId` stored alongside URL** — each Can stores `p1Id`–`p4Id` (the Cloudinary public_id, e.g. `monster-vault/abc_1_xyz`) set at upload time. Deletions use the stored ID directly — no URL parsing. Old cans without `pNId` fall back to URL parsing for backward compatibility.

@@ -1,6 +1,6 @@
 # Input del modulo: si valorizzano in terraform.tfvars (copia da terraform.tfvars.example).
 variable "project_id" {
-  description = "ID del progetto GCP (lo stesso di Firestore)"
+  description = "ID del progetto GCP (per Cloud Run + Artifact Registry)"
   type        = string
 }
 
@@ -13,10 +13,4 @@ variable "region" {
 variable "image" {
   description = "Immagine Docker completa su Artifact Registry (es. REGION-docker.pkg.dev/PROJECT/monster-vault/app:latest)"
   type        = string
-}
-
-variable "firestore_collection" {
-  description = "Nome della collezione Firestore"
-  type        = string
-  default     = "cans"
 }

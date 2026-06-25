@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Database migrated from Firestore to MongoDB Atlas** — the Firestore adapter was replaced by `MongoCanRepository` behind the existing `CanRepository` port (SOLID DIP), so `CanService` and the controllers were untouched. Removed `firebase-admin`, `FirebaseConfig` and the Firestore-specific quota exception; the connection URI now comes from the `SPRING_DATA_MONGODB_URI` env var. Data was restored from the weekly `backups` branch dump.
+
+### Added
+- **Rich link previews + native mobile share** — per-can share links point at `/share/{id}` (server-rendered Open Graph with the can's photo, cropped to 1200×630 via Cloudinary); on touch devices the Share button opens the native OS share sheet (Web Share API). Sharing is now enabled in guest mode, and the collector name is fixed to `RedMghost`.
+
 ## [0.2.0] - 2026-06-21
 
 ### Added

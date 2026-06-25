@@ -2,10 +2,17 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-06-20 (rev 41)  
+**Updated:** 2026-06-25 (rev 42 — MongoDB migration)  
 **Branch:** main  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
+
+> **2026-06-25 — Migrazione DB: Firestore → MongoDB Atlas.** Il progetto GCP ha perso il
+> billing account (Firestore rispondeva `PERMISSION_DENIED`). Persistenza spostata su MongoDB
+> Atlas (M0 free) tramite `MongoCanRepository` dietro il port `CanRepository`: `CanService` e i
+> controller **invariati**. Rimossi `firebase-admin`, `FirebaseConfig`, `FirestoreQuotaExceededException`.
+> URI dalla env `SPRING_DATA_MONGODB_URI`. Dati ripristinati dal branch `backups`. I riferimenti a
+> Firestore nei log datati più in basso sono **storici** (lasciati come registro).
 
 ---
 
@@ -321,7 +328,6 @@ OpenApiConfig ──→ Swagger UI a /swagger-ui.html (JWT Bearer)
 | File | Ruolo |
 |------|-------|
 | `model/Can.java` | Lombok @Data + `@NotBlank` su `id` + `photoAt` (Long) + `p1Id`-`p4Id` (Cloudinary public_id per delete diretto) |
-| `config/FirebaseConfig.java` | Init Firebase Admin SDK, espone `Firestore` bean |
 | `config/SecurityConfig.java` | Spring Security stateless, allowlist GET pubblici + Swagger |
 | `config/WebConfig.java` | **NEW** — registra `LoginRateLimitInterceptor` su `/api/auth/login` |
 | `config/OpenApiConfig.java` | **NEW** — OpenAPI bean con JWT Bearer security scheme |
@@ -330,8 +336,8 @@ OpenApiConfig ──→ Swagger UI a /swagger-ui.html (JWT Bearer)
 | `security/JwtUtil.java` | `@Component implements TokenValidator, TokenGenerator` |
 | `security/JwtFilter.java` | Filtro HTTP; dipende da `TokenValidator` |
 | `security/LoginRateLimitInterceptor.java` | **NEW** — Bucket4j 10 req/min per IP su login |
-| `repository/CanRepository.java` | Interface CRUD Firestore |
-| `repository/FirestoreCanRepository.java` | `getAll()` paginato con `startAfter()` (500 doc/pagina) |
+| `repository/CanRepository.java` | Interface CRUD — port di persistenza (SOLID DIP) |
+| `repository/MongoCanRepository.java` | Adapter MongoDB (Spring Data `MongoTemplate`) del port `CanRepository` |
 | `service/AuthService.java` | Interface: `Optional<String> authenticate(user, pass)` |
 | `service/AdminAuthService.java` | `@Service implements AuthService`; ha `@Value` credenziali, BCrypt, TokenGenerator |
 | `service/CanService.java` | Cache thread-safe + orchestrazione foto: `update()` con cleanup Cloudinary, `delete()` con cleanup, `uploadPhoto/FromUrl()`, helper privati `setPhoto/deleteOrphanPhotos` |
@@ -339,8 +345,7 @@ OpenApiConfig ──→ Swagger UI a /swagger-ui.html (JWT Bearer)
 | `service/CloudinaryService.java` | `@Service implements PhotoStorage`; `delete()` accetta URL o public_id diretto (`resolvePublicId()`); `deleteFolder()` usa `deleteResourcesByPrefix` con paginazione |
 | `controller/AuthController.java` | POST `/api/auth/login` — dipende solo da `AuthService` |
 | `controller/CanController.java` | **Solo routing HTTP** — dipende solo da `CanService` (nessuna logica foto diretta) |
-| `controller/GlobalExceptionHandler.java` | `@RestControllerAdvice`: 400 validation, 429 quota, 500 generic |
-| `exception/FirestoreQuotaExceededException.java` | Custom exception per quota Firestore esaurita |
+| `controller/GlobalExceptionHandler.java` | `@RestControllerAdvice`: 400 validation, 404 risorsa statica, 500 generic |
 
 ### Static (`src/main/resources/static/`)
 
@@ -392,7 +397,7 @@ spring-boot-starter-parent 3.3.0
 spring-boot-starter-web
 spring-boot-starter-security
 spring-boot-starter-validation
-firebase-admin 9.3.0
+spring-boot-starter-data-mongodb               ← persistenza (ex firebase-admin)
 jjwt-api / jjwt-impl / jjwt-jackson 0.12.3
 cloudinary-http44 1.38.0
 lombok 1.18.34                                  ← #7 (era 1.18.32, incompatibile con JDK21+)
@@ -408,7 +413,7 @@ webdrivermanager 5.8.0                          ← auto-download ChromeDriver
 
 ```properties
 server.port=8080
-firestore.collection=cans
+spring.data.mongodb.uri=mongodb://localhost:27017/monstervault
 app.admin.username=RedMghost
 app.admin.password=<bcrypt hash>
 app.jwt.secret=<secret ≥32 char>
@@ -416,11 +421,10 @@ app.jwt.expiration=86400000
 cloudinary.cloud-name=dufmjcv8s
 cloudinary.api-key=<key>
 cloudinary.api-secret=<secret>
-firebase.service-account=src/main/resources/firebase-service-account.json
 ```
 
 Env vars su Render (stesse, formato `UPPER_SNAKE_CASE`):  
-`FIREBASE_CREDENTIALS_JSON` (Base64 del JSON), `FIRESTORE_COLLECTION`, `APP_ADMIN_USERNAME`, `APP_ADMIN_PASSWORD`, `APP_JWT_SECRET`, `APP_JWT_EXPIRATION`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
+`SPRING_DATA_MONGODB_URI` (connection string Atlas con user:password), `APP_ADMIN_USERNAME`, `APP_ADMIN_PASSWORD`, `APP_JWT_SECRET`, `APP_JWT_EXPIRATION`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
 
 ### Come eseguire i test
 

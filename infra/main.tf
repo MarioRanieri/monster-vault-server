@@ -42,12 +42,9 @@ resource "google_cloud_run_v2_service" "app" {
           memory = "512Mi"
         }
       }
-      # Config NON segreta. I SEGRETI (JWT, Cloudinary, Firebase) vanno via Secret Manager:
-      # vedi README -> "Secret" (env { value_source { secret_key_ref { ... } } }).
-      env {
-        name  = "FIRESTORE_COLLECTION"
-        value = var.firestore_collection
-      }
+      # I SEGRETI (JWT, Cloudinary, e la connection string MongoDB SPRING_DATA_MONGODB_URI)
+      # vanno via Secret Manager: vedi README -> "Secret"
+      # (env { value_source { secret_key_ref { ... } } }).
     }
   }
 

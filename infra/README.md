@@ -41,7 +41,7 @@ terraform destroy     # smonta tutto (per non lasciare risorse attive)
 ```
 
 ## 🔐 Segreti (NON nelle env in chiaro)
-JWT secret, Cloudinary, credenziali Firebase vanno in **Secret Manager**, referenziati così nel
+JWT secret, Cloudinary e la connection string MongoDB (`SPRING_DATA_MONGODB_URI`) vanno in **Secret Manager**, referenziati così nel
 container di `main.tf`:
 ```hcl
 env {

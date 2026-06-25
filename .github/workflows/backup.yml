@@ -1,4 +1,4 @@
-name: Backup Firestore
+name: Backup MongoDB
 
 on:
   schedule:
