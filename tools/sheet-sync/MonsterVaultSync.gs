@@ -52,6 +52,8 @@ function onOpen() {
     .addItem('⚡  Scarica solo novità (incrementale)',       'pullIncremental')
     .addItem('⬆️  Carica Sheet → backend',                   'pushToBackend')
     .addSeparator()
+    .addItem('🌙  Attiva pull automatico notturno',          'installNightlyPull')
+    .addItem('🛑  Disattiva pull automatico',                'removeNightlyPull')
     .addItem('🔄  Reset sync incrementale',                  'resetIncrementalSync')
     .addToUi();
 }
@@ -245,6 +247,42 @@ function pushToBackend() {
 function resetIncrementalSync() {
   PropertiesService.getScriptProperties().deleteProperty('lastSyncTimestamp');
   SpreadsheetApp.getUi().alert('Reset fatto. La prossima "Scarica solo novità" riscaricherà tutto.');
+}
+
+// ── PULL SCHEDULATO (trigger time-based, senza UI) ──────
+// Un handler di trigger non ha UI: niente ui.alert(), si logga su console.
+function scheduledPull() {
+  var cans = fetchCans();
+  if (!cans.length) { console.log('scheduledPull: nessuna lattina'); return; }
+
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
+  sheet.clearContents();
+  sheet.getRange(1, 1, 1, COLUMNS.length).setValues([COLUMNS]);
+  styleHeader(sheet);
+
+  var rows = cans.map(canToRow);
+  if (rows.length) sheet.getRange(2, 1, rows.length, COLUMNS.length).setValues(rows);
+  sheet.setFrozenRows(1);
+
+  PropertiesService.getScriptProperties().setProperty('lastSyncTimestamp', String(Date.now()));
+  console.log('scheduledPull: ' + rows.length + ' lattine');
+}
+
+function installNightlyPull() {
+  ScriptApp.getProjectTriggers().forEach(function(t) {
+    if (t.getHandlerFunction() === 'scheduledPull') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('scheduledPull').timeBased().everyDays(1).atHour(3).create();
+  SpreadsheetApp.getUi().alert('✅ Pull automatico attivato: ogni notte ~03:00.');
+}
+
+function removeNightlyPull() {
+  var n = 0;
+  ScriptApp.getProjectTriggers().forEach(function(t) {
+    if (t.getHandlerFunction() === 'scheduledPull') { ScriptApp.deleteTrigger(t); n++; }
+  });
+  SpreadsheetApp.getUi().alert(n ? '🛑 Pull automatico disattivato.' : 'Nessun trigger attivo.');
 }
 
 // ── UTILS ───────────────────────────────────────────────
