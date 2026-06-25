@@ -1,6 +1,5 @@
 package com.monstervault.controller;
 
-import com.monstervault.exception.FirestoreQuotaExceededException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -59,15 +58,6 @@ public class GlobalExceptionHandler {
      * HttpServletRequest req è iniettato automaticamente da Spring per includere
      * metodo HTTP e URL nel log, rendendo più facile trovare l'endpoint problematico.
      */
-    @ExceptionHandler(FirestoreQuotaExceededException.class)
-    public ResponseEntity<Map<String, String>> handleQuotaExceeded(FirestoreQuotaExceededException e) {
-        log.warn("Firestore quota exceeded: {}", e.getMessage());
-        return ResponseEntity.status(429).body(Map.of(
-                "error", "quota_exceeded",
-                "message", e.getMessage()
-        ));
-    }
-
     /**
      * Risorsa statica inesistente (es. /favicon.ico richiesto dal browser).
      * È un 404, non un errore del server: gestito a parte così non finisce nel

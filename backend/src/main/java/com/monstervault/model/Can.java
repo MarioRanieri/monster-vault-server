@@ -3,6 +3,8 @@ package com.monstervault.model;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
  * Modello dati che rappresenta una lattina nella collezione Monster Vault.
@@ -21,10 +23,13 @@ import lombok.NoArgsConstructor;
  */
 @Data
 @NoArgsConstructor
+@Document(collection = "cans")
 public class Can {
 
     /** Identificatore univoco della lattina. @NotBlank fa sì che Spring rifiuti
-     *  con 400 Bad Request qualsiasi richiesta in cui questo campo è assente o vuoto. */
+     *  con 400 Bad Request qualsiasi richiesta in cui questo campo è assente o vuoto.
+     *  @Id mappa questo campo sull'_id di MongoDB. */
+    @Id
     @NotBlank(message = "id obbligatorio")
     private String id;
 

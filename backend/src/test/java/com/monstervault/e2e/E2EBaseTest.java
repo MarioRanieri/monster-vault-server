@@ -1,7 +1,5 @@
 package com.monstervault.e2e;
 
-import com.google.cloud.firestore.Firestore;
-import com.google.firebase.FirebaseApp;
 import com.monstervault.model.Can;
 import com.monstervault.repository.CanRepository;
 import com.monstervault.security.JwtUtil;
@@ -63,9 +61,7 @@ import static org.mockito.Mockito.when;
 })
 abstract class E2EBaseTest {
 
-    // ── Mock beans (evitano connessioni reali a Firebase/Cloudinary) ──────────
-    @MockBean FirebaseApp  firebaseApp;
-    @MockBean Firestore    firestore;
+    // ── Mock beans (evitano connessioni reali a Mongo/Cloudinary) ──────────
     @MockBean CanRepository canRepository;
     @MockBean PhotoStorage  photoStorage;
     @MockBean AuthService   authService;
