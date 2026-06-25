@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - **Dead Firestore-quota handling (frontend)** — dropped the unreachable `429` branch and the "Firebase Free tier: daily quota exceeded" user messages in `ui.ts`; `GET /api/cans` is not rate-limited, so that path could no longer trigger.
 - **Unused proactive token-refresh helper (frontend)** — removed `checkAndRefreshToken()` from `core.ts`; silent refresh now happens on-401 inside `apiCall`, so the timer-style proactive check was never called.
+- **`/delete` confirmation message (eBay monitor)** — dropped the "🗑️ Cancellati N" Telegram reply; it was sent only after the whole deletion sweep, so it always landed late. The `/delete` command message is deleted too, so its disappearance is the feedback.
+
+### Changed
+- **eBay monitor `/delete` made fast** — the Telegram `/delete` sweep now deletes its messages in parallel (`ThreadPoolExecutor`, `DELETE_WORKERS`, default 12) instead of up to `DELETE_SCAN_BACK` (300) sequential `deleteMessage` calls with a per-call sleep; a single 429 retry honouring `retry_after` keeps concurrency from leaving messages behind.
+- **eBay monitor noise filter** — added `wheel`, `tyre8` and `ogio` to `EXCLUDE_WORDS`.
 
 ### Changed
 - **Post-migration cleanup** — `tools/sheet-sync` Apps Script rewritten to talk to the backend REST API instead of Firestore (admin login + `GET /api/cans` for pulls, `POST /api/cans/batch` for pushes, with a photo-preserving merge); frontend data-layer helpers renamed `*FS` → `*Api` (they call REST, not Firestore); backend javadoc/comments de-Firestored and the false batch-atomicity claim removed.
