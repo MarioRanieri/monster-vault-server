@@ -1187,6 +1187,8 @@ export function continueAsGuest(explicit = true): void {
   }
   state.isPublicMode = true;
   document.body.classList.add('public-mode');
+  const ownerEl = document.getElementById('public-owner-name');
+  if (ownerEl) ownerEl.textContent = OWNER_NAME;
   const overlay = document.getElementById('auth-overlay');
   if (overlay) overlay.style.display = 'none';
   const sortSel = document.getElementById('sort-select') as HTMLSelectElement | null;
