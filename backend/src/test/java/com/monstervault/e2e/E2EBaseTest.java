@@ -37,7 +37,7 @@ import static org.mockito.Mockito.when;
  *
  * Strategia di isolamento:
  *   - @SpringBootTest avvia il server completo su porta casuale
- *   - @MockBean su Firebase/Firestore/Cloudinary evita connessioni reali
+ *   - @MockBean su CanRepository/Cloudinary evita connessioni reali
  *   - @MockBean AuthService restituisce JWT valido per qualsiasi credenziale
  *   - l'access token viene iniettato in memoria (window) per i test admin (vedi openAsAdmin)
  *   - assumeTrue(chromeAvailable) skippa silenziosamente se Chrome non è installato
@@ -56,8 +56,7 @@ import static org.mockito.Mockito.when;
         "app.admin.password=$2a$10$notused",
         "cloudinary.cloud-name=test",
         "cloudinary.api-key=test",
-        "cloudinary.api-secret=test",
-        "firestore.collection=test-cans"
+        "cloudinary.api-secret=test"
 })
 abstract class E2EBaseTest {
 

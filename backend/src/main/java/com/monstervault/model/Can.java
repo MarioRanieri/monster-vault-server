@@ -14,12 +14,11 @@ import org.springframework.data.mongodb.core.mapping.Document;
  *   Senza Lombok bisognerebbe scrivere decine di metodi a mano.
  *
  * @NoArgsConstructor (Lombok) genera il costruttore senza argomenti.
- *   È obbligatorio per Firestore: quando il SDK deserializza un documento JSON
- *   in un oggetto Java, usa la reflection e chiama prima il costruttore vuoto,
+ *   È obbligatorio per Spring Data MongoDB: quando mappa un documento BSON
+ *   in un oggetto Java usa la reflection e chiama prima il costruttore vuoto,
  *   poi imposta i campi tramite i setter.
  *
- * Tutti i campi sono String (tranne updatedAt) per semplicità: Firestore
- * salva e legge tutto come stringa, evitando conversioni di tipo.
+ * Tutti i campi sono String (tranne updatedAt) per semplicità.
  */
 @Data
 @NoArgsConstructor
@@ -56,13 +55,13 @@ public class Can {
     private String p4Id;      // Cloudinary public_id foto 4
 
     /** Timestamp Unix in millisecondi dell'ultimo salvataggio. Impostato lato server
-     *  da FirestoreCanRepository.save() per garantire ordine cronologico coerente. */
+     *  da MongoCanRepository.save() per garantire ordine cronologico coerente. */
     private Long updatedAt;
 
     /**
      * Soft-delete: quando non null la lattina è "nel cestino" e non appare in GET /api/cans.
      * Impostato da CanService.softDelete(); azzerato da CanService.restore().
-     * La cancellazione fisica (Firestore + Cloudinary) avviene solo con permanentDelete().
+     * La cancellazione fisica (MongoDB + Cloudinary) avviene solo con permanentDelete().
      */
     private Long deletedAt;
 

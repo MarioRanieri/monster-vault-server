@@ -15,21 +15,21 @@ import java.util.stream.Collectors;
  * Layer di business logic per la gestione della collezione lattine.
  *
  * Responsabilità (SRP):
- *   - cache in-memoria thread-safe (evita letture Firestore ripetute, quota free tier)
+ *   - cache in-memoria thread-safe (evita letture MongoDB ripetute, quota free tier)
  *   - orchestrazione foto Cloudinary: delete automatico su slot rimossi/sostituiti
  *   - soft-delete: deleteAt timestamp → lattina nascosta ma recuperabile
  *
  * Ciclo di vita di una lattina eliminata:
  *   1. softDelete(id)        → imposta deletedAt, mantiene in cache, NON tocca Cloudinary
  *   2. Undo (entro 10s)      → restore(id): azzera deletedAt, lattina torna visibile
- *   3. Undo scaduto          → permanentDelete(id): rimuove da Firestore + Cloudinary
+ *   3. Undo scaduto          → permanentDelete(id): rimuove da MongoDB + Cloudinary
  *
  * Dipendenze tramite interfacce (DIP):
- *   - CanRepository  → non sa che sotto c'è Firestore
+ *   - CanRepository  → non sa che sotto c'è MongoDB
  *   - PhotoStorage   → non sa che sotto c'è Cloudinary
  *
  * Invariante di sicurezza su Cloudinary (Fix 1 — race condition):
- *   Firestore viene sempre scritto/cancellato PRIMA di intervenire su Cloudinary.
+ *   MongoDB viene sempre scritto/cancellato PRIMA di intervenire su Cloudinary.
  */
 @Slf4j
 @Service
@@ -62,8 +62,8 @@ public class CanService {
         synchronized (this) {
             snap = cache;
             if (snap != null && cacheAge() <= CACHE_TTL_MS) return activeCans(snap);
-            if (snap != null) log.info("Cache TTL scaduta — ricaricamento da Firestore");
-            else              log.info("Cache miss — caricamento da Firestore");
+            if (snap != null) log.info("Cache TTL scaduta — ricaricamento da MongoDB");
+            else              log.info("Cache miss — caricamento da MongoDB");
             List<Can> loaded = repo.getAll();
             snap = new CopyOnWriteArrayList<>(loaded);
             cache = snap;
@@ -84,7 +84,7 @@ public class CanService {
 
     /**
      * Conteggio "economico" delle lattine attive letto dalla SOLA cache in memoria:
-     * nessuna query a Firestore e nessuna eccezione → sicuro da chiamare ad alta frequenza
+     * nessuna query a MongoDB e nessuna eccezione → sicuro da chiamare ad alta frequenza
      * (es. da una metrica Micrometer scrapeata ogni pochi secondi).
      * Ritorna 0 finché la cache non è popolata (prima chiamata a getAll()).
      */
@@ -113,7 +113,7 @@ public class CanService {
     // ── Scrittura ────────────────────────────────────────────────────────────
 
     /**
-     * Crea o sovrascrive una lattina su Firestore e aggiorna la cache.
+     * Crea o sovrascrive una lattina su MongoDB e aggiorna la cache.
      * Per aggiornare con cleanup automatico delle foto obsolete usare {@link #update(Can)}.
      */
     public void save(Can can) throws Exception {
@@ -128,7 +128,7 @@ public class CanService {
 
     /**
      * Aggiorna una lattina esistente con cleanup automatico delle foto obsolete.
-     * Ordine di sicurezza: Firestore prima, Cloudinary dopo.
+     * Ordine di sicurezza: MongoDB prima, Cloudinary dopo.
      */
     public void update(Can can) throws Exception {
         Can old = getById(can.getId());
@@ -178,11 +178,11 @@ public class CanService {
     }
 
     /**
-     * Cancellazione fisica: rimuove la lattina da Firestore e tutte le sue foto da Cloudinary.
+     * Cancellazione fisica: rimuove la lattina da MongoDB e tutte le sue foto da Cloudinary.
      * Chiamato dal frontend allo scadere della finestra di undo (10s dopo il soft-delete).
      *
      * Ordine di sicurezza:
-     *   1. {@code repo.delete()} — rimuove da Firestore
+     *   1. {@code repo.delete()} — rimuove da MongoDB
      *   2. Cache aggiornata
      *   3. Foto eliminate da Cloudinary
      */
@@ -222,9 +222,9 @@ public class CanService {
     // ── deleteAll ────────────────────────────────────────────────────────────
 
     /**
-     * Elimina tutta la collezione da Firestore e tutte le foto da Cloudinary.
+     * Elimina tutta la collezione da MongoDB e tutte le foto da Cloudinary.
      * Usa Admin API {@code deleteResourcesByPrefix} — 1-3 chiamate invece di N destroy().
-     * Il cleanup Cloudinary è best-effort (warning se fallisce; Firestore già pulito).
+     * Il cleanup Cloudinary è best-effort (warning se fallisce; MongoDB già pulito).
      */
     public void deleteAll() throws Exception {
         repo.deleteAll();
@@ -232,9 +232,9 @@ public class CanService {
         cacheLoadedAt = System.currentTimeMillis();
         try {
             photoStorage.deleteFolder();
-            log.info("deleteAll completato: Firestore e Cloudinary svuotati");
+            log.info("deleteAll completato: MongoDB e Cloudinary svuotati");
         } catch (Exception e) {
-            log.warn("deleteAll: Firestore svuotato ma Cloudinary cleanup fallito — {}. " +
+            log.warn("deleteAll: MongoDB svuotato ma Cloudinary cleanup fallito — {}. " +
                      "Rimuovere manualmente: Cloudinary → Media Library → monster-vault/ → Delete all",
                      e.getMessage());
         }
@@ -286,7 +286,7 @@ public class CanService {
         try {
             photoStorage.delete(target);
         } catch (Exception e) {
-            // Best-effort, coerente con l'invariante Firestore-first: il DB è già corretto,
+            // Best-effort, coerente con l'invariante DB-first: il DB è già corretto,
             // ma la foto resta orfana su Cloudinary — va loggata per poterla rintracciare.
             log.warn("Cleanup Cloudinary fallito — foto orfana '{}': {}", target, e.getMessage());
         }

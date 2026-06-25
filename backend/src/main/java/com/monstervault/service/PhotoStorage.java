@@ -10,7 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
  * senza toccare il controller.
  *
  * Entrambi i metodi restituiscono la URL pubblica della foto dopo l'upload,
- * che viene poi salvata come campo p1/p2/p3/p4 nel documento Firestore della lattina.
+ * che viene poi salvata come campo p1/p2/p3/p4 nel documento MongoDB della lattina.
  */
 public interface PhotoStorage {
 

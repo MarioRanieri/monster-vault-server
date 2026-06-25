@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
  *
  * Espone un gauge Prometheus {@code monstervault_cans_active} = numero di lattine attive
  * in collezione, letto dalla cache in memoria di {@link CanService#cachedActiveCount()}
- * (conteggio economico, nessuna query a Firestore). Compare su /actuator/prometheus e si
+ * (conteggio economico, nessuna query a MongoDB). Compare su /actuator/prometheus e si
  * può graficare in Grafana accanto alle metriche di sistema.
  *
  * Un "gauge" è una misura che può salire E scendere (come un termometro), a differenza di

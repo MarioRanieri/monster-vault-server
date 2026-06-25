@@ -17,13 +17,13 @@ import java.util.Map;
  *
  * Responsabilità (SRP): tradurre richieste HTTP in chiamate al service.
  * Non contiene logica di business — delega tutto a CanService.
- * Non sa nulla di Firestore o Cloudinary (DIP): dipende solo da CanService.
+ * Non sa nulla di MongoDB o Cloudinary (DIP): dipende solo da CanService.
  *
  * Endpoint (prefisso /api/cans):
  *   GET    /                         → lista completa attiva (ETag / 304 supportati)
  *   GET    /{id}                     → singola lattina (incluse soft-deleted)
  *   POST   /                         → crea lattina (JWT)
- *   POST   /batch                    → salva multiplo atomico (JWT)
+ *   POST   /batch                    → salva multiplo (JWT)
  *   PUT    /{id}                     → aggiorna + cleanup foto (JWT)
  *   DELETE /{id}                     → soft-delete (JWT) — undo in 10s poi chiama /permanent
  *   DELETE /{id}/permanent           → cancellazione definitiva + foto Cloudinary (JWT)
@@ -81,7 +81,7 @@ public class CanController {
             return ResponseEntity.badRequest().body(Map.of("error", "Empty list"));
         }
         // Ogni elemento deve avere un id non vuoto: senza questo check si salverebbero
-        // documenti con id null su Firestore (il @Valid di Spring non cascade sulle liste).
+        // documenti con id null su MongoDB (il @Valid di Spring non cascade sulle liste).
         if (cans.stream().anyMatch(c -> c.getId() == null || c.getId().isBlank())) {
             return ResponseEntity.badRequest().body(Map.of("error", "Every can must have a non-blank id"));
         }
@@ -123,7 +123,7 @@ public class CanController {
     }
 
     /**
-     * Cancellazione definitiva: rimuove la lattina da Firestore e tutte le sue foto
+     * Cancellazione definitiva: rimuove la lattina da MongoDB e tutte le sue foto
      * da Cloudinary. Chiamato dal frontend allo scadere del timeout di undo.
      */
     @DeleteMapping("/{id}/permanent")
@@ -133,7 +133,7 @@ public class CanController {
     }
 
     /**
-     * Elimina tutta la collezione da Firestore e le foto da Cloudinary.
+     * Elimina tutta la collezione da MongoDB e le foto da Cloudinary.
      * Richiede l'header X-Confirm-Delete: all come protezione contro chiamate accidentali.
      */
     @DeleteMapping

@@ -48,7 +48,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Catch-all per qualsiasi altra eccezione non gestita (es. errori Firestore, Cloudinary).
+     * Catch-all per qualsiasi altra eccezione non gestita (es. errori MongoDB, Cloudinary).
      *
      * Logga l'errore completo con stack trace (visibile sui log di Render) per il debug,
      * ma restituisce al client solo un messaggio generico: non vogliamo esporre dettagli

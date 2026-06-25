@@ -113,7 +113,7 @@ class CanServiceTest {
     @Test
     void save_repoError_invalidatesCache() throws Exception {
         warmCache(can("1", "Alpha"));
-        doThrow(new RuntimeException("Firestore down")).when(repo).save(any());
+        doThrow(new RuntimeException("DB down")).when(repo).save(any());
         assertThatThrownBy(() -> service.save(can("1", "Updated")))
                 .isInstanceOf(RuntimeException.class);
         assertThat(ReflectionTestUtils.getField(service, "cache")).isNull();
@@ -191,7 +191,7 @@ class CanServiceTest {
     // ── permanentDelete ───────────────────────────────────────────────────────
 
     @Test
-    void permanentDelete_firestoreBeforeCloudinary() throws Exception {
+    void permanentDelete_dbBeforeCloudinary() throws Exception {
         String p1 = "https://res.cloudinary.com/demo/image/upload/v1/monster-vault/photo1.jpg";
         String p2 = "https://res.cloudinary.com/demo/image/upload/v1/monster-vault/photo2.jpg";
         Can c = can("1", "Alpha"); c.setP1(p1); c.setP2(p2);
