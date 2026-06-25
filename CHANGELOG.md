@@ -10,8 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Database migrated from Firestore to MongoDB Atlas** — the Firestore adapter was replaced by `MongoCanRepository` behind the existing `CanRepository` port (SOLID DIP), so `CanService` and the controllers were untouched. Removed `firebase-admin`, `FirebaseConfig` and the Firestore-specific quota exception; the connection URI now comes from the `SPRING_DATA_MONGODB_URI` env var. Data was restored from the weekly `backups` branch dump.
 
-### Added
 - **Rich link previews + native mobile share** — per-can share links point at `/share/{id}` (server-rendered Open Graph with the can's photo, cropped to 1200×630 via Cloudinary); on touch devices the Share button opens the native OS share sheet (Web Share API). Sharing is now enabled in guest mode, and the collector name is fixed to `RedMghost`.
+
+### Removed
+- **Dead Firestore-quota handling (frontend)** — dropped the unreachable `429` branch and the "Firebase Free tier: daily quota exceeded" user messages in `ui.ts`; `GET /api/cans` is not rate-limited, so that path could no longer trigger.
+
+### Changed
+- **Post-migration cleanup** — `tools/sheet-sync` Apps Script rewritten to talk to the backend REST API instead of Firestore (admin login + `GET /api/cans` for pulls, `POST /api/cans/batch` for pushes, with a photo-preserving merge); frontend data-layer helpers renamed `*FS` → `*Api` (they call REST, not Firestore); backend javadoc/comments de-Firestored and the false batch-atomicity claim removed.
 
 ## [0.2.0] - 2026-06-21
 
