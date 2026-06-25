@@ -11,8 +11,8 @@ import {
   cloudinaryThumb,
   simpleHash,
   saveCache,
-  batchSaveFS,
-  batchDeleteAllFS,
+  batchSaveApi,
+  batchDeleteAllApi,
   extractYearFromCan,
   STATO_COLORS,
   CHART_COLORS,
@@ -1720,7 +1720,7 @@ export function confirmImport(): void {
     }
   });
 
-  batchSaveFS(toSave, btn)
+  batchSaveApi(toSave, btn)
     .then(function () {
       saveCache();
       closeModal('import-modal');
@@ -1746,7 +1746,7 @@ export function clearAll(): void {
   const cans = getCans();
   const n = cans.length;
   if (!confirm('Delete all ' + n + ' cans?\nPhotos on Cloudinary will not be touched.')) return;
-  batchDeleteAllFS()
+  batchDeleteAllApi()
     .then(function () {
       state.cans = [];
       state.filteredList = [];

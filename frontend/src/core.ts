@@ -1597,23 +1597,23 @@ export const MOCK_CANS: Can[] = [
 export const REFRESH_BTN_HTML =
   '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg> Refresh';
 
-export function saveCanFS(c: Can): Promise<any> {
+export function saveCanApi(c: Can): Promise<any> {
   return apiCall('PUT', '/api/cans/' + c.id, c);
 }
-export function deleteCanFS(id: string): Promise<any> {
+export function deleteCanApi(id: string): Promise<any> {
   return apiCall('DELETE', '/api/cans/' + id);
 }
-export function permanentDeleteCanFS(id: string): Promise<any> {
+export function permanentDeleteCanApi(id: string): Promise<any> {
   return apiCall('DELETE', '/api/cans/' + id + '/permanent');
 }
-export function restoreCanFS(id: string): Promise<any> {
+export function restoreCanApi(id: string): Promise<any> {
   return apiCall('PUT', '/api/cans/' + id + '/restore');
 }
-export function batchSaveFS(list: Can[], btn?: HTMLElement): Promise<any> {
+export function batchSaveApi(list: Can[], btn?: HTMLElement): Promise<any> {
   if (btn) btn.textContent = 'Saving ' + list.length + '...';
   return apiCall('POST', '/api/cans/batch', list);
 }
-export function batchDeleteAllFS(): Promise<any> {
+export function batchDeleteAllApi(): Promise<any> {
   return apiCall('DELETE', '/api/cans', null, { 'X-Confirm-Delete': 'all' });
 }
 

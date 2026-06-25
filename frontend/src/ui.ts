@@ -27,11 +27,11 @@ import {
   MOCK_CANS,
   REFRESH_BTN_HTML,
   migrateStato,
-  saveCanFS,
-  deleteCanFS,
-  permanentDeleteCanFS,
-  restoreCanFS,
-  batchSaveFS,
+  saveCanApi,
+  deleteCanApi,
+  permanentDeleteCanApi,
+  restoreCanApi,
+  batchSaveApi,
   JWT_KEY,
   extractYearFromCan,
 } from './core';
@@ -925,7 +925,7 @@ export function toggleWatch(id: string): void {
   can.watch = next;
   saveCache();
   updateWatchUI(id);
-  saveCanFS(can)
+  saveCanApi(can)
     .then(function () {
       toast(next ? '👁️ Watching on eBay' : 'Removed from eBay watch');
     })
@@ -1103,7 +1103,7 @@ export function saveCan(): void {
   (window as any).uploadNext(photos, [1, 2, 3, 4], canId, btn, function () {
     const canData = buildCanData(canId, form, photos);
     btn.textContent = 'Saving...';
-    saveCanFS(canData)
+    saveCanApi(canData)
       .then(function () {
         updateCanInCache(canData);
         refreshAfterSave(canData, isNew);
@@ -1126,7 +1126,7 @@ export function deleteCan(): void {
   const snapshot = state.cans.find(function (c) {
     return c.id === id;
   });
-  deleteCanFS(id)
+  deleteCanApi(id)
     .then(function () {
       state.cans = state.cans.filter(function (c) {
         return c.id !== id;
@@ -1140,7 +1140,7 @@ export function deleteCan(): void {
       let undone = false;
       const permTimer = setTimeout(function () {
         if (!undone)
-          permanentDeleteCanFS(id).catch(function () {
+          permanentDeleteCanApi(id).catch(function () {
             /* ignore */
           });
       }, 10000);
@@ -1149,7 +1149,7 @@ export function deleteCan(): void {
         function () {
           undone = true;
           clearTimeout(permTimer);
-          restoreCanFS(id)
+          restoreCanApi(id)
             .then(function () {
               if (snapshot) {
                 state.cans.push(snapshot);
@@ -1310,7 +1310,6 @@ export function applyLoaded(): void {
 
 export function fetchWithRetry(attempt: number): Promise<Can[]> {
   return fetch(API + '/api/cans').then(function (r) {
-    if (r.status === 429) throw new Error('429');
     if (r.status >= 500 && attempt < 3) {
       if (attempt === 1) {
         const grid = document.getElementById('grid');
@@ -1340,7 +1339,7 @@ export function applyServerData(data: Can[], force: boolean, rbtn: HTMLElement |
   }
   if (force) toast('Refreshed from server ✓');
   if (changed.length) {
-    batchSaveFS(changed)
+    batchSaveApi(changed)
       .then(function () {
         if (force) toast(changed.length + ' conditions migrated ✓');
       })
@@ -1369,7 +1368,7 @@ export function loadFromServer(force?: boolean): void {
       // stale-while-revalidate: mostra subito la cache, poi aggiorna in
       // background così chi torna vede conteggi/dati freschi senza Refresh
       // manuale. Silenzioso e re-render solo se qualcosa è cambiato; in caso
-      // di errore (es. quota Firestore) resta la cache.
+      // di errore (es. backend non raggiungibile) resta la cache.
       fetchWithRetry(1)
         .then(function (fresh: Can[]) {
           if (JSON.stringify(fresh) !== JSON.stringify(state.cans)) {
@@ -1380,7 +1379,7 @@ export function loadFromServer(force?: boolean): void {
           }
         })
         .catch(function () {
-          /* offline o quota: la vista in cache resta valida */
+          /* offline o errore: la vista in cache resta valida */
         });
       return;
     }
@@ -1397,34 +1396,6 @@ export function loadFromServer(force?: boolean): void {
       applyServerData(data, !!force, rbtn);
     })
     .catch(function (e) {
-      if (e.message === '429') {
-        if (rbtn) {
-          (rbtn as HTMLButtonElement).disabled = false;
-          rbtn.innerHTML = REFRESH_BTN_HTML;
-        }
-        const cached = loadFromCache();
-        if (cached) {
-          state.cans = cached;
-          applyLoaded();
-          setTimeout(function () {
-            toast(
-              'Firebase Free tier: daily quota exceeded — try again tomorrow :)  (showing cached data)',
-              true,
-            );
-          }, 200);
-        } else if (MOCK_CANS.length) {
-          showDemo(rbtn);
-          setTimeout(function () {
-            toast(
-              'Firebase Free tier: daily quota exceeded — try again tomorrow :)  (preview mode)',
-            );
-          }, 200);
-        } else {
-          document.getElementById('grid')!.innerHTML =
-            '<div class="empty"><p style="color:#ff4444">Firebase Free tier: daily quota exceeded — try again tomorrow :)</p></div>';
-        }
-        return;
-      }
       if (MOCK_CANS.length) {
         showDemo(rbtn);
         setTimeout(function () {
