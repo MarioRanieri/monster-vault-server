@@ -222,6 +222,33 @@ class CanServiceTest {
         verify(photoStorage, never()).delete(p1);
     }
 
+    // ── purgeSoftDeletedOlderThan (scheduler) ────────────────────────────────
+
+    @Test
+    void purge_removesOnlySoftDeletedOlderThanRetention() throws Exception {
+        long now = System.currentTimeMillis();
+        long day = 24L * 3600 * 1000;
+        Can active     = can("1", "Active");                       // mai cancellata
+        Can recent     = can("2", "Recent");  recent.setDeletedAt(now - 5 * day);   // entro i 30gg
+        Can old        = can("3", "Old");     old.setDeletedAt(now - 40 * day);     // oltre i 30gg
+        when(repo.getAll()).thenReturn(List.of(active, recent, old));
+
+        int removed = service.purgeSoftDeletedOlderThan(30);
+
+        assertThat(removed).isEqualTo(1);
+        verify(repo).delete("3");
+        verify(repo, never()).delete("1");
+        verify(repo, never()).delete("2");
+    }
+
+    @Test
+    void purge_nothingOld_removesNothing() throws Exception {
+        Can active = can("1", "Active");
+        when(repo.getAll()).thenReturn(List.of(active));
+        assertThat(service.purgeSoftDeletedOlderThan(30)).isZero();
+        verify(repo, never()).delete(anyString());
+    }
+
     // ── deleteAll ─────────────────────────────────────────────────────────────
 
     @Test

@@ -2,6 +2,7 @@ package com.monstervault;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * Punto di ingresso dell'applicazione Spring Boot.
@@ -12,8 +13,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  *     (es. trova spring-boot-starter-web → avvia Tomcat embedded)
  *   - @ComponentScan: scansiona tutti i package sotto com.monstervault alla ricerca di
  *     @Component, @Service, @Repository, @Controller e li registra come bean nel contesto
+ *
+ * @EnableScheduling abilita i task @Scheduled (es. la pulizia notturna dei soft-delete).
  */
 @SpringBootApplication
+@EnableScheduling
 public class MonsterVaultApplication {
 
     /**

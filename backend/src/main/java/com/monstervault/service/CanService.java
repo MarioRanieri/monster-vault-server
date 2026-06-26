@@ -195,6 +195,27 @@ public class CanService {
         log.info("Permanently deleted can: {}", id);
     }
 
+    // ── Manutenzione (scheduler) ──────────────────────────────────────────────
+
+    /**
+     * Cancella fisicamente le lattine soft-deleted da più di {@code days} giorni.
+     * Riusa {@link #permanentDelete(String)} → MongoDB + Cloudinary + cache, ordine DB-first.
+     * Legge da {@code repo.getAll()} (include i soft-deleted, che {@link #getAll()} filtra via):
+     * conteggio fresco da MongoDB, adatto a un job notturno.
+     *
+     * @return numero di lattine rimosse.
+     */
+    public int purgeSoftDeletedOlderThan(long days) throws Exception {
+        long cutoff = System.currentTimeMillis() - days * 24L * 3600 * 1000;
+        List<Can> toPurge = repo.getAll().stream()
+                .filter(c -> c.getDeletedAt() != null && c.getDeletedAt() < cutoff)
+                .collect(Collectors.toList());
+        for (Can c : toPurge) permanentDelete(c.getId());
+        if (!toPurge.isEmpty()) log.info("Purge soft-delete: rimosse {} lattine più vecchie di {} giorni",
+                toPurge.size(), days);
+        return toPurge.size();
+    }
+
     // ── Upload foto ───────────────────────────────────────────────────────────
 
     /**
