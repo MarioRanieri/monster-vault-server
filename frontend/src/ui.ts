@@ -517,8 +517,10 @@ export function renderList(): void {
 }
 
 // ── COMPARE ───────────────────────────────────────────
-export function toggleCompare(id: string): void {
-  const idx = state.selectedForCompare.indexOf(id);
+export function toggleCompare(id?: string): void {
+  const cid = id || state.detailCurrentId; // detail-panel button passes no arg
+  if (!cid) return;
+  const idx = state.selectedForCompare.indexOf(cid);
   if (idx >= 0) {
     state.selectedForCompare.splice(idx, 1);
   } else {
@@ -527,7 +529,7 @@ export function toggleCompare(id: string): void {
       toast('Max ' + max + ' cans for comparison', true);
       return;
     }
-    state.selectedForCompare.push(id);
+    state.selectedForCompare.push(cid);
   }
   updateCompareUI();
 }
@@ -915,16 +917,17 @@ export function detailNav(dir: number): void {
 }
 
 // ── WATCH ─────────────────────────────────────────────
-export function toggleWatch(id: string): void {
-  if (!id) return;
+export function toggleWatch(id?: string): void {
+  const wid = id || state.detailCurrentId; // detail-panel button passes no arg
+  if (!wid) return;
   const can = state.cans.find(function (c) {
-    return c.id === id;
+    return c.id === wid;
   });
   if (!can) return;
   const next = !can.watch;
   can.watch = next;
   saveCache();
-  updateWatchUI(id);
+  updateWatchUI(wid);
   saveCanApi(can)
     .then(function () {
       toast(next ? '👁️ Watching on eBay' : 'Removed from eBay watch');
@@ -932,7 +935,7 @@ export function toggleWatch(id: string): void {
     .catch(function (e: any) {
       can.watch = !next;
       saveCache();
-      updateWatchUI(id);
+      updateWatchUI(wid);
       toast('Error: ' + e.message, true);
     });
 }
