@@ -7,6 +7,7 @@ import {
   esc,
   jsq,
   toast,
+  OWNER_NAME,
   closeModal,
   cloudinaryThumb,
   simpleHash,
@@ -752,13 +753,20 @@ export function updateChipCounts(): void {
 export function updateStats(): void {
   const cans = getCans();
   const n = cans.length;
+  const mine = state.isAdmin && !state.isPublicMode;
+  const owner = state.isPublicMode
+    ? document.getElementById('public-owner-name')?.textContent || OWNER_NAME
+    : OWNER_NAME;
+  const labelEl = document.getElementById('hero-label');
+  if (labelEl) labelEl.textContent = mine ? 'Your Collection' : owner + "'s Collection";
   document.getElementById('count-num')!.textContent = String(n);
   if (!n) {
     document.getElementById('hero-sub')!.textContent = 'Import your Excel or add manually';
     document.getElementById('stats-row')!.style.display = 'none';
     return;
   }
-  document.getElementById('hero-sub')!.textContent = n + ' cans in your collection';
+  document.getElementById('hero-sub')!.textContent =
+    n + (mine ? ' cans in your collection' : ' cans in ' + owner + "'s collection");
   document.getElementById('stats-row')!.style.display = 'flex';
   document.getElementById('stat-total')!.textContent = String(n);
   document.getElementById('stat-paesi')!.textContent = String(
