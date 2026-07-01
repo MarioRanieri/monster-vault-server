@@ -22,6 +22,9 @@ import java.util.Map;
 @Service
 public class CloudinaryService implements PhotoStorage {
 
+    /** Prefisso cartella Cloudinary per tutte le risorse dell'app. */
+    private static final String FOLDER_PREFIX = "monster-vault/";
+
     @Value("${cloudinary.cloud-name}")
     private String cloudName;
 
@@ -51,7 +54,7 @@ public class CloudinaryService implements PhotoStorage {
     @Override
     public String upload(MultipartFile file, String publicId) throws Exception {
         var result = cloudinary().uploader().upload(file.getBytes(), ObjectUtils.asMap(
-                "public_id", "monster-vault/" + publicId,
+                "public_id", FOLDER_PREFIX + publicId,
                 "overwrite", true
         ));
         return (String) result.get("secure_url");
@@ -64,7 +67,7 @@ public class CloudinaryService implements PhotoStorage {
     @Override
     public String uploadFromUrl(String externalUrl, String publicId) throws Exception {
         var result = cloudinary().uploader().upload(externalUrl, ObjectUtils.asMap(
-                "public_id", "monster-vault/" + publicId,
+                "public_id", FOLDER_PREFIX + publicId,
                 "overwrite", true
         ));
         return (String) result.get("secure_url");
@@ -116,7 +119,7 @@ public class CloudinaryService implements PhotoStorage {
             Map opts = nextCursor != null
                     ? ObjectUtils.asMap("next_cursor", nextCursor)
                     : ObjectUtils.emptyMap();
-            Map result = cloudinary().api().deleteResourcesByPrefix("monster-vault/", opts);
+            Map result = cloudinary().api().deleteResourcesByPrefix(FOLDER_PREFIX, opts);
             nextCursor = (String) result.get("next_cursor");
             batches++;
             log.info("deleteFolder batch {}: {}", batches, result.get("deleted_counts"));
