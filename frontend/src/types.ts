@@ -7,5 +7,8 @@ export interface Can {
   size?: string;
   promo?: string;
   stato?: string;
-  p1?: string; // URL prima foto
+  p1?: string; // URL foto, slot 1-4
+  p2?: string;
+  p3?: string;
+  p4?: string;
 }

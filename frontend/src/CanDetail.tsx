@@ -1,20 +1,38 @@
+import { useState } from 'react';
 import type { Can } from './types';
 
-// RED: scheletro — mostra solo titolo e bottone chiudi (mancano sku/foto/badge).
+// Pannello di dettaglio: galleria foto con lightbox + badge. Dati via props.
 export function CanDetail({ can, onClose }: { can: Can; onClose: () => void }) {
+  const photos = [can.p1, can.p2, can.p3, can.p4].filter((url): url is string => Boolean(url));
+  const [lightbox, setLightbox] = useState<string | null>(null);
+
   return (
     <aside className="can-detail">
       <button type="button" onClick={onClose}>
         Chiudi
       </button>
       <h2>{can.nome}</h2>
-      {can.p1 && <img src={can.p1} alt={can.nome} />}
+      <div className="detail-photos">
+        {photos.map((url) => (
+          <button key={url} type="button" className="photo-thumb" onClick={() => setLightbox(url)}>
+            <img src={url} alt={can.nome} />
+          </button>
+        ))}
+      </div>
       {can.sku && <p className="detail-sku">{can.sku}</p>}
       <div className="detail-badges">
         {can.size && <span className="badge">{can.size}</span>}
         {can.promo && <span className="badge">{can.promo}</span>}
         {can.stato && <span className="badge">{can.stato}</span>}
       </div>
+      {lightbox && (
+        <div className="lightbox" role="dialog" aria-label="Foto ingrandita">
+          <button type="button" onClick={() => setLightbox(null)}>
+            Chiudi foto
+          </button>
+          <img src={lightbox} alt={can.nome} />
+        </div>
+      )}
     </aside>
   );
 }

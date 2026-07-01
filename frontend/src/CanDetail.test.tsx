@@ -36,3 +36,25 @@ test('mostra foto e badge promo/stato quando presenti', () => {
   expect(screen.getByText('Zero')).toBeTruthy();
   expect(screen.getByText('ok')).toBeTruthy();
 });
+
+test('mostra la galleria di tutte le foto presenti', () => {
+  render(
+    <CanDetail
+      can={{ id: '1', nome: 'Alpha', p1: 'a.jpg', p2: 'b.jpg', p3: 'c.jpg' }}
+      onClose={() => {}}
+    />,
+  );
+  expect(screen.getAllByRole('img')).toHaveLength(3);
+});
+
+test('cliccando una foto si apre la lightbox; il suo Chiudi la chiude', async () => {
+  render(<CanDetail can={{ id: '1', nome: 'Alpha', p1: 'a.jpg' }} onClose={() => {}} />);
+
+  expect(screen.queryByRole('dialog')).toBeNull();
+
+  await userEvent.click(screen.getByRole('img', { name: 'Alpha' }));
+  expect(screen.getByRole('dialog')).toBeTruthy();
+
+  await userEvent.click(screen.getByRole('button', { name: /chiudi foto/i }));
+  expect(screen.queryByRole('dialog')).toBeNull();
+});
