@@ -2,11 +2,13 @@ package com.monstervault.service;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
+import com.monstervault.exception.MonsterVaultException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -52,12 +54,16 @@ public class CloudinaryService implements PhotoStorage {
      * "overwrite: true" sovrascrive se esiste già una risorsa con lo stesso public_id.
      */
     @Override
-    public String upload(MultipartFile file, String publicId) throws Exception {
-        var result = cloudinary().uploader().upload(file.getBytes(), ObjectUtils.asMap(
-                "public_id", FOLDER_PREFIX + publicId,
-                "overwrite", true
-        ));
-        return (String) result.get("secure_url");
+    public String upload(MultipartFile file, String publicId) throws MonsterVaultException {
+        try {
+            var result = cloudinary().uploader().upload(file.getBytes(), ObjectUtils.asMap(
+                    "public_id", FOLDER_PREFIX + publicId,
+                    "overwrite", true
+            ));
+            return (String) result.get("secure_url");
+        } catch (IOException e) {
+            throw new MonsterVaultException("Upload foto Cloudinary fallito (" + publicId + ")", e);
+        }
     }
 
     /**
@@ -65,12 +71,16 @@ public class CloudinaryService implements PhotoStorage {
      * Il server Cloudinary fa il fetch, salva la risorsa e restituisce la nuova URL.
      */
     @Override
-    public String uploadFromUrl(String externalUrl, String publicId) throws Exception {
-        var result = cloudinary().uploader().upload(externalUrl, ObjectUtils.asMap(
-                "public_id", FOLDER_PREFIX + publicId,
-                "overwrite", true
-        ));
-        return (String) result.get("secure_url");
+    public String uploadFromUrl(String externalUrl, String publicId) throws MonsterVaultException {
+        try {
+            var result = cloudinary().uploader().upload(externalUrl, ObjectUtils.asMap(
+                    "public_id", FOLDER_PREFIX + publicId,
+                    "overwrite", true
+            ));
+            return (String) result.get("secure_url");
+        } catch (IOException e) {
+            throw new MonsterVaultException("Upload foto da URL su Cloudinary fallito (" + publicId + ")", e);
+        }
     }
 
     /**
@@ -112,19 +122,23 @@ public class CloudinaryService implements PhotoStorage {
      */
     @Override
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public void deleteFolder() throws Exception {
-        String nextCursor = null;
-        int batches = 0;
-        do {
-            Map opts = nextCursor != null
-                    ? ObjectUtils.asMap("next_cursor", nextCursor)
-                    : ObjectUtils.emptyMap();
-            Map result = cloudinary().api().deleteResourcesByPrefix(FOLDER_PREFIX, opts);
-            nextCursor = (String) result.get("next_cursor");
-            batches++;
-            log.info("deleteFolder batch {}: {}", batches, result.get("deleted_counts"));
-        } while (nextCursor != null);
-        log.info("deleteFolder completato: {} batch — monster-vault/ svuotata", batches);
+    public void deleteFolder() throws MonsterVaultException {
+        try {
+            String nextCursor = null;
+            int batches = 0;
+            do {
+                Map opts = nextCursor != null
+                        ? ObjectUtils.asMap("next_cursor", nextCursor)
+                        : ObjectUtils.emptyMap();
+                Map result = cloudinary().api().deleteResourcesByPrefix(FOLDER_PREFIX, opts);
+                nextCursor = (String) result.get("next_cursor");
+                batches++;
+                log.info("deleteFolder batch {}: {}", batches, result.get("deleted_counts"));
+            } while (nextCursor != null);
+            log.info("deleteFolder completato: {} batch — monster-vault/ svuotata", batches);
+        } catch (Exception e) {
+            throw new MonsterVaultException("Pulizia cartella Cloudinary fallita", e);
+        }
     }
 
     // ── Helper ───────────────────────────────────────────────────────────────
