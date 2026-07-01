@@ -160,7 +160,9 @@ abstract class E2EBaseTest {
         // Attende che almeno una card sia visibile (non solo nel DOM)
         try {
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".card")));
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+            /* nessuna card entro il timeout: il test successivo fallirà con contesto migliore */
+        }
     }
 
     /**
@@ -218,7 +220,9 @@ abstract class E2EBaseTest {
         try {
             js("if(typeof closeLanding==='function') closeLanding(false)");
             wait.until(ExpectedConditions.invisibilityOfElementLocated(By.id("landing-overlay")));
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+            /* overlay già chiuso o assente: si può proseguire */
+        }
     }
 
     /**

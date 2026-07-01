@@ -37,6 +37,9 @@ import java.util.Map;
 @RequestMapping("/api/cans")
 public class CanController {
 
+    /** Chiave JSON usata nei body delle risposte di errore. */
+    private static final String ERROR_KEY = "error";
+
     /** Constructor injection (DIP): dipendenza esplicita, immutabile e testabile senza Spring. */
     private final CanService canService;
 
@@ -78,12 +81,12 @@ public class CanController {
     @PostMapping("/batch")
     public ResponseEntity<?> batchSave(@RequestBody List<Can> cans) throws Exception {
         if (cans == null || cans.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Empty list"));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, "Empty list"));
         }
         // Ogni elemento deve avere un id non vuoto: senza questo check si salverebbero
         // documenti con id null su MongoDB (il @Valid di Spring non cascade sulle liste).
         if (cans.stream().anyMatch(c -> c.getId() == null || c.getId().isBlank())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Every can must have a non-blank id"));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, "Every can must have a non-blank id"));
         }
         canService.batchSave(cans);
         return ResponseEntity.ok(Map.of("saved", cans.size()));
@@ -165,7 +168,7 @@ public class CanController {
             throws Exception {
         String externalUrl = body != null ? body.get("url") : null;
         if (externalUrl == null || externalUrl.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Missing 'url' in request body"));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, "Missing 'url' in request body"));
         }
         String url = canService.uploadPhotoFromUrl(id, slot, externalUrl);
         return ResponseEntity.ok(Map.of("url", url));

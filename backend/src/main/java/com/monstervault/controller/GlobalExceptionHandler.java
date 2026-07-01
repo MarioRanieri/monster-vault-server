@@ -48,6 +48,16 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Risorsa statica inesistente (es. /favicon.ico richiesto dal browser).
+     * È un 404, non un errore del server: gestito a parte così non finisce nel
+     * catch-all sotto, che lo trasformerebbe in 500 sporcando i log con stack trace.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Void> handleNoResource(NoResourceFoundException e) {
+        return ResponseEntity.notFound().build();
+    }
+
+    /**
      * Catch-all per qualsiasi altra eccezione non gestita (es. errori MongoDB, Cloudinary).
      *
      * Logga l'errore completo con stack trace (visibile sui log di Render) per il debug,
@@ -58,16 +68,6 @@ public class GlobalExceptionHandler {
      * HttpServletRequest req è iniettato automaticamente da Spring per includere
      * metodo HTTP e URL nel log, rendendo più facile trovare l'endpoint problematico.
      */
-    /**
-     * Risorsa statica inesistente (es. /favicon.ico richiesto dal browser).
-     * È un 404, non un errore del server: gestito a parte così non finisce nel
-     * catch-all sotto, che lo trasformerebbe in 500 sporcando i log con stack trace.
-     */
-    @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<Void> handleNoResource(NoResourceFoundException e) {
-        return ResponseEntity.notFound().build();
-    }
-
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleException(Exception e, HttpServletRequest req) {
         log.error("{} {} — {}", req.getMethod(), req.getRequestURI(), e.getMessage(), e);
