@@ -31,6 +31,12 @@ h1 {
 }
 
 .can-card {
+  width: 100%;
+  border: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
   background: #fff;
   border-radius: 10px;
   padding: 0.75rem;
@@ -63,4 +69,19 @@ h1 {
   background: #eee;
   border-radius: 999px;
   padding: 0.1rem 0.5rem;
+}
+
+.can-detail {
+  position: fixed;
+  inset: 0 0 0 auto;
+  width: min(360px, 90vw);
+  background: #fff;
+  box-shadow: -2px 0 12px rgb(0 0 0 / 15%);
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.can-detail img {
+  width: 100%;
+  border-radius: 8px;
 }

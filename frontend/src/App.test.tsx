@@ -59,3 +59,21 @@ test('la ricerca filtra la griglia per nome', async () => {
   expect(screen.queryByText('Beta')).toBeNull();
   expect(screen.getByText('Alpha')).toBeTruthy();
 });
+
+test('cliccando una card si apre il dettaglio; Chiudi lo richiude', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [{ id: '1', nome: 'Alpha', sku: 'SKU-1' }],
+    }),
+  );
+
+  render(<App />);
+
+  await userEvent.click(await screen.findByRole('button', { name: /alpha/i }));
+  expect(await screen.findByText('SKU-1')).toBeTruthy();
+
+  await userEvent.click(screen.getByRole('button', { name: /chiudi/i }));
+  expect(screen.queryByText('SKU-1')).toBeNull();
+});

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useCansStore } from './store';
 import { CanGrid } from './CanGrid';
+import { CanDetail } from './CanDetail';
 import { filterCans } from './filterCans';
 
 function App() {
@@ -9,12 +10,14 @@ function App() {
   const error = useCansStore((s) => s.error);
   const loadCans = useCansStore((s) => s.loadCans);
   const [query, setQuery] = useState('');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
     loadCans();
   }, [loadCans]);
 
   const visible = filterCans(cans, query);
+  const selected = cans.find((c) => c.id === selectedId) ?? null;
 
   return (
     <main>
@@ -28,7 +31,8 @@ function App() {
       />
       {loading && <p>Caricamento…</p>}
       {error && <p role="alert">Errore: {error}</p>}
-      <CanGrid cans={visible} />
+      <CanGrid cans={visible} onSelect={(can) => setSelectedId(can.id)} />
+      {selected && <CanDetail can={selected} onClose={() => setSelectedId(null)} />}
     </main>
   );
 }

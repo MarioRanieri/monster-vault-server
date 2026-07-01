@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { CanGrid } from './CanGrid';
 import type { Can } from './types';
 
@@ -33,4 +34,13 @@ test('mostra foto e badge quando presenti', () => {
   expect(screen.getByText('500ml')).toBeTruthy();
   expect(screen.getByText('Zero')).toBeTruthy();
   expect(screen.getByText('ok')).toBeTruthy();
+});
+
+test('clic su una card chiama onSelect con la can', async () => {
+  const onSelect = vi.fn();
+  render(<CanGrid cans={[{ id: '1', nome: 'Alpha' }]} onSelect={onSelect} />);
+
+  await userEvent.click(screen.getByRole('button', { name: /alpha/i }));
+
+  expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: '1' }));
 });
