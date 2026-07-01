@@ -1,5 +1,6 @@
 package com.monstervault.repository;
 
+import com.monstervault.exception.MonsterVaultException;
 import com.monstervault.model.Can;
 
 import java.util.List;
@@ -14,29 +15,29 @@ import java.util.List;
  *   2. Sostituibilità: il passaggio da Firestore a MongoDB è stato fatto scrivendo
  *      una nuova implementazione (MongoCanRepository) — CanService non è cambiato.
  *
- * Tutti i metodi dichiarano throws Exception perché un'operazione di persistenza
- * può fallire (rete, database non raggiungibile).
+ * Tutti i metodi dichiarano throws MonsterVaultException perché un'operazione di
+ * persistenza può fallire (rete, database non raggiungibile).
  */
 public interface CanRepository {
 
     /** Recupera tutte le lattine dalla collection MongoDB. */
-    List<Can> getAll() throws Exception;
+    List<Can> getAll() throws MonsterVaultException;
 
     /** Recupera una singola lattina per ID. Restituisce null se non esiste. */
-    Can getById(String id) throws Exception;
+    Can getById(String id) throws MonsterVaultException;
 
     /** Salva (crea o aggiorna) una lattina. Imposta updatedAt prima di scrivere. */
-    void save(Can can) throws Exception;
+    void save(Can can) throws MonsterVaultException;
 
     /** Salva (crea o aggiorna) più lattine — upsert per _id. */
-    void batchSave(List<Can> cans) throws Exception;
+    void batchSave(List<Can> cans) throws MonsterVaultException;
 
     /** Elimina la lattina con l'ID dato. */
-    void delete(String id) throws Exception;
+    void delete(String id) throws MonsterVaultException;
 
     /**
      * Elimina tutte le lattine dalla collection MongoDB.
      * Per un cleanup completo incluse le foto Cloudinary usare {@code CanService.deleteAll()}.
      */
-    void deleteAll() throws Exception;
+    void deleteAll() throws MonsterVaultException;
 }

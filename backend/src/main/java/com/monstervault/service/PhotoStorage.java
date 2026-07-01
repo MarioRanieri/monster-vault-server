@@ -1,5 +1,6 @@
 package com.monstervault.service;
 
+import com.monstervault.exception.MonsterVaultException;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
@@ -21,7 +22,7 @@ public interface PhotoStorage {
      * @param publicId identificatore univoco per la risorsa su Cloudinary (es. "ABC123_1_x7f2k")
      * @return URL HTTPS pubblica della foto su Cloudinary
      */
-    String upload(MultipartFile file, String publicId) throws Exception;
+    String upload(MultipartFile file, String publicId) throws MonsterVaultException;
 
     /**
      * Chiede a Cloudinary di scaricare la foto da un URL esterno e re-uploadarla.
@@ -31,7 +32,7 @@ public interface PhotoStorage {
      * @param publicId identificatore univoco per la risorsa su Cloudinary
      * @return URL HTTPS pubblica della foto ora ospitata su Cloudinary
      */
-    String uploadFromUrl(String url, String publicId) throws Exception;
+    String uploadFromUrl(String url, String publicId) throws MonsterVaultException;
 
     /**
      * Elimina una singola foto dato il suo public_id Cloudinary oppure il suo URL HTTPS.
@@ -59,7 +60,7 @@ public interface PhotoStorage {
      *
      * <p>Implementazione di default: no-op (OCP).
      *
-     * @throws Exception se l'Admin API Cloudinary non è raggiungibile o restituisce errore
+     * @throws MonsterVaultException se l'Admin API Cloudinary non è raggiungibile o restituisce errore
      */
-    default void deleteFolder() throws Exception {}
+    default void deleteFolder() throws MonsterVaultException {}
 }
