@@ -9,6 +9,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -43,8 +44,17 @@ class CanServiceTest {
         Can c = canWithPhoto(id, p1); c.setP1Id(p1Id); return c;
     }
 
+    @SuppressWarnings("unchecked")
+    private AtomicReference<List<Can>> cacheRef() {
+        return (AtomicReference<List<Can>>) ReflectionTestUtils.getField(service, "cache");
+    }
+
     private void warmCache(Can... cans) {
-        ReflectionTestUtils.setField(service, "cache", new CopyOnWriteArrayList<>(List.of(cans)));
+        cacheRef().set(new CopyOnWriteArrayList<>(List.of(cans)));
+    }
+
+    private List<Can> cacheContents() {
+        return cacheRef().get();
     }
 
     // ── getAll ────────────────────────────────────────────────────────────────
@@ -106,7 +116,7 @@ class CanServiceTest {
     void save_warmCache_replacesExistingEntry() throws Exception {
         warmCache(can("1", "Alpha"), can("2", "Beta"));
         service.save(can("1", "Updated"));
-        List<Can> cache = (List<Can>) ReflectionTestUtils.getField(service, "cache");
+        List<Can> cache = cacheContents();
         assertThat(cache).extracting(Can::getNome).containsExactlyInAnyOrder("Updated", "Beta");
     }
 
@@ -116,7 +126,7 @@ class CanServiceTest {
         doThrow(new RuntimeException("DB down")).when(repo).save(any());
         assertThatThrownBy(() -> service.save(can("1", "Updated")))
                 .isInstanceOf(RuntimeException.class);
-        assertThat(ReflectionTestUtils.getField(service, "cache")).isNull();
+        assertThat(cacheContents()).isNull();
     }
 
     // ── update ────────────────────────────────────────────────────────────────
@@ -201,7 +211,7 @@ class CanServiceTest {
         order.verify(repo).delete("1");
         order.verify(photoStorage).delete(p1);
         order.verify(photoStorage).delete(p2);
-        List<Can> cache = (List<Can>) ReflectionTestUtils.getField(service, "cache");
+        List<Can> cache = cacheContents();
         assertThat(cache).extracting(Can::getId).doesNotContain("1");
     }
 
@@ -255,7 +265,7 @@ class CanServiceTest {
     void deleteAll_resetsCache() throws Exception {
         warmCache(can("1", "Alpha"), can("2", "Beta"));
         service.deleteAll();
-        List<Can> cache = (List<Can>) ReflectionTestUtils.getField(service, "cache");
+        List<Can> cache = cacheContents();
         assertThat(cache).isEmpty();
     }
 
@@ -270,7 +280,7 @@ class CanServiceTest {
         doThrow(new RuntimeException("Cloudinary API error")).when(photoStorage).deleteFolder();
         warmCache(can("1", "Alpha"));
         service.deleteAll(); // non deve propagare l'eccezione
-        List<Can> cache = (List<Can>) ReflectionTestUtils.getField(service, "cache");
+        List<Can> cache = cacheContents();
         assertThat(cache).isEmpty();
     }
 }

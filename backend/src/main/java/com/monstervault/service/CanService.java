@@ -9,6 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 /**
@@ -40,7 +41,10 @@ public class CanService {
 
     private static final long CACHE_TTL_MS = 12 * 60 * 60 * 1000L;
 
-    private volatile List<Can> cache = null;
+    // AtomicReference (non `volatile List`): stessa visibilità cross-thread del riferimento,
+    // ma senza il code smell S3077 sui campi volatile non primitivi. I contenuti restano
+    // thread-safe grazie a CopyOnWriteArrayList; il caricamento è protetto da synchronized.
+    private final AtomicReference<List<Can>> cache = new AtomicReference<>();
     private volatile long cacheLoadedAt = 0;
 
     public CanService(CanRepository repo, PhotoStorage photoStorage) {
@@ -57,16 +61,16 @@ public class CanService {
     public List<Can> getAll() throws Exception {
         // Snapshot locale: persist() può azzerare `cache` da un altro thread in qualsiasi
         // momento — non dereferenziare mai il campo due volte (NPE race).
-        List<Can> snap = cache;
+        List<Can> snap = cache.get();
         if (snap != null && cacheAge() <= CACHE_TTL_MS) return activeCans(snap);
         synchronized (this) {
-            snap = cache;
+            snap = cache.get();
             if (snap != null && cacheAge() <= CACHE_TTL_MS) return activeCans(snap);
             if (snap != null) log.info("Cache TTL scaduta — ricaricamento da MongoDB");
             else              log.info("Cache miss — caricamento da MongoDB");
             List<Can> loaded = repo.getAll();
             snap = new CopyOnWriteArrayList<>(loaded);
-            cache = snap;
+            cache.set(snap);
             cacheLoadedAt = System.currentTimeMillis();
             log.info("Cache popolata con {} documenti ({} attivi)", snap.size(), activeCans(snap).size());
         }
@@ -75,7 +79,7 @@ public class CanService {
 
     /** Cerca per ID incluse le lattine soft-deleted (necessario per restore e detail view). */
     public Can getById(String id) throws Exception {
-        List<Can> snap = cache;
+        List<Can> snap = cache.get();
         if (snap != null) {
             return snap.stream().filter(c -> id.equals(c.getId())).findFirst().orElse(null);
         }
@@ -89,7 +93,7 @@ public class CanService {
      * Ritorna 0 finché la cache non è popolata (prima chiamata a getAll()).
      */
     public int cachedActiveCount() {
-        List<Can> snap = cache;
+        List<Can> snap = cache.get();
         if (snap == null) return 0;
         int n = 0;
         for (Can c : snap) if (c.getDeletedAt() == null) n++;
@@ -118,7 +122,7 @@ public class CanService {
      */
     public void save(Can can) throws Exception {
         persist(() -> { repo.save(can); return null; });
-        List<Can> snap = cache;
+        List<Can> snap = cache.get();
         if (snap != null) {
             snap.removeIf(c -> can.getId().equals(c.getId()));
             snap.add(can);
@@ -138,7 +142,7 @@ public class CanService {
 
     public void batchSave(List<Can> cans) throws Exception {
         persist(() -> { repo.batchSave(cans); return null; });
-        List<Can> snap = cache;
+        List<Can> snap = cache.get();
         if (snap != null) {
             for (Can can : cans) {
                 snap.removeIf(c -> can.getId().equals(c.getId()));
@@ -189,7 +193,7 @@ public class CanService {
     public void permanentDelete(String id) throws Exception {
         Can can = getById(id);
         persist(() -> { repo.delete(id); return null; });
-        List<Can> snap = cache;
+        List<Can> snap = cache.get();
         if (snap != null) { snap.removeIf(c -> id.equals(c.getId())); cacheLoadedAt = System.currentTimeMillis(); }
         if (can != null) deleteAllPhotos(can);
         log.info("Permanently deleted can: {}", id);
@@ -249,7 +253,7 @@ public class CanService {
      */
     public void deleteAll() throws Exception {
         repo.deleteAll();
-        cache = new CopyOnWriteArrayList<>();
+        cache.set(new CopyOnWriteArrayList<>());
         cacheLoadedAt = System.currentTimeMillis();
         try {
             photoStorage.deleteFolder();
@@ -333,6 +337,7 @@ public class CanService {
             case 2 -> { can.setP2(url); can.setP2Id(publicId); }
             case 3 -> { can.setP3(url); can.setP3Id(publicId); }
             case 4 -> { can.setP4(url); can.setP4Id(publicId); }
+            default -> { /* slot fuori range 1-4: no-op */ }
         }
     }
 
@@ -344,7 +349,7 @@ public class CanService {
         try {
             action.call();
         } catch (Exception e) {
-            cache = null;
+            cache.set(null);
             throw e;
         }
     }
