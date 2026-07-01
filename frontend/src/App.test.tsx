@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import App from './App';
+import userEvent from '@testing-library/user-event';
 import { useCansStore } from './store';
 
 beforeEach(() => {
@@ -36,4 +37,25 @@ test('mostra un messaggio di errore se la fetch fallisce', async () => {
   render(<App />);
 
   expect(await screen.findByRole('alert')).toBeTruthy();
+});
+
+test('la ricerca filtra la griglia per nome', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [
+        { id: '1', nome: 'Alpha' },
+        { id: '2', nome: 'Beta' },
+      ],
+    }),
+  );
+
+  render(<App />);
+  await screen.findByText('Alpha');
+
+  await userEvent.type(screen.getByRole('searchbox'), 'alph');
+
+  expect(screen.queryByText('Beta')).toBeNull();
+  expect(screen.getByText('Alpha')).toBeTruthy();
 });
