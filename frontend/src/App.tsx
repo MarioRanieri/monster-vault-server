@@ -8,6 +8,7 @@ import { computeStats } from './computeStats';
 import { useAuthStore } from './authStore';
 import { LoginForm } from './LoginForm';
 import { CanEditForm } from './CanEditForm';
+import { LandingPage } from './LandingPage';
 import type { Can } from './types';
 
 function App() {
@@ -29,6 +30,8 @@ function App() {
   const [creating, setCreating] = useState<Can | null>(null);
   const [withPhoto, setWithPhoto] = useState(false);
   const [promo, setPromo] = useState(false);
+  const [view, setView] = useState<'landing' | 'collection'>('landing');
+  const [showLogin, setShowLogin] = useState(false);
 
   useEffect(() => {
     loadCans();
@@ -36,13 +39,39 @@ function App() {
 
   const visible = filterCans(cans, { query, withPhoto, promo });
   const selected = cans.find((c) => c.id === selectedId) ?? null;
+  const stats = computeStats(cans);
+
+  const handleLogin = async (u: string, p: string) => {
+    await login(u, p);
+    if (useAuthStore.getState().isAdmin) setShowLogin(false);
+  };
+
+  if (view === 'landing') {
+    return (
+      <LandingPage
+        total={stats.total}
+        withPhoto={stats.withPhoto}
+        onEnter={() => setView('collection')}
+        onAdmin={() => {
+          setView('collection');
+          setShowLogin(true);
+        }}
+      />
+    );
+  }
 
   return (
     <main>
       <h1>Monster Vault</h1>
       {isAdmin ? (
         <div className="admin-bar">
-          <button type="button" onClick={() => logout()}>
+          <button
+            type="button"
+            onClick={() => {
+              logout();
+              setView('landing');
+            }}
+          >
             Esci
           </button>
           <button type="button" onClick={() => setCreating({ id: crypto.randomUUID(), nome: '' })}>
@@ -50,9 +79,11 @@ function App() {
           </button>
         </div>
       ) : (
-        <LoginForm onLogin={login} error={authError} />
+        <button type="button" onClick={() => setShowLogin(true)}>
+          Admin
+        </button>
       )}
-      <StatsBar stats={computeStats(cans)} />
+      <StatsBar stats={stats} />
       <input
         type="search"
         aria-label="Cerca"
@@ -109,6 +140,9 @@ function App() {
           }}
           onCancel={() => setCreating(null)}
         />
+      )}
+      {showLogin && (
+        <LoginForm onLogin={handleLogin} error={authError} onGuest={() => setShowLogin(false)} />
       )}
     </main>
   );

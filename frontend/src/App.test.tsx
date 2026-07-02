@@ -14,7 +14,20 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-test('mostra il titolo "Monster Vault"', () => {
+// La app parte dalla landing: per vedere la collection bisogna entrarci.
+async function enterCollection() {
+  await userEvent.click(screen.getByRole('button', { name: /enter the collection/i }));
+}
+
+async function loginAsAdmin() {
+  await userEvent.click(screen.getByRole('button', { name: /admin access/i }));
+  await userEvent.type(screen.getByLabelText('Username'), 'admin');
+  await userEvent.type(screen.getByLabelText('Password'), 'pw');
+  await userEvent.click(screen.getByRole('button', { name: /accedi/i }));
+  await screen.findByRole('button', { name: /esci/i });
+}
+
+test('la landing mostra il wordmark "Monster Vault"', () => {
   render(<App />);
   expect(screen.getByRole('heading', { name: /monster vault/i })).toBeTruthy();
 });
@@ -29,6 +42,7 @@ test('carica e mostra i cans dall’API al montaggio', async () => {
   );
 
   render(<App />);
+  await enterCollection();
 
   expect(await screen.findByText('Alpha')).toBeTruthy();
 });
@@ -37,6 +51,7 @@ test('mostra un messaggio di errore se la fetch fallisce', async () => {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
 
   render(<App />);
+  await enterCollection();
 
   expect(await screen.findByRole('alert')).toBeTruthy();
 });
@@ -54,6 +69,7 @@ test('la ricerca filtra la griglia per nome', async () => {
   );
 
   render(<App />);
+  await enterCollection();
   await screen.findByText('Alpha');
 
   await userEvent.type(screen.getByRole('searchbox'), 'alph');
@@ -72,6 +88,7 @@ test('cliccando una card si apre il dettaglio; Chiudi lo richiude', async () => 
   );
 
   render(<App />);
+  await enterCollection();
 
   await userEvent.click(await screen.findByRole('button', { name: /alpha/i }));
   const chiudi = await screen.findByRole('button', { name: /^chiudi$/i });
@@ -94,6 +111,7 @@ test('il chip "Con foto" mostra solo i cans con foto', async () => {
   );
 
   render(<App />);
+  await enterCollection();
   await screen.findByText('Alpha');
 
   await userEvent.click(screen.getByRole('button', { name: /con foto/i }));
@@ -115,6 +133,7 @@ test('il chip "Promo" mostra solo i cans in promo', async () => {
   );
 
   render(<App />);
+  await enterCollection();
   await screen.findByText('Alpha');
 
   await userEvent.click(screen.getByRole('button', { name: /^promo$/i }));
@@ -123,7 +142,7 @@ test('il chip "Promo" mostra solo i cans in promo', async () => {
   expect(screen.getByText('Alpha')).toBeTruthy();
 });
 
-test('login/logout: mostra il form, poi "Esci", poi di nuovo il form', async () => {
+test('login, poi "Esci" riporta alla landing', async () => {
   vi.stubGlobal(
     'fetch',
     vi
@@ -137,6 +156,7 @@ test('login/logout: mostra il form, poi "Esci", poi di nuovo il form', async () 
   );
 
   render(<App />);
+  await userEvent.click(screen.getByRole('button', { name: /admin access/i }));
 
   await userEvent.type(screen.getByLabelText('Username'), 'admin');
   await userEvent.type(screen.getByLabelText('Password'), 'pw');
@@ -144,15 +164,9 @@ test('login/logout: mostra il form, poi "Esci", poi di nuovo il form', async () 
 
   await userEvent.click(await screen.findByRole('button', { name: /esci/i }));
 
-  expect(await screen.findByRole('button', { name: /accedi/i })).toBeTruthy();
+  // signout torna alla landing
+  expect(await screen.findByRole('button', { name: /admin access/i })).toBeTruthy();
 });
-
-async function loginAsAdmin() {
-  await userEvent.type(screen.getByLabelText('Username'), 'admin');
-  await userEvent.type(screen.getByLabelText('Password'), 'pw');
-  await userEvent.click(screen.getByRole('button', { name: /accedi/i }));
-  await screen.findByRole('button', { name: /esci/i });
-}
 
 test('admin: elimina una can dal dettaglio', async () => {
   vi.stubGlobal(

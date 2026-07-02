@@ -156,10 +156,10 @@ body {
   background: var(--bg2);
   border: 1px solid var(--border2);
   border-radius: 14px;
-  padding: 2.5rem 2rem;
+  padding: 2.8rem 2.4rem;
   text-align: center;
   width: 100%;
-  max-width: 360px;
+  max-width: 420px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2571,8 +2571,27 @@ body.light .filter-select option {
     opacity 0.4s ease,
     transform 0.4s ease;
 }
+/* foto sfocata di sfondo (asset public/landing-bg.jpg), scurita così il
+   contenuto resta leggibile. Sotto la .land-inner. */
+.land-bg {
+  position: absolute;
+  inset: 0;
+  /* scrim scuro sopra la foto: così il testo mantiene il contrasto WCAG
+     (AA ≥ 4.5:1) su qualunque zona dell'immagine. */
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.62)),
+    url('/landing-bg.jpg') center / cover no-repeat;
+  filter: blur(9px);
+  transform: scale(1.08);
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 0;
+}
 .land-inner {
+  z-index: 1;
   position: relative;
+  /* ombra su tutto il testo della landing: leggibilità sopra la foto */
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.9);
   width: 100%;
   max-width: 520px;
   display: flex;
@@ -2596,7 +2615,7 @@ body.light .filter-select option {
   font-size: 11px;
   letter-spacing: 3px;
   text-transform: uppercase;
-  color: #5f5f5f;
+  color: #c2c2c2;
   margin-bottom: 1.8rem;
 }
 .land-eyebrow b {
@@ -2665,7 +2684,7 @@ body.light .filter-select option {
   font-size: 12px;
   letter-spacing: 6px;
   text-transform: uppercase;
-  color: #5f5f5f;
+  color: #cfcfcf;
   margin-top: 0.7rem;
 }
 
@@ -2701,9 +2720,9 @@ body.light .filter-select option {
   gap: 3px;
 }
 .land-stat b {
-  font-family: 'Space Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-weight: 700;
-  font-size: 27px;
+  font-size: 30px;
   color: #f2f2f2;
   line-height: 1;
 }
@@ -2712,7 +2731,7 @@ body.light .filter-select option {
   font-size: 10px;
   letter-spacing: 2px;
   text-transform: uppercase;
-  color: #5f5f5f;
+  color: #bcbcbc;
 }
 .land-stat-div {
   width: 1px;
@@ -2728,9 +2747,11 @@ body.light .filter-select option {
 }
 .land-btn-enter,
 .land-btn-admin {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 19px;
-  letter-spacing: 3px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  text-shadow: none;
+  font-size: 15px;
+  letter-spacing: 1.5px;
   padding: 15px 28px;
   border-radius: 5px;
   cursor: pointer;
@@ -2778,7 +2799,7 @@ body.light .filter-select option {
   font-family: 'Space Mono', monospace;
   font-size: 12px;
   letter-spacing: 1px;
-  color: #8a8a8a;
+  color: #cacaca;
   text-decoration: none;
   border-bottom: 1px solid transparent;
   transition:
@@ -2796,13 +2817,15 @@ body.light .filter-select option {
   gap: 0.5rem;
   margin-top: 2.4rem;
   font-family: 'Space Mono', monospace;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 1px;
-  color: #4a4a4a;
+  color: #cfcfcf;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
 }
 .land-footer a {
   display: inline-flex;
-  color: #4a4a4a;
+  color: #cfcfcf;
+  text-decoration: underline;
   transition: color 0.15s;
 }
 .land-footer a:hover {
