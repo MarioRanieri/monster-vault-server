@@ -24,7 +24,7 @@ async function loginAsAdmin() {
   await userEvent.type(screen.getByLabelText('Username'), 'admin');
   await userEvent.type(screen.getByLabelText('Password'), 'pw');
   await userEvent.click(screen.getByRole('button', { name: /accedi/i }));
-  await screen.findByRole('button', { name: /esci/i });
+  await screen.findByRole('button', { name: /sign out/i });
 }
 
 test('la landing mostra il wordmark "Monster Vault"', () => {
@@ -162,7 +162,7 @@ test('login, poi "Esci" riporta alla landing', async () => {
   await userEvent.type(screen.getByLabelText('Password'), 'pw');
   await userEvent.click(screen.getByRole('button', { name: /accedi/i }));
 
-  await userEvent.click(await screen.findByRole('button', { name: /esci/i }));
+  await userEvent.click(await screen.findByRole('button', { name: /sign out/i }));
 
   // signout torna alla landing
   expect(await screen.findByRole('button', { name: /admin access/i })).toBeTruthy();
@@ -255,7 +255,7 @@ test('admin: crea una nuova can', async () => {
   render(<App />);
   await loginAsAdmin();
 
-  await userEvent.click(screen.getByRole('button', { name: /nuova/i }));
+  await userEvent.click(screen.getByRole('button', { name: /add/i }));
   await userEvent.type(screen.getByLabelText('Nome'), 'Nuova Lattina');
   await userEvent.click(screen.getByRole('button', { name: /salva/i }));
 
@@ -274,7 +274,7 @@ test('admin: Annulla la creazione chiude il form', async () => {
   render(<App />);
   await loginAsAdmin();
 
-  await userEvent.click(screen.getByRole('button', { name: /nuova/i }));
+  await userEvent.click(screen.getByRole('button', { name: /add/i }));
   expect(screen.getByLabelText('Nome')).toBeTruthy();
   await userEvent.click(screen.getByRole('button', { name: /annulla/i }));
   expect(screen.queryByLabelText('Nome')).toBeNull();

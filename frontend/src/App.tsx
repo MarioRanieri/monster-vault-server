@@ -9,6 +9,7 @@ import { useAuthStore } from './authStore';
 import { LoginForm } from './LoginForm';
 import { CanEditForm } from './CanEditForm';
 import { LandingPage } from './LandingPage';
+import { Header } from './Header';
 import type { Can } from './types';
 
 function App() {
@@ -32,10 +33,15 @@ function App() {
   const [promo, setPromo] = useState(false);
   const [view, setView] = useState<'landing' | 'collection'>('landing');
   const [showLogin, setShowLogin] = useState(false);
+  const [light, setLight] = useState(false);
 
   useEffect(() => {
     loadCans();
   }, [loadCans]);
+
+  useEffect(() => {
+    document.body.classList.toggle('light', light);
+  }, [light]);
 
   const visible = filterCans(cans, { query, withPhoto, promo });
   const selected = cans.find((c) => c.id === selectedId) ?? null;
@@ -62,27 +68,16 @@ function App() {
 
   return (
     <main>
-      <h1>Monster Vault</h1>
-      {isAdmin ? (
-        <div className="admin-bar">
-          <button
-            type="button"
-            onClick={() => {
-              logout();
-              setView('landing');
-            }}
-          >
-            Esci
-          </button>
-          <button type="button" onClick={() => setCreating({ id: crypto.randomUUID(), nome: '' })}>
-            Nuova
-          </button>
-        </div>
-      ) : (
-        <button type="button" onClick={() => setShowLogin(true)}>
-          Admin
-        </button>
-      )}
+      <Header
+        isAdmin={isAdmin}
+        onSignOut={() => {
+          logout();
+          setView('landing');
+        }}
+        onAdd={() => setCreating({ id: crypto.randomUUID(), nome: '' })}
+        onLogin={() => setShowLogin(true)}
+        onToggleTheme={() => setLight((v) => !v)}
+      />
       <StatsBar stats={stats} />
       <input
         type="search"
