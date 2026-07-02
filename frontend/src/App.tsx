@@ -7,18 +7,22 @@ import { StatsBar } from './StatsBar';
 import { computeStats } from './computeStats';
 import { useAuthStore } from './authStore';
 import { LoginForm } from './LoginForm';
+import { CanEditForm } from './CanEditForm';
 
 function App() {
   const cans = useCansStore((s) => s.cans);
   const loading = useCansStore((s) => s.loading);
   const error = useCansStore((s) => s.error);
   const loadCans = useCansStore((s) => s.loadCans);
+  const saveCan = useCansStore((s) => s.saveCan);
+  const deleteCan = useCansStore((s) => s.deleteCan);
   const isAdmin = useAuthStore((s) => s.isAdmin);
   const authError = useAuthStore((s) => s.error);
   const login = useAuthStore((s) => s.login);
   const logout = useAuthStore((s) => s.logout);
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
   const [withPhoto, setWithPhoto] = useState(false);
   const [promo, setPromo] = useState(false);
 
@@ -57,8 +61,35 @@ function App() {
       </div>
       {loading && <p>Caricamento…</p>}
       {error && <p role="alert">Errore: {error}</p>}
-      <CanGrid cans={visible} onSelect={(can) => setSelectedId(can.id)} />
-      {selected && <CanDetail can={selected} onClose={() => setSelectedId(null)} />}
+      <CanGrid
+        cans={visible}
+        onSelect={(can) => {
+          setSelectedId(can.id);
+          setEditing(false);
+        }}
+      />
+      {selected &&
+        (editing ? (
+          <CanEditForm
+            can={selected}
+            onSave={async (updated) => {
+              await saveCan(updated);
+              setEditing(false);
+            }}
+            onCancel={() => setEditing(false)}
+          />
+        ) : (
+          <CanDetail
+            can={selected}
+            onClose={() => setSelectedId(null)}
+            isAdmin={isAdmin}
+            onEdit={() => setEditing(true)}
+            onDelete={async () => {
+              await deleteCan(selected.id);
+              setSelectedId(null);
+            }}
+          />
+        ))}
     </main>
   );
 }

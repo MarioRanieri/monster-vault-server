@@ -145,3 +145,81 @@ test('login/logout: mostra il form, poi "Esci", poi di nuovo il form', async () 
 
   expect(await screen.findByRole('button', { name: /accedi/i })).toBeTruthy();
 });
+
+async function loginAsAdmin() {
+  await userEvent.type(screen.getByLabelText('Username'), 'admin');
+  await userEvent.type(screen.getByLabelText('Password'), 'pw');
+  await userEvent.click(screen.getByRole('button', { name: /accedi/i }));
+  await screen.findByRole('button', { name: /esci/i });
+}
+
+test('admin: elimina una can dal dettaglio', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: '1', nome: 'Alpha' }] })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) })
+      .mockResolvedValueOnce({ ok: true }),
+  );
+
+  render(<App />);
+  await loginAsAdmin();
+
+  await userEvent.click(screen.getByRole('button', { name: /alpha/i }));
+  await userEvent.click(screen.getByRole('button', { name: /elimina/i }));
+
+  expect(screen.queryByText('Alpha')).toBeNull();
+});
+
+test('admin: modifica una can dal dettaglio', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [{ id: '1', nome: 'Alpha', sku: 'SKU-1' }],
+      })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: '1', nome: 'Beta', sku: 'SKU-1' }),
+      }),
+  );
+
+  render(<App />);
+  await loginAsAdmin();
+
+  await userEvent.click(screen.getByRole('button', { name: /alpha/i }));
+  await userEvent.click(screen.getByRole('button', { name: /modifica/i }));
+  const nome = screen.getByLabelText('Nome');
+  await userEvent.clear(nome);
+  await userEvent.type(nome, 'Beta');
+  await userEvent.click(screen.getByRole('button', { name: /salva/i }));
+
+  expect(screen.queryByText('Alpha')).toBeNull();
+  expect((await screen.findAllByText('Beta')).length).toBeGreaterThan(0);
+});
+
+test('admin: Annulla chiude il form e torna al dettaglio', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [{ id: '1', nome: 'Alpha', sku: 'SKU-1' }],
+      })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) }),
+  );
+
+  render(<App />);
+  await loginAsAdmin();
+
+  await userEvent.click(screen.getByRole('button', { name: /alpha/i }));
+  await userEvent.click(screen.getByRole('button', { name: /modifica/i }));
+  await userEvent.click(screen.getByRole('button', { name: /annulla/i }));
+
+  expect(screen.getByRole('button', { name: /modifica/i })).toBeTruthy();
+});

@@ -58,3 +58,28 @@ test('cliccando una foto si apre la lightbox; il suo Chiudi la chiude', async ()
   await userEvent.click(screen.getByRole('button', { name: /chiudi foto/i }));
   expect(screen.queryByRole('dialog')).toBeNull();
 });
+
+test('da admin mostra Modifica ed Elimina con le callback', async () => {
+  const onEdit = vi.fn();
+  const onDelete = vi.fn();
+  render(
+    <CanDetail
+      can={{ id: '1', nome: 'Alpha' }}
+      onClose={() => {}}
+      isAdmin
+      onEdit={onEdit}
+      onDelete={onDelete}
+    />,
+  );
+
+  await userEvent.click(screen.getByRole('button', { name: /modifica/i }));
+  await userEvent.click(screen.getByRole('button', { name: /elimina/i }));
+
+  expect(onEdit).toHaveBeenCalled();
+  expect(onDelete).toHaveBeenCalled();
+});
+
+test('senza admin non mostra Modifica/Elimina', () => {
+  render(<CanDetail can={{ id: '1', nome: 'Alpha' }} onClose={() => {}} />);
+  expect(screen.queryByRole('button', { name: /elimina/i })).toBeNull();
+});

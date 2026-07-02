@@ -2,7 +2,19 @@ import { useState } from 'react';
 import type { Can } from './types';
 
 // Pannello di dettaglio: galleria foto con lightbox + badge. Dati via props.
-export function CanDetail({ can, onClose }: { can: Can; onClose: () => void }) {
+export function CanDetail({
+  can,
+  onClose,
+  isAdmin,
+  onEdit,
+  onDelete,
+}: {
+  can: Can;
+  onClose: () => void;
+  isAdmin?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
+}) {
   const photos = [can.p1, can.p2, can.p3, can.p4].filter((url): url is string => Boolean(url));
   const [lightbox, setLightbox] = useState<string | null>(null);
 
@@ -25,6 +37,16 @@ export function CanDetail({ can, onClose }: { can: Can; onClose: () => void }) {
         {can.promo && <span className="badge">{can.promo}</span>}
         {can.stato && <span className="badge">{can.stato}</span>}
       </div>
+      {isAdmin && (
+        <div className="admin-actions">
+          <button type="button" onClick={onEdit}>
+            Modifica
+          </button>
+          <button type="button" onClick={onDelete}>
+            Elimina
+          </button>
+        </div>
+      )}
       {lightbox && (
         <div className="lightbox" role="dialog" aria-label="Foto ingrandita">
           <button type="button" onClick={() => setLightbox(null)}>

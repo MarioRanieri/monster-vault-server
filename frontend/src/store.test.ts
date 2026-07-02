@@ -32,3 +32,48 @@ test('loadCans imposta error quando la fetch fallisce', async () => {
   expect(s.loading).toBe(false);
   expect(s.cans).toEqual([]);
 });
+
+test('saveCan aggiorna la can nella lista (PUT)', async () => {
+  useCansStore.setState({
+    cans: [{ id: '1', nome: 'Old' }],
+    loading: false,
+    error: null,
+  });
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: '1', nome: 'New' }),
+    }),
+  );
+
+  await useCansStore.getState().saveCan({ id: '1', nome: 'New' });
+
+  expect(useCansStore.getState().cans).toEqual([{ id: '1', nome: 'New' }]);
+});
+
+test('deleteCan rimuove la can dalla lista (DELETE)', async () => {
+  useCansStore.setState({
+    cans: [
+      { id: '1', nome: 'A' },
+      { id: '2', nome: 'B' },
+    ],
+    loading: false,
+    error: null,
+  });
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
+
+  await useCansStore.getState().deleteCan('1');
+
+  expect(useCansStore.getState().cans.map((c) => c.id)).toEqual(['2']);
+});
+
+test('saveCan lancia se la risposta non è ok', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+  await expect(useCansStore.getState().saveCan({ id: '1', nome: 'X' })).rejects.toThrow();
+});
+
+test('deleteCan lancia se la risposta non è ok', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+  await expect(useCansStore.getState().deleteCan('1')).rejects.toThrow();
+});
