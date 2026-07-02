@@ -4,9 +4,16 @@ export interface Can {
   id: string;
   nome: string;
   sku?: string;
+  produttore?: string;
   size?: string;
+  lingua?: string;
+  top?: string;
+  note?: string;
   promo?: string;
   stato?: string;
+  valore?: string;
+  descrizione?: string;
+  watch?: boolean;
   p1?: string; // URL foto, slot 1-4
   p2?: string;
   p3?: string;

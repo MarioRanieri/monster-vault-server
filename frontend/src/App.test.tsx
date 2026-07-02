@@ -74,10 +74,11 @@ test('cliccando una card si apre il dettaglio; Chiudi lo richiude', async () => 
   render(<App />);
 
   await userEvent.click(await screen.findByRole('button', { name: /alpha/i }));
-  expect(await screen.findByText('SKU-1')).toBeTruthy();
+  const chiudi = await screen.findByRole('button', { name: /^chiudi$/i });
+  expect(chiudi).toBeTruthy();
 
-  await userEvent.click(screen.getByRole('button', { name: /chiudi/i }));
-  expect(screen.queryByText('SKU-1')).toBeNull();
+  await userEvent.click(chiudi);
+  expect(screen.queryByRole('button', { name: /^chiudi$/i })).toBeNull();
 });
 
 test('il chip "Con foto" mostra solo i cans con foto', async () => {

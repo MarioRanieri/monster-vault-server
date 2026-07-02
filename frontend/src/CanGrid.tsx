@@ -2,20 +2,29 @@ import type { Can } from './types';
 
 export function CanGrid({ cans, onSelect }: { cans: Can[]; onSelect?: (can: Can) => void }) {
   return (
-    <ul className="can-grid">
+    <div className="grid" id="grid">
       {cans.map((can) => (
-        <li key={can.id}>
-          <button type="button" className="can-card" onClick={() => onSelect?.(can)}>
-            {can.p1 && <img src={can.p1} alt={can.nome} />}
-            <span className="can-name">{can.nome}</span>
-            <span className="can-badges">
-              {can.size && <span className="badge">{can.size}</span>}
-              {can.promo && <span className="badge">{can.promo}</span>}
-              {can.stato && <span className="badge">{can.stato}</span>}
-            </span>
-          </button>
-        </li>
+        <button key={can.id} type="button" className="card" onClick={() => onSelect?.(can)}>
+          <div className="card-img">
+            {can.p1 ? (
+              <img src={can.p1} alt={can.nome} />
+            ) : (
+              <div className="card-img-placeholder">
+                <span>—</span>
+              </div>
+            )}
+            {can.sku && <span className="card-sku">{can.sku}</span>}
+            <div className="card-badges">
+              {can.size && <span className="badge badge-size">{can.size}</span>}
+              {can.promo && <span className="badge badge-promo">{can.promo}</span>}
+              {can.stato && <span className="badge badge-stato-ok">{can.stato}</span>}
+            </div>
+          </div>
+          <div className="card-body">
+            <div className="card-name">{can.nome}</div>
+          </div>
+        </button>
       ))}
-    </ul>
+    </div>
   );
 }
