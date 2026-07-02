@@ -37,3 +37,15 @@ test('Annulla chiama onCancel', async () => {
   await userEvent.click(screen.getByRole('button', { name: /annulla/i }));
   expect(onCancel).toHaveBeenCalled();
 });
+
+test('caricando un file chiama onUploadPhoto con lo slot 1', async () => {
+  const onUploadPhoto = vi.fn();
+  render(
+    <CanEditForm can={can} onSave={() => {}} onCancel={() => {}} onUploadPhoto={onUploadPhoto} />,
+  );
+
+  const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' });
+  await userEvent.upload(screen.getByLabelText('Foto 1'), file);
+
+  expect(onUploadPhoto).toHaveBeenCalledWith(1, file);
+});

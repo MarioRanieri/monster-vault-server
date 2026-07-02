@@ -98,3 +98,23 @@ test('createCan lancia se la risposta non è ok', async () => {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
   await expect(useCansStore.getState().createCan({ id: '1', nome: 'X' })).rejects.toThrow();
 });
+
+test('uploadPhoto imposta l’URL foto sullo slot (POST multipart)', async () => {
+  useCansStore.setState({
+    cans: [{ id: '1', nome: 'A' }],
+    loading: false,
+    error: null,
+  });
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ url: 'https://cdn/new.jpg' }),
+    }),
+  );
+
+  const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' });
+  await useCansStore.getState().uploadPhoto('1', 1, file);
+
+  expect(useCansStore.getState().cans[0].p1).toBe('https://cdn/new.jpg');
+});

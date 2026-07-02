@@ -18,6 +18,7 @@ function App() {
   const saveCan = useCansStore((s) => s.saveCan);
   const deleteCan = useCansStore((s) => s.deleteCan);
   const createCan = useCansStore((s) => s.createCan);
+  const uploadPhoto = useCansStore((s) => s.uploadPhoto);
   const isAdmin = useAuthStore((s) => s.isAdmin);
   const authError = useAuthStore((s) => s.error);
   const login = useAuthStore((s) => s.login);
@@ -85,6 +86,7 @@ function App() {
               setEditing(false);
             }}
             onCancel={() => setEditing(false)}
+            onUploadPhoto={(slot, file) => uploadPhoto(selected.id, slot, file)}
           />
         ) : (
           <CanDetail

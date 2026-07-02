@@ -264,3 +264,30 @@ test('admin: Annulla la creazione chiude il form', async () => {
   await userEvent.click(screen.getByRole('button', { name: /annulla/i }));
   expect(screen.queryByLabelText('Nome')).toBeNull();
 });
+
+test('admin: carica una foto durante la modifica', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: '1', nome: 'Alpha' }] })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ url: 'https://cdn/up.jpg' }),
+      }),
+  );
+
+  render(<App />);
+  await loginAsAdmin();
+
+  await userEvent.click(screen.getByRole('button', { name: /alpha/i }));
+  await userEvent.click(screen.getByRole('button', { name: /modifica/i }));
+
+  const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' });
+  await userEvent.upload(screen.getByLabelText('Foto 1'), file);
+
+  await userEvent.click(screen.getByRole('button', { name: /annulla/i }));
+
+  expect((await screen.findAllByRole('img', { name: 'Alpha' })).length).toBeGreaterThan(0);
+});

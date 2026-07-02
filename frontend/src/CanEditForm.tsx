@@ -6,10 +6,12 @@ export function CanEditForm({
   can,
   onSave,
   onCancel,
+  onUploadPhoto,
 }: {
   can: Can;
   onSave: (can: Can) => void;
   onCancel: () => void;
+  onUploadPhoto?: (slot: number, file: File) => void;
 }) {
   const [nome, setNome] = useState(can.nome);
   const [sku, setSku] = useState(can.sku ?? '');
@@ -45,6 +47,19 @@ export function CanEditForm({
         Stato
         <input value={stato} onChange={(e) => setStato(e.target.value)} />
       </label>
+      {onUploadPhoto && (
+        <label>
+          Foto 1
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) onUploadPhoto(1, file);
+            }}
+          />
+        </label>
+      )}
       <button type="submit">Salva</button>
       <button type="button" onClick={onCancel}>
         Annulla
