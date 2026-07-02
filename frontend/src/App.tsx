@@ -3,6 +3,8 @@ import { useCansStore } from './store';
 import { CanGrid } from './CanGrid';
 import { CanDetail } from './CanDetail';
 import { filterCans } from './filterCans';
+import { StatsBar } from './StatsBar';
+import { computeStats } from './computeStats';
 
 function App() {
   const cans = useCansStore((s) => s.cans);
@@ -24,6 +26,7 @@ function App() {
   return (
     <main>
       <h1>Monster Vault</h1>
+      <StatsBar stats={computeStats(cans)} />
       <input
         type="search"
         aria-label="Cerca"
