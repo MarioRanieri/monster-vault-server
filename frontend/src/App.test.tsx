@@ -223,3 +223,44 @@ test('admin: Annulla chiude il form e torna al dettaglio', async () => {
 
   expect(screen.getByRole('button', { name: /modifica/i })).toBeTruthy();
 });
+
+test('admin: crea una nuova can', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: 'x', nome: 'Nuova Lattina' }),
+      }),
+  );
+
+  render(<App />);
+  await loginAsAdmin();
+
+  await userEvent.click(screen.getByRole('button', { name: /nuova/i }));
+  await userEvent.type(screen.getByLabelText('Nome'), 'Nuova Lattina');
+  await userEvent.click(screen.getByRole('button', { name: /salva/i }));
+
+  expect(await screen.findByText('Nuova Lattina')).toBeTruthy();
+});
+
+test('admin: Annulla la creazione chiude il form', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) }),
+  );
+
+  render(<App />);
+  await loginAsAdmin();
+
+  await userEvent.click(screen.getByRole('button', { name: /nuova/i }));
+  expect(screen.getByLabelText('Nome')).toBeTruthy();
+  await userEvent.click(screen.getByRole('button', { name: /annulla/i }));
+  expect(screen.queryByLabelText('Nome')).toBeNull();
+});

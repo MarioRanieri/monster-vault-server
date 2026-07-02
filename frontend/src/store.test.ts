@@ -77,3 +77,24 @@ test('deleteCan lancia se la risposta non è ok', async () => {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
   await expect(useCansStore.getState().deleteCan('1')).rejects.toThrow();
 });
+
+test('createCan aggiunge la nuova can alla lista (POST)', async () => {
+  useCansStore.setState({
+    cans: [{ id: '1', nome: 'A' }],
+    loading: false,
+    error: null,
+  });
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: '2', nome: 'B' }) }),
+  );
+
+  await useCansStore.getState().createCan({ id: '2', nome: 'B' });
+
+  expect(useCansStore.getState().cans.map((c) => c.id)).toEqual(['1', '2']);
+});
+
+test('createCan lancia se la risposta non è ok', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+  await expect(useCansStore.getState().createCan({ id: '1', nome: 'X' })).rejects.toThrow();
+});

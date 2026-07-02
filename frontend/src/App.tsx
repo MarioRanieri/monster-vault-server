@@ -8,6 +8,7 @@ import { computeStats } from './computeStats';
 import { useAuthStore } from './authStore';
 import { LoginForm } from './LoginForm';
 import { CanEditForm } from './CanEditForm';
+import type { Can } from './types';
 
 function App() {
   const cans = useCansStore((s) => s.cans);
@@ -16,6 +17,7 @@ function App() {
   const loadCans = useCansStore((s) => s.loadCans);
   const saveCan = useCansStore((s) => s.saveCan);
   const deleteCan = useCansStore((s) => s.deleteCan);
+  const createCan = useCansStore((s) => s.createCan);
   const isAdmin = useAuthStore((s) => s.isAdmin);
   const authError = useAuthStore((s) => s.error);
   const login = useAuthStore((s) => s.login);
@@ -23,6 +25,7 @@ function App() {
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [creating, setCreating] = useState<Can | null>(null);
   const [withPhoto, setWithPhoto] = useState(false);
   const [promo, setPromo] = useState(false);
 
@@ -37,9 +40,14 @@ function App() {
     <main>
       <h1>Monster Vault</h1>
       {isAdmin ? (
-        <button type="button" onClick={() => logout()}>
-          Esci
-        </button>
+        <div className="admin-bar">
+          <button type="button" onClick={() => logout()}>
+            Esci
+          </button>
+          <button type="button" onClick={() => setCreating({ id: crypto.randomUUID(), nome: '' })}>
+            Nuova
+          </button>
+        </div>
       ) : (
         <LoginForm onLogin={login} error={authError} />
       )}
@@ -90,6 +98,16 @@ function App() {
             }}
           />
         ))}
+      {creating && (
+        <CanEditForm
+          can={creating}
+          onSave={async (newCan) => {
+            await createCan(newCan);
+            setCreating(null);
+          }}
+          onCancel={() => setCreating(null)}
+        />
+      )}
     </main>
   );
 }

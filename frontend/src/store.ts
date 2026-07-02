@@ -9,6 +9,7 @@ interface CansState {
   loadCans: () => Promise<void>;
   saveCan: (can: Can) => Promise<void>;
   deleteCan: (id: string) => Promise<void>;
+  createCan: (can: Can) => Promise<void>;
 }
 
 export const useCansStore = create<CansState>((set) => ({
@@ -40,5 +41,15 @@ export const useCansStore = create<CansState>((set) => ({
     const res = await authFetch(`/api/cans/${id}`, { method: 'DELETE' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     set((s) => ({ cans: s.cans.filter((c) => c.id !== id) }));
+  },
+  createCan: async (can) => {
+    const res = await authFetch('/api/cans', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(can),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const saved = (await res.json()) as Can;
+    set((s) => ({ cans: [...s.cans, saved] }));
   },
 }));
