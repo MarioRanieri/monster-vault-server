@@ -77,3 +77,45 @@ test('cliccando una card si apre il dettaglio; Chiudi lo richiude', async () => 
   await userEvent.click(screen.getByRole('button', { name: /chiudi/i }));
   expect(screen.queryByText('SKU-1')).toBeNull();
 });
+
+test('il chip "Con foto" mostra solo i cans con foto', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [
+        { id: '1', nome: 'Alpha', p1: 'a.jpg' },
+        { id: '2', nome: 'Beta' },
+      ],
+    }),
+  );
+
+  render(<App />);
+  await screen.findByText('Alpha');
+
+  await userEvent.click(screen.getByRole('button', { name: /con foto/i }));
+
+  expect(screen.queryByText('Beta')).toBeNull();
+  expect(screen.getByText('Alpha')).toBeTruthy();
+});
+
+test('il chip "Promo" mostra solo i cans in promo', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [
+        { id: '1', nome: 'Alpha', promo: 'Zero' },
+        { id: '2', nome: 'Beta' },
+      ],
+    }),
+  );
+
+  render(<App />);
+  await screen.findByText('Alpha');
+
+  await userEvent.click(screen.getByRole('button', { name: /^promo$/i }));
+
+  expect(screen.queryByText('Beta')).toBeNull();
+  expect(screen.getByText('Alpha')).toBeTruthy();
+});

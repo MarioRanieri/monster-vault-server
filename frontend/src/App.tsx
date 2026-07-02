@@ -11,12 +11,14 @@ function App() {
   const loadCans = useCansStore((s) => s.loadCans);
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [withPhoto, setWithPhoto] = useState(false);
+  const [promo, setPromo] = useState(false);
 
   useEffect(() => {
     loadCans();
   }, [loadCans]);
 
-  const visible = filterCans(cans, query);
+  const visible = filterCans(cans, { query, withPhoto, promo });
   const selected = cans.find((c) => c.id === selectedId) ?? null;
 
   return (
@@ -29,6 +31,14 @@ function App() {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
+      <div className="chips">
+        <button type="button" aria-pressed={withPhoto} onClick={() => setWithPhoto((v) => !v)}>
+          Con foto
+        </button>
+        <button type="button" aria-pressed={promo} onClick={() => setPromo((v) => !v)}>
+          Promo
+        </button>
+      </div>
       {loading && <p>Caricamento…</p>}
       {error && <p role="alert">Errore: {error}</p>}
       <CanGrid cans={visible} onSelect={(can) => setSelectedId(can.id)} />

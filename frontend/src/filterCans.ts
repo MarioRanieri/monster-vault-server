@@ -1,8 +1,18 @@
 import type { Can } from './types';
 
-// Filtra i cans per nome (case-insensitive). Query vuota → tutti.
-export function filterCans(cans: Can[], query: string): Can[] {
-  const q = query.trim().toLowerCase();
-  if (!q) return cans;
-  return cans.filter((can) => can.nome.toLowerCase().includes(q));
+export interface CanFilters {
+  query?: string;
+  withPhoto?: boolean;
+  promo?: boolean;
+}
+
+// Applica tutti i criteri insieme (AND); un filtro assente non restringe.
+export function filterCans(cans: Can[], filters: CanFilters): Can[] {
+  const q = (filters.query ?? '').trim().toLowerCase();
+  return cans.filter((can) => {
+    if (q && !can.nome.toLowerCase().includes(q)) return false;
+    if (filters.withPhoto && !can.p1) return false;
+    if (filters.promo && !can.promo) return false;
+    return true;
+  });
 }
