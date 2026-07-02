@@ -2,9 +2,11 @@ import { render, screen } from '@testing-library/react';
 import App from './App';
 import userEvent from '@testing-library/user-event';
 import { useCansStore } from './store';
+import { useAuthStore } from './authStore';
 
 beforeEach(() => {
   useCansStore.setState({ cans: [], loading: false, error: null });
+  useAuthStore.setState({ accessToken: null, isAdmin: false, error: null });
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [] }));
 });
 
@@ -118,4 +120,28 @@ test('il chip "Promo" mostra solo i cans in promo', async () => {
 
   expect(screen.queryByText('Beta')).toBeNull();
   expect(screen.getByText('Alpha')).toBeTruthy();
+});
+
+test('login/logout: mostra il form, poi "Esci", poi di nuovo il form', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => [] }) // loadCans
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ accessToken: 'tok' }),
+      }) // login
+      .mockResolvedValueOnce({ ok: true }), // logout
+  );
+
+  render(<App />);
+
+  await userEvent.type(screen.getByLabelText('Username'), 'admin');
+  await userEvent.type(screen.getByLabelText('Password'), 'pw');
+  await userEvent.click(screen.getByRole('button', { name: /accedi/i }));
+
+  await userEvent.click(await screen.findByRole('button', { name: /esci/i }));
+
+  expect(await screen.findByRole('button', { name: /accedi/i })).toBeTruthy();
 });
