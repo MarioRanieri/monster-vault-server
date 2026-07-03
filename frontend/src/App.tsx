@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useCansStore } from './store';
 import { CanGrid } from './CanGrid';
 import { CanList } from './CanList';
+import { CanWall } from './CanWall';
 import { CanDetail } from './CanDetail';
 import { filterCans, sortCans, filterOptions, type SortKey } from './filterCans';
 import { Hero } from './Hero';
@@ -48,7 +49,7 @@ function App() {
   const [view, setView] = useState<'landing' | 'collection'>('landing');
   const [showLogin, setShowLogin] = useState(false);
   const [light, setLight] = useState(false);
-  const [gridMode, setGridMode] = useState<'grid' | 'list'>('grid');
+  const [gridMode, setGridMode] = useState<'grid' | 'list' | 'wall'>('grid');
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -297,7 +298,7 @@ function App() {
         onReset={hasFilters ? resetFilters : undefined}
         view={{
           value: gridMode,
-          onChange: (v) => setGridMode(v as 'grid' | 'list'),
+          onChange: (v) => setGridMode(v as 'grid' | 'list' | 'wall'),
         }}
       />
       {loading && <p>Loading…</p>}
@@ -314,8 +315,10 @@ function App() {
       </div>
       {gridMode === 'grid' ? (
         <CanGrid cans={visible} onSelect={selectCan} />
-      ) : (
+      ) : gridMode === 'list' ? (
         <CanList cans={visible} isAdmin={isAdmin} onSelect={selectCan} />
+      ) : (
+        <CanWall cans={visible} onSelect={selectCan} />
       )}
       {selected &&
         (editing ? (
