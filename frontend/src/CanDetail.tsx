@@ -12,8 +12,6 @@ export function CanDetail({
   onDelete,
   inCompare,
   onToggleCompare,
-  watching,
-  onToggleWatch,
 }: {
   can: Can;
   onClose: () => void;
@@ -22,8 +20,6 @@ export function CanDetail({
   onDelete?: () => void;
   inCompare?: boolean;
   onToggleCompare?: () => void;
-  watching?: boolean;
-  onToggleWatch?: () => void;
 }) {
   const photos = [can.p1, can.p2, can.p3, can.p4].filter((url): url is string => Boolean(url));
   const [mainIdx, setMainIdx] = useState(0);
@@ -101,16 +97,6 @@ export function CanDetail({
               onClick={onToggleCompare}
             >
               {inCompare ? '✓ In compare' : '＋ Add to compare'}
-            </button>
-          )}
-          {onToggleWatch && (
-            <button
-              type="button"
-              className="btn btn-ghost"
-              aria-pressed={watching}
-              onClick={onToggleWatch}
-            >
-              {watching ? '👁 Watching' : '👁 Watch on eBay'}
             </button>
           )}
           <div className="detail-fields">

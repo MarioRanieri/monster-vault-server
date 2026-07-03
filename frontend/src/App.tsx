@@ -38,6 +38,7 @@ function App() {
   const authError = useAuthStore((s) => s.error);
   const login = useAuthStore((s) => s.login);
   const logout = useAuthStore((s) => s.logout);
+  const refresh = useAuthStore((s) => s.refresh);
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -68,7 +69,8 @@ function App() {
 
   useEffect(() => {
     loadCans();
-  }, [loadCans]);
+    refresh();
+  }, [loadCans, refresh]);
 
   useEffect(() => {
     document.body.classList.toggle('light', light);
@@ -195,7 +197,6 @@ function App() {
   const compareCans = compareIds
     .map((id) => cans.find((c) => c.id === id))
     .filter((c): c is Can => Boolean(c));
-  const toggleWatch = (can: Can) => saveCan({ ...can, watch: !can.watch });
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2500);
@@ -252,9 +253,6 @@ function App() {
         onExport={exportCsv}
         onImport={importCsv}
       />
-      <div className="cloud-bar">
-        Photos on Cloudinary · Data on Server · Synced across all devices
-      </div>
       <Hero
         stats={stats}
         onStats={() => setShowStats(true)}
@@ -386,7 +384,7 @@ function App() {
         </div>
       </div>
       {gridMode === 'grid' ? (
-        <CanGrid cans={visible} onSelect={selectCan} />
+        <CanGrid cans={visible} isAdmin={isAdmin} onSelect={selectCan} />
       ) : gridMode === 'list' ? (
         <CanList cans={visible} isAdmin={isAdmin} onSelect={selectCan} />
       ) : (
@@ -416,8 +414,6 @@ function App() {
             }}
             inCompare={compareIds.includes(selected.id)}
             onToggleCompare={() => toggleCompare(selected.id)}
-            watching={selected.watch}
-            onToggleWatch={isAdmin ? () => toggleWatch(selected) : undefined}
           />
         ))}
       {creating && (

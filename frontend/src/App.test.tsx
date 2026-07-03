@@ -148,6 +148,7 @@ test('login, poi "Esci" riporta alla landing', async () => {
     vi
       .fn()
       .mockResolvedValueOnce({ ok: true, json: async () => [] }) // loadCans
+      .mockResolvedValueOnce({ ok: false }) // refresh al mount: non loggato
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({ accessToken: 'tok' }),
@@ -174,6 +175,7 @@ test('admin: elimina una can dal dettaglio', async () => {
     vi
       .fn()
       .mockResolvedValueOnce({ ok: true, json: async () => [{ id: '1', nome: 'Alpha' }] })
+      .mockResolvedValueOnce({ ok: false }) // refresh al mount: non loggato
       .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) })
       .mockResolvedValueOnce({ ok: true }),
   );
@@ -196,6 +198,7 @@ test('admin: modifica una can dal dettaglio', async () => {
         ok: true,
         json: async () => [{ id: '1', nome: 'Alpha', sku: 'SKU-1' }],
       })
+      .mockResolvedValueOnce({ ok: false }) // refresh al mount: non loggato
       .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) })
       .mockResolvedValueOnce({
         ok: true,
@@ -226,6 +229,7 @@ test('admin: Annulla chiude il form e torna al dettaglio', async () => {
         ok: true,
         json: async () => [{ id: '1', nome: 'Alpha', sku: 'SKU-1' }],
       })
+      .mockResolvedValueOnce({ ok: false }) // refresh al mount: non loggato
       .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) }),
   );
 
@@ -245,6 +249,7 @@ test('admin: crea una nuova can', async () => {
     vi
       .fn()
       .mockResolvedValueOnce({ ok: true, json: async () => [] })
+      .mockResolvedValueOnce({ ok: false }) // refresh al mount: non loggato
       .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) })
       .mockResolvedValueOnce({
         ok: true,
@@ -268,6 +273,7 @@ test('admin: Annulla la creazione chiude il form', async () => {
     vi
       .fn()
       .mockResolvedValueOnce({ ok: true, json: async () => [] })
+      .mockResolvedValueOnce({ ok: false }) // refresh al mount: non loggato
       .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) }),
   );
 
@@ -304,6 +310,7 @@ test('admin: carica una foto durante la modifica', async () => {
     vi
       .fn()
       .mockResolvedValueOnce({ ok: true, json: async () => [{ id: '1', nome: 'Alpha' }] })
+      .mockResolvedValueOnce({ ok: false }) // refresh al mount: non loggato
       .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) })
       .mockResolvedValueOnce({
         ok: true,

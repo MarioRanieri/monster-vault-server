@@ -1,7 +1,8 @@
 import type { Can } from './types';
+import { cloudinaryThumb } from './cloudinary';
 
-// Vista "wall" (classi .wall-view/.wall-tile del vecchio): muro di sole foto.
-// Ogni tile è un <button> accessibile che apre il dettaglio.
+// Vista "wall" (classe .wall-grid del vecchio): mosaico di sole foto, miniature
+// Cloudinary leggere. Ogni tile è un <button> accessibile che apre il dettaglio.
 export function CanWall({ cans, onSelect }: { cans: Can[]; onSelect?: (can: Can) => void }) {
   const withPhotos = cans.filter((c) => c.p1);
   if (withPhotos.length === 0) {
@@ -12,7 +13,7 @@ export function CanWall({ cans, onSelect }: { cans: Can[]; onSelect?: (can: Can)
     );
   }
   return (
-    <div className="wall-view">
+    <div className="wall-grid">
       {withPhotos.map((can) => (
         <button
           key={can.id}
@@ -21,7 +22,7 @@ export function CanWall({ cans, onSelect }: { cans: Can[]; onSelect?: (can: Can)
           title={can.nome}
           onClick={() => onSelect?.(can)}
         >
-          <img src={can.p1} alt={can.nome} loading="lazy" />
+          <img src={cloudinaryThumb(can.p1, 300, 300)} alt={can.nome} loading="lazy" />
         </button>
       ))}
     </div>

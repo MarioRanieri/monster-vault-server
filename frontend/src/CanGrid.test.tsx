@@ -3,11 +3,6 @@ import userEvent from '@testing-library/user-event';
 import { CanGrid } from './CanGrid';
 import type { Can } from './types';
 
-test('la card di una can in watch ha la classe watching', () => {
-  const { container } = render(<CanGrid cans={[{ id: '1', nome: 'A', watch: true }]} />);
-  expect(container.querySelector('.card.watching')).toBeTruthy();
-});
-
 test('renderizza una card per ogni can col suo nome', () => {
   const cans: Can[] = [
     { id: '1', nome: 'Alpha' },

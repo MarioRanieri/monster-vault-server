@@ -1354,6 +1354,32 @@ body.light .filter-select option {
   color: var(--text);
   border-color: rgba(255, 255, 255, 0.25);
 }
+/* Bandiere del paese sulla card (React): immagine flagcdn + nome */
+.flag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-right: 6px;
+}
+.flag-img {
+  width: 16px;
+  height: 12px;
+  border-radius: 1px;
+  vertical-align: middle;
+  display: inline-block;
+}
+.flag-emoji {
+  font-size: 13px;
+  line-height: 1;
+}
+.flag-name {
+  font-size: 10px;
+  vertical-align: middle;
+}
+.flag-sep {
+  color: var(--text3);
+}
+
 /* PhotoCrop (React): overlay di ritaglio */
 .crop-overlay {
   position: fixed;

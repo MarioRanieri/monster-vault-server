@@ -90,13 +90,18 @@ export interface FilterOptions {
 
 // Valori distinti (ordinati) per popolare i dropdown.
 export function filterOptions(cans: Can[]): FilterOptions {
-  const distinct = (sel: (c: Can) => string | undefined) =>
+  const distinct = (sel: (c: Can) => string | undefined, cmp?: (a: string, b: string) => number) =>
     [...new Set(cans.map((c) => sel(c)?.trim()).filter((v): v is string => Boolean(v)))].sort(
-      (a, b) => a.localeCompare(b),
+      cmp ?? ((a, b) => a.localeCompare(b)),
     );
+  // le taglie vanno per ml crescenti (89ML < 90ML < 250ML < 500ML), non alfabetico
+  const sizeMl = (s: string) => parseFloat(s.replace(/[^0-9.]/g, '')) || 0;
   return {
     countries: distinct((c) => c.lingua),
-    sizes: distinct((c) => c.size),
+    sizes: distinct(
+      (c) => c.size,
+      (a, b) => sizeMl(a) - sizeMl(b) || a.localeCompare(b),
+    ),
     manufacturers: distinct((c) => c.produttore),
     tops: distinct((c) => c.top),
   };

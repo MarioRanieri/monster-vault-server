@@ -6,6 +6,7 @@ interface AuthState {
   error: string | null;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  refresh: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -29,5 +30,19 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     set({ accessToken: null, isAdmin: false });
+  },
+  // Ripristina la sessione dal cookie refresh HttpOnly: chiamato al caricamento
+  // della pagina, così tornando dal Map (navigazione piena) resto loggato.
+  refresh: async () => {
+    try {
+      const res = await fetch('/api/auth/refresh', { method: 'POST' });
+      if (!res.ok) return;
+      const data = (await res.json()) as { accessToken?: string };
+      // login solo se il server ha davvero restituito un token
+      if (typeof data.accessToken === 'string')
+        set({ accessToken: data.accessToken, isAdmin: true });
+    } catch {
+      /* offline o non loggato: resta guest */
+    }
   },
 }));
