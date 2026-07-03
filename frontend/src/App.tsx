@@ -17,6 +17,7 @@ import { buildShareUrl, parseShareUrl, type ShareFilters } from './shareView';
 import { SavedViews } from './SavedViews';
 import { CompareBar } from './CompareBar';
 import { ComparePanel } from './ComparePanel';
+import { StatsModal } from './StatsModal';
 import type { Can } from './types';
 
 function App() {
@@ -56,6 +57,7 @@ function App() {
   const [toast, setToast] = useState<string | null>(null);
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [showCompare, setShowCompare] = useState(false);
+  const [showStats, setShowStats] = useState(false);
 
   useEffect(() => {
     loadCans();
@@ -220,7 +222,7 @@ function App() {
         onLogin={() => setShowLogin(true)}
         onToggleTheme={() => setLight((v) => !v)}
       />
-      <Hero stats={stats} />
+      <Hero stats={stats} onStats={() => setShowStats(true)} />
       <FilterBar
         query={query}
         onQuery={setQuery}
@@ -400,6 +402,7 @@ function App() {
       {showCompare && compareCans.length >= 2 && (
         <ComparePanel cans={compareCans} isAdmin={isAdmin} onClose={() => setShowCompare(false)} />
       )}
+      {showStats && <StatsModal cans={cans} stats={stats} onClose={() => setShowStats(false)} />}
       {toast && (
         <div className="toast" role="status">
           {toast}

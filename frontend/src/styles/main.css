@@ -1873,6 +1873,59 @@ button.view-save {
   max-height: 90vh;
   overflow-y: auto;
 }
+/* StatsModal (React): tile riepilogo + coverage meter */
+.stats-tiles {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.stats-tile {
+  flex: 1;
+  min-width: 90px;
+  background: var(--bg3);
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+}
+.stats-tile-num {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--green);
+  line-height: 1;
+}
+.stats-tile-lbl {
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: var(--text3);
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+.stats-coverage {
+  padding: 14px;
+  background: var(--bg3);
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+.stats-coverage-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 8px;
+  color: var(--text2);
+}
+.stats-coverage-track {
+  height: 10px;
+  background: var(--bg4);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.stats-coverage-fill {
+  height: 100%;
+  background: var(--green);
+  border-radius: 5px;
+  transition: width 0.6s ease;
+}
 .chart-section {
   margin-bottom: 1.5rem;
 }

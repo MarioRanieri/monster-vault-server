@@ -17,3 +17,26 @@ export function computeStats(cans: Can[]): Stats {
     full: cans.filter((c) => (c.note ?? '').toUpperCase().includes('FULL')).length,
   };
 }
+
+export interface Freq {
+  k: string;
+  n: number;
+}
+
+// Frequenza per campo (via selettore), ordinata per conteggio desc (poi
+// alfabetico), troncata a `limit`. Valori vuoti ignorati.
+export function statsBreakdown(
+  cans: Can[],
+  sel: (c: Can) => string | undefined,
+  limit: number,
+): Freq[] {
+  const counts = new Map<string, number>();
+  for (const c of cans) {
+    const v = sel(c)?.trim();
+    if (v) counts.set(v, (counts.get(v) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([k, n]) => ({ k, n }))
+    .sort((a, b) => b.n - a.n || a.k.localeCompare(b.k))
+    .slice(0, limit);
+}

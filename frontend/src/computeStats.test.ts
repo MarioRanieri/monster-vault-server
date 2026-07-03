@@ -1,5 +1,19 @@
-import { computeStats } from './computeStats';
+import { computeStats, statsBreakdown } from './computeStats';
 import type { Can } from './types';
+
+test('statsBreakdown conta, ordina desc e tronca al limite', () => {
+  const list: Can[] = [
+    { id: '1', nome: 'a', lingua: 'USA' },
+    { id: '2', nome: 'b', lingua: 'USA' },
+    { id: '3', nome: 'c', lingua: 'Italy' },
+    { id: '4', nome: 'd' }, // lingua vuota → ignorata
+  ];
+  expect(statsBreakdown(list, (c) => c.lingua, 10)).toEqual([
+    { k: 'USA', n: 2 },
+    { k: 'Italy', n: 1 },
+  ]);
+  expect(statsBreakdown(list, (c) => c.lingua, 1)).toHaveLength(1);
+});
 
 test('conta totale, con foto, promo, countries e full', () => {
   const cans: Can[] = [
