@@ -15,6 +15,8 @@ import { LandingPage } from './LandingPage';
 import { Header } from './Header';
 import { buildShareUrl, parseShareUrl, type ShareFilters } from './shareView';
 import { SavedViews } from './SavedViews';
+import { CompareBar } from './CompareBar';
+import { ComparePanel } from './ComparePanel';
 import type { Can } from './types';
 
 function App() {
@@ -52,6 +54,8 @@ function App() {
   const [light, setLight] = useState(false);
   const [gridMode, setGridMode] = useState<'grid' | 'list' | 'wall'>('grid');
   const [toast, setToast] = useState<string | null>(null);
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [showCompare, setShowCompare] = useState(false);
 
   useEffect(() => {
     loadCans();
@@ -174,6 +178,14 @@ function App() {
     setToast('🔗 View link copied');
     setTimeout(() => setToast(null), 2000);
   };
+  const toggleCompare = (id: string) => {
+    setCompareIds((ids) =>
+      ids.includes(id) ? ids.filter((x) => x !== id) : ids.length >= 4 ? ids : [...ids, id],
+    );
+  };
+  const compareCans = compareIds
+    .map((id) => cans.find((c) => c.id === id))
+    .filter((c): c is Can => Boolean(c));
   const selected = cans.find((c) => c.id === selectedId) ?? null;
   const stats = computeStats(cans);
 
@@ -362,6 +374,8 @@ function App() {
               await deleteCan(selected.id);
               setSelectedId(null);
             }}
+            inCompare={compareIds.includes(selected.id)}
+            onToggleCompare={() => toggleCompare(selected.id)}
           />
         ))}
       {creating && (
@@ -376,6 +390,15 @@ function App() {
       )}
       {showLogin && (
         <LoginForm onLogin={handleLogin} error={authError} onGuest={() => setShowLogin(false)} />
+      )}
+      <CompareBar
+        cans={compareCans}
+        onRemove={toggleCompare}
+        onOpen={() => setShowCompare(true)}
+        onClear={() => setCompareIds([])}
+      />
+      {showCompare && compareCans.length >= 2 && (
+        <ComparePanel cans={compareCans} isAdmin={isAdmin} onClose={() => setShowCompare(false)} />
       )}
       {toast && (
         <div className="toast" role="status">

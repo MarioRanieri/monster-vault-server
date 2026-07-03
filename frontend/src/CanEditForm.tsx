@@ -60,8 +60,10 @@ export function CanEditForm({
           />
         </label>
       )}
-      <button type="submit">Save</button>
-      <button type="button" onClick={onCancel}>
+      <button type="submit" className="btn btn-primary">
+        Save
+      </button>
+      <button type="button" className="btn btn-ghost" onClick={onCancel}>
         Cancel
       </button>
     </form>

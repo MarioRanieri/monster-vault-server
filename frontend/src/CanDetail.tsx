@@ -10,12 +10,16 @@ export function CanDetail({
   isAdmin,
   onEdit,
   onDelete,
+  inCompare,
+  onToggleCompare,
 }: {
   can: Can;
   onClose: () => void;
   isAdmin?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
+  inCompare?: boolean;
+  onToggleCompare?: () => void;
 }) {
   const photos = [can.p1, can.p2, can.p3, can.p4].filter((url): url is string => Boolean(url));
   const [mainIdx, setMainIdx] = useState(0);
@@ -85,6 +89,16 @@ export function CanDetail({
             {can.stato && <span className="badge badge-stato-ok">{can.stato}</span>}
             {photos.length > 0 && <span className="badge badge-photo">{photos.length} photo</span>}
           </div>
+          {onToggleCompare && (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              aria-pressed={inCompare}
+              onClick={onToggleCompare}
+            >
+              {inCompare ? '✓ In compare' : '＋ Add to compare'}
+            </button>
+          )}
           <div className="detail-fields">
             {shown.map((f) => {
               if (f.isTop) {
@@ -131,10 +145,10 @@ export function CanDetail({
           )}
           {isAdmin && (
             <div className="admin-actions">
-              <button type="button" onClick={onEdit}>
+              <button type="button" className="btn btn-ghost" onClick={onEdit}>
                 Edit
               </button>
-              <button type="button" onClick={onDelete}>
+              <button type="button" className="btn btn-ghost" onClick={onDelete}>
                 Delete
               </button>
             </div>
