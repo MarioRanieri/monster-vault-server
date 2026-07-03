@@ -191,6 +191,7 @@ function App() {
   const compareCans = compareIds
     .map((id) => cans.find((c) => c.id === id))
     .filter((c): c is Can => Boolean(c));
+  const toggleWatch = (can: Can) => saveCan({ ...can, watch: !can.watch });
   const selected = cans.find((c) => c.id === selectedId) ?? null;
   const stats = computeStats(cans);
 
@@ -386,6 +387,8 @@ function App() {
             }}
             inCompare={compareIds.includes(selected.id)}
             onToggleCompare={() => toggleCompare(selected.id)}
+            watching={selected.watch}
+            onToggleWatch={isAdmin ? () => toggleWatch(selected) : undefined}
           />
         ))}
       {creating && (

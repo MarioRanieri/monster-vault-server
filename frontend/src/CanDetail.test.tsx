@@ -81,6 +81,15 @@ test('da admin mostra Modifica ed Elimina con le callback', async () => {
   expect(onDelete).toHaveBeenCalled();
 });
 
+test('con onToggleWatch mostra il toggle Watch e lo chiama', async () => {
+  const onToggleWatch = vi.fn();
+  render(
+    <CanDetail can={{ id: '1', nome: 'Alpha' }} onClose={() => {}} onToggleWatch={onToggleWatch} />,
+  );
+  await userEvent.click(screen.getByRole('button', { name: /watch/i }));
+  expect(onToggleWatch).toHaveBeenCalled();
+});
+
 test('senza admin non mostra Modifica/Elimina', () => {
   render(<CanDetail can={{ id: '1', nome: 'Alpha' }} onClose={() => {}} />);
   expect(screen.queryByRole('button', { name: /delete/i })).toBeNull();

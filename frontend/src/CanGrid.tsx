@@ -4,7 +4,12 @@ export function CanGrid({ cans, onSelect }: { cans: Can[]; onSelect?: (can: Can)
   return (
     <div className="grid" id="grid">
       {cans.map((can) => (
-        <button key={can.id} type="button" className="card" onClick={() => onSelect?.(can)}>
+        <button
+          key={can.id}
+          type="button"
+          className={can.watch ? 'card watching' : 'card'}
+          onClick={() => onSelect?.(can)}
+        >
           <div className="card-img">
             {can.p1 ? (
               <img src={can.p1} alt={can.nome} />
