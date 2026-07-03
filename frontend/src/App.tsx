@@ -20,6 +20,7 @@ import { ComparePanel } from './ComparePanel';
 import { StatsModal } from './StatsModal';
 import { ValueCalc } from './ValueCalc';
 import { buildCsv, parseCsv } from './csv';
+import { HelpModal } from './HelpModal';
 import type { Can } from './types';
 
 function App() {
@@ -63,6 +64,7 @@ function App() {
   const [showCompare, setShowCompare] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showValue, setShowValue] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => {
     loadCans();
@@ -246,9 +248,13 @@ function App() {
         onAdd={() => setCreating({ id: crypto.randomUUID(), nome: '' })}
         onLogin={() => setShowLogin(true)}
         onToggleTheme={() => setLight((v) => !v)}
+        onGuide={() => setShowGuide(true)}
         onExport={exportCsv}
         onImport={importCsv}
       />
+      <div className="cloud-bar">
+        Photos on Cloudinary · Data on Server · Synced across all devices
+      </div>
       <Hero
         stats={stats}
         onStats={() => setShowStats(true)}
@@ -438,6 +444,7 @@ function App() {
       )}
       {showStats && <StatsModal cans={cans} stats={stats} onClose={() => setShowStats(false)} />}
       {showValue && <ValueCalc cans={visible} onClose={() => setShowValue(false)} />}
+      {showGuide && <HelpModal onClose={() => setShowGuide(false)} />}
       {toast && (
         <div className="toast" role="status">
           {toast}

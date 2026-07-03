@@ -8,6 +8,7 @@ export function Header({
   onAdd,
   onLogin,
   onToggleTheme,
+  onGuide,
   onExport,
   onImport,
 }: {
@@ -16,6 +17,7 @@ export function Header({
   onAdd: () => void;
   onLogin: () => void;
   onToggleTheme: () => void;
+  onGuide?: () => void;
   onExport?: () => void;
   onImport?: (file: File) => void;
 }) {
@@ -76,6 +78,11 @@ export function Header({
           </svg>
           <span className="btn-label">Map</span>
         </a>
+        {onGuide && (
+          <button type="button" className="btn btn-ghost" onClick={onGuide}>
+            <span className="btn-label">Guide</span>
+          </button>
+        )}
         {isAdmin ? (
           <>
             <button type="button" className="btn btn-primary" onClick={onAdd}>
