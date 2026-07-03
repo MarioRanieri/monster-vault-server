@@ -280,6 +280,24 @@ test('admin: Annulla la creazione chiude il form', async () => {
   expect(screen.queryByLabelText('Name')).toBeNull();
 });
 
+test('Share view mostra la conferma "link copied"', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [{ id: '1', nome: 'Alpha' }],
+    }),
+  );
+
+  render(<App />);
+  await enterCollection();
+  await screen.findByText('Alpha');
+
+  await userEvent.click(screen.getByRole('button', { name: /share view/i }));
+
+  expect(await screen.findByText(/link copied/i)).toBeTruthy();
+});
+
 test('admin: carica una foto durante la modifica', async () => {
   vi.stubGlobal(
     'fetch',

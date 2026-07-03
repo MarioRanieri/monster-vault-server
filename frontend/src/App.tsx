@@ -12,6 +12,7 @@ import { LoginForm } from './LoginForm';
 import { CanEditForm } from './CanEditForm';
 import { LandingPage } from './LandingPage';
 import { Header } from './Header';
+import { buildShareUrl, parseShareUrl } from './shareView';
 import type { Can } from './types';
 
 function App() {
@@ -48,6 +49,7 @@ function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [light, setLight] = useState(false);
   const [gridMode, setGridMode] = useState<'grid' | 'list'>('grid');
+  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     loadCans();
@@ -56,6 +58,27 @@ function App() {
   useEffect(() => {
     document.body.classList.toggle('light', light);
   }, [light]);
+
+  // Deep-link condiviso: al mount rilegge i filtri dalla URL e salta la landing.
+  useEffect(() => {
+    const f = parseShareUrl(window.location.search);
+    if (Object.keys(f).length === 0) return;
+    if (f.query != null) setQuery(f.query);
+    if (f.lingua != null) setFlLingua(f.lingua);
+    if (f.size != null) setFlSize(f.size);
+    if (f.produttore != null) setFlProduttore(f.produttore);
+    if (f.top != null) setFlTop(f.top);
+    if (f.promo) setPromo(true);
+    if (f.full) setFull(true);
+    if (f.withPhoto) setWithPhoto(true);
+    if (f.noPhoto) setNoPhoto(true);
+    if (f.vmin != null) setVmin(f.vmin);
+    if (f.vmax != null) setVmax(f.vmax);
+    if (f.ymin != null) setYmin(f.ymin);
+    if (f.ymax != null) setYmax(f.ymax);
+    if (f.sort != null) setSort(f.sort as SortKey);
+    setView('collection');
+  }, []);
 
   const options = filterOptions(cans);
   const numOrUndef = (s: string) => (s === '' ? undefined : Number(s));
@@ -110,6 +133,27 @@ function App() {
   const selectCan = (can: Can) => {
     setSelectedId(can.id);
     setEditing(false);
+  };
+  const shareCurrentView = () => {
+    const url = buildShareUrl(window.location.origin + window.location.pathname, {
+      query,
+      lingua: flLingua,
+      size: flSize,
+      produttore: flProduttore,
+      top: flTop,
+      promo,
+      full,
+      withPhoto,
+      noPhoto,
+      vmin,
+      vmax,
+      ymin,
+      ymax,
+      sort,
+    });
+    void navigator.clipboard?.writeText(url);
+    setToast('🔗 View link copied');
+    setTimeout(() => setToast(null), 2000);
   };
   const selected = cans.find((c) => c.id === selectedId) ?? null;
   const stats = computeStats(cans);
@@ -258,6 +302,16 @@ function App() {
       />
       {loading && <p>Loading…</p>}
       {error && <p role="alert">Error: {error}</p>}
+      <div className="grid-info-bar">
+        <span className="grid-info">
+          {visible.length === cans.length
+            ? `${cans.length} cans`
+            : `${visible.length} of ${cans.length} cans`}
+        </span>
+        <button type="button" className="btn btn-ghost" onClick={shareCurrentView}>
+          Share view
+        </button>
+      </div>
       {gridMode === 'grid' ? (
         <CanGrid cans={visible} onSelect={selectCan} />
       ) : (
@@ -298,6 +352,11 @@ function App() {
       )}
       {showLogin && (
         <LoginForm onLogin={handleLogin} error={authError} onGuest={() => setShowLogin(false)} />
+      )}
+      {toast && (
+        <div className="toast" role="status">
+          {toast}
+        </div>
       )}
     </main>
   );
