@@ -38,7 +38,11 @@ function App() {
   const [flSize, setFlSize] = useState('');
   const [flProduttore, setFlProduttore] = useState('');
   const [flTop, setFlTop] = useState('');
-  const [sort, setSort] = useState<SortKey>('nome-asc');
+  const [vmin, setVmin] = useState('');
+  const [vmax, setVmax] = useState('');
+  const [ymin, setYmin] = useState('');
+  const [ymax, setYmax] = useState('');
+  const [sort, setSort] = useState<SortKey>('added-desc');
   const [view, setView] = useState<'landing' | 'collection'>('landing');
   const [showLogin, setShowLogin] = useState(false);
   const [light, setLight] = useState(false);
@@ -52,6 +56,7 @@ function App() {
   }, [light]);
 
   const options = filterOptions(cans);
+  const numOrUndef = (s: string) => (s === '' ? undefined : Number(s));
   const visible = sortCans(
     filterCans(cans, {
       query,
@@ -63,9 +68,43 @@ function App() {
       size: flSize,
       produttore: flProduttore,
       top: flTop,
+      vmin: numOrUndef(vmin),
+      vmax: numOrUndef(vmax),
+      ymin: numOrUndef(ymin),
+      ymax: numOrUndef(ymax),
     }),
     sort,
   );
+  const hasFilters = Boolean(
+    query ||
+    withPhoto ||
+    noPhoto ||
+    promo ||
+    full ||
+    flLingua ||
+    flSize ||
+    flProduttore ||
+    flTop ||
+    vmin ||
+    vmax ||
+    ymin ||
+    ymax,
+  );
+  const resetFilters = () => {
+    setQuery('');
+    setWithPhoto(false);
+    setNoPhoto(false);
+    setPromo(false);
+    setFull(false);
+    setFlLingua('');
+    setFlSize('');
+    setFlProduttore('');
+    setFlTop('');
+    setVmin('');
+    setVmax('');
+    setYmin('');
+    setYmax('');
+  };
   const selected = cans.find((c) => c.id === selectedId) ?? null;
   const stats = computeStats(cans);
 
@@ -157,7 +196,10 @@ function App() {
             cls: 'filter-chip-withphoto',
             active: withPhoto,
             count: stats.withPhoto,
-            onToggle: () => setWithPhoto((v) => !v),
+            onToggle: () => {
+              setWithPhoto((v) => !v);
+              setNoPhoto(false);
+            },
           },
           {
             key: 'noPhoto',
@@ -165,12 +207,16 @@ function App() {
             cls: 'filter-chip-nophotos',
             active: noPhoto,
             count: stats.total - stats.withPhoto,
-            onToggle: () => setNoPhoto((v) => !v),
+            onToggle: () => {
+              setNoPhoto((v) => !v);
+              setWithPhoto(false);
+            },
           },
         ]}
         sort={{
           value: sort,
           options: [
+            { value: 'added-desc', label: 'RECENTLY PHOTOGRAPHED' },
             { value: 'nome-asc', label: 'NAME A→Z' },
             { value: 'lingua-asc', label: 'COUNTRY A→Z' },
             { value: 'valore-desc', label: 'VALUE ↓' },
@@ -178,6 +224,27 @@ function App() {
           ],
           onChange: (v) => setSort(v as SortKey),
         }}
+        ranges={[
+          {
+            key: 'price',
+            sep: '€',
+            min: vmin,
+            max: vmax,
+            onMin: setVmin,
+            onMax: setVmax,
+          },
+          {
+            key: 'year',
+            sep: '📅',
+            min: ymin,
+            max: ymax,
+            onMin: setYmin,
+            onMax: setYmax,
+            minPlaceholder: 'from',
+            maxPlaceholder: 'to',
+          },
+        ]}
+        onReset={hasFilters ? resetFilters : undefined}
       />
       {loading && <p>Caricamento…</p>}
       {error && <p role="alert">Errore: {error}</p>}

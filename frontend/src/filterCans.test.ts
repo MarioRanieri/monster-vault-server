@@ -1,4 +1,4 @@
-import { filterCans, sortCans, filterOptions } from './filterCans';
+import { filterCans, sortCans, filterOptions, extractYearFromCan } from './filterCans';
 import type { Can } from './types';
 
 const cans: Can[] = [
@@ -46,6 +46,34 @@ test('full tiene solo i cans con note FULL', () => {
   expect(filterCans(list, { full: true }).map((c) => c.nome)).toEqual(['A']);
 });
 
+test('range prezzo (vmin/vmax) filtra su valore', () => {
+  const list: Can[] = [
+    { id: '1', nome: 'A', valore: '5' },
+    { id: '2', nome: 'B', valore: '20' },
+    { id: '3', nome: 'C', valore: '50' },
+  ];
+  expect(filterCans(list, { vmin: 10 }).map((c) => c.nome)).toEqual(['B', 'C']);
+  expect(filterCans(list, { vmax: 20 }).map((c) => c.nome)).toEqual(['A', 'B']);
+  expect(filterCans(list, { vmin: 10, vmax: 30 }).map((c) => c.nome)).toEqual(['B']);
+});
+
+test('extractYearFromCan legge l’anno dallo SKU', () => {
+  expect(extractYearFromCan({ id: '1', nome: 'A', sku: '0610' })).toBe(2010);
+  expect(extractYearFromCan({ id: '2', nome: 'B', sku: '093' })).toBe(2003);
+  expect(extractYearFromCan({ id: '3', nome: 'C', sku: '1117 N' })).toBeNull();
+  expect(extractYearFromCan({ id: '4', nome: 'D', sku: '9910' })).toBeNull(); // mese 99
+});
+
+test('range anno (ymin/ymax) filtra per anno da SKU', () => {
+  const list: Can[] = [
+    { id: '1', nome: 'A', sku: '0610' }, // 2010
+    { id: '2', nome: 'B', sku: '0615' }, // 2015
+    { id: '3', nome: 'C', sku: 'ABCD' }, // nessun anno
+  ];
+  expect(filterCans(list, { ymin: 2012 }).map((c) => c.nome)).toEqual(['B']);
+  expect(filterCans(list, { ymax: 2012 }).map((c) => c.nome)).toEqual(['A']);
+});
+
 test('i filtri si combinano in AND', () => {
   expect(filterCans(cans, { query: 'a', withPhoto: true }).map((c) => c.nome)).toEqual(['Alpha']);
 });
@@ -59,6 +87,15 @@ test('filtra per lingua/size/produttore/top (match esatto)', () => {
   expect(filterCans(list, { size: '250ml' }).map((c) => c.nome)).toEqual(['B']);
   expect(filterCans(list, { produttore: 'X' }).map((c) => c.nome)).toEqual(['A']);
   expect(filterCans(list, { top: 'red' }).map((c) => c.nome)).toEqual(['B']);
+});
+
+test('sortCans added-desc = recently photographed (photoAt desc)', () => {
+  const list: Can[] = [
+    { id: '1', nome: 'Old', photoAt: 100 },
+    { id: '2', nome: 'New', photoAt: 200 },
+    { id: '3', nome: 'None' },
+  ];
+  expect(sortCans(list, 'added-desc').map((c) => c.nome)).toEqual(['New', 'Old', 'None']);
 });
 
 test('sortCans ordina per nome, lingua e valore senza mutare', () => {

@@ -15,26 +15,41 @@ export interface SelectFilter {
   onChange: (v: string) => void;
 }
 
+export interface Range {
+  key: string;
+  sep: string;
+  min: string;
+  max: string;
+  onMin: (v: string) => void;
+  onMax: (v: string) => void;
+  minPlaceholder?: string;
+  maxPlaceholder?: string;
+}
+
 export interface SortControl {
   value: string;
   options: { value: string; label: string }[];
   onChange: (v: string) => void;
 }
 
-// Barra filtri (classi .filter-bar/.search-wrap/.filter-select/.filter-chip del
-// vecchio): ricerca + dropdown + chip a toggle con conteggio + sort.
+// Barra filtri (classi del vecchio): ricerca + dropdown + chip + range + sort +
+// reset. I criteri sono passati/gestiti dal genitore.
 export function FilterBar({
   query,
   onQuery,
   chips,
   selects = [],
+  ranges = [],
   sort,
+  onReset,
 }: {
   query: string;
   onQuery: (q: string) => void;
   chips: Chip[];
   selects?: SelectFilter[];
+  ranges?: Range[];
   sort?: SortControl;
+  onReset?: () => void;
 }) {
   return (
     <div className="filter-bar">
@@ -87,8 +102,35 @@ export function FilterBar({
           <span className="chip-count">{chip.count}</span>
         </button>
       ))}
-      {sort && (
-        <div className="filter-tools">
+      {ranges.map((r) => (
+        <div key={r.key} className="vrange-wrap">
+          <span className="vrange-sep">{r.sep}</span>
+          <input
+            type="number"
+            className="vrange-input"
+            aria-label={`${r.key} min`}
+            placeholder={r.minPlaceholder ?? 'min'}
+            value={r.min}
+            onChange={(e) => r.onMin(e.target.value)}
+          />
+          <span className="vrange-sep">—</span>
+          <input
+            type="number"
+            className="vrange-input"
+            aria-label={`${r.key} max`}
+            placeholder={r.maxPlaceholder ?? 'max'}
+            value={r.max}
+            onChange={(e) => r.onMax(e.target.value)}
+          />
+        </div>
+      ))}
+      <div className="filter-tools">
+        {onReset && (
+          <button type="button" className="btn btn-ghost" onClick={onReset}>
+            Reset
+          </button>
+        )}
+        {sort && (
           <select
             className="filter-select"
             aria-label="Ordina"
@@ -101,8 +143,8 @@ export function FilterBar({
               </option>
             ))}
           </select>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

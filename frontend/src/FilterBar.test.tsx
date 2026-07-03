@@ -55,6 +55,24 @@ test('un select mostra le opzioni e chiama onChange', async () => {
   expect(onChange).toHaveBeenCalledWith('USA');
 });
 
+test('un range chiama onMin/onMax e il reset chiama onReset', async () => {
+  const onMin = vi.fn();
+  const onReset = vi.fn();
+  render(
+    <FilterBar
+      query=""
+      onQuery={() => {}}
+      chips={[]}
+      ranges={[{ key: 'price', sep: '€', min: '', max: '', onMin, onMax: () => {} }]}
+      onReset={onReset}
+    />,
+  );
+  await userEvent.type(screen.getByLabelText('price min'), '5');
+  expect(onMin).toHaveBeenCalled();
+  await userEvent.click(screen.getByRole('button', { name: /reset/i }));
+  expect(onReset).toHaveBeenCalled();
+});
+
 test('il sort chiama onChange', async () => {
   const onChange = vi.fn();
   render(

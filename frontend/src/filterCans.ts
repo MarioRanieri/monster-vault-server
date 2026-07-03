@@ -10,9 +10,24 @@ export interface CanFilters {
   size?: string;
   produttore?: string;
   top?: string;
+  vmin?: number;
+  vmax?: number;
+  ymin?: number;
+  ymax?: number;
 }
 
+const num = (v?: string) => parseFloat(v ?? '') || 0;
 const isFull = (can: Can) => (can.note ?? '').toUpperCase().includes('FULL');
+
+// Anno di produzione dallo SKU (es. 0610 = 06/2010, 093 = 09/2003). null se non
+// interpretabile (SKU non composto da soli 3-4 cifre o mese fuori range).
+export function extractYearFromCan(can: Can): number | null {
+  const s = String(can.sku ?? '').trim();
+  if (!/^\d{3,4}$/.test(s)) return null;
+  const mm = parseInt(s.slice(0, 2), 10);
+  if (mm < 1 || mm > 12) return null;
+  return 2000 + parseInt(s.slice(2), 10);
+}
 
 // Applica tutti i criteri insieme (AND); un filtro assente non restringe.
 // La query cerca in nome + SKU + note (come il vecchio).
@@ -31,18 +46,29 @@ export function filterCans(cans: Can[], filters: CanFilters): Can[] {
     if (filters.size && can.size !== filters.size) return false;
     if (filters.produttore && can.produttore !== filters.produttore) return false;
     if (filters.top && can.top !== filters.top) return false;
+    if (filters.vmin != null && num(can.valore) < filters.vmin) return false;
+    if (filters.vmax != null && num(can.valore) > filters.vmax) return false;
+    if (filters.ymin != null || filters.ymax != null) {
+      const y = extractYearFromCan(can);
+      if (y == null) return false;
+      if (filters.ymin != null && y < filters.ymin) return false;
+      if (filters.ymax != null && y > filters.ymax) return false;
+    }
     return true;
   });
 }
 
-export type SortKey = 'nome-asc' | 'lingua-asc' | 'valore-desc' | 'valore-asc';
-
-const num = (v?: string) => parseFloat(v ?? '') || 0;
+export type SortKey = 'added-desc' | 'nome-asc' | 'lingua-asc' | 'valore-desc' | 'valore-asc';
 
 // Ordina una copia (non muta l'input).
 export function sortCans(cans: Can[], sort: SortKey): Can[] {
   const arr = [...cans];
   switch (sort) {
+    case 'added-desc':
+      return arr.sort((a, b) => {
+        const d = (b.photoAt ?? 0) - (a.photoAt ?? 0);
+        return d !== 0 ? d : (b.updatedAt ?? 0) - (a.updatedAt ?? 0);
+      });
     case 'lingua-asc':
       return arr.sort((a, b) => (a.lingua ?? '').localeCompare(b.lingua ?? ''));
     case 'valore-desc':
