@@ -394,13 +394,20 @@ function App() {
         (editing ? (
           <CanEditForm
             can={selected}
+            title="Edit Can"
             onSave={async (updated) => {
               await saveCan(updated);
               setEditing(false);
             }}
             onCancel={() => setEditing(false)}
+            onDelete={async () => {
+              await deleteCan(selected.id);
+              setEditing(false);
+              setSelectedId(null);
+            }}
             onUploadPhoto={(slot, file) => uploadPhoto(selected.id, slot, file)}
             onUploadPhotoUrl={(slot, url) => uploadPhotoFromUrl(selected.id, slot, url)}
+            onRemovePhoto={(slot) => saveCan({ ...selected, [`p${slot}`]: '' } as Can)}
           />
         ) : (
           <CanDetail
@@ -419,6 +426,7 @@ function App() {
       {creating && (
         <CanEditForm
           can={creating}
+          title="Add Can"
           onSave={async (newCan) => {
             await createCan(newCan);
             setCreating(null);

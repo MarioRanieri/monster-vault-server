@@ -16,7 +16,7 @@ test('precompila i campi e salva le modifiche', async () => {
   await userEvent.type(screen.getByLabelText('SKU'), '-2');
   await userEvent.type(screen.getByLabelText('Size'), '500ml');
   await userEvent.type(screen.getByLabelText('Promo'), 'Zero');
-  await userEvent.type(screen.getByLabelText('Status'), 'ok');
+  await userEvent.type(screen.getByLabelText('Condition'), 'ok');
   await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
   expect(onSave).toHaveBeenCalledWith(
@@ -64,8 +64,9 @@ test('supporta i 4 slot: upload su Photo 3 usa lo slot 3', async () => {
   expect(onUploadPhoto).toHaveBeenCalledWith(3, file);
 });
 
-test('inviando una URL con Enter chiama onUploadPhotoUrl', async () => {
+test('il bottone URL di uno slot chiede un link e chiama onUploadPhotoUrl', async () => {
   const onUploadPhotoUrl = vi.fn();
+  vi.spyOn(window, 'prompt').mockReturnValue('https://x/y.jpg');
   render(
     <CanEditForm
       can={can}
@@ -76,7 +77,7 @@ test('inviando una URL con Enter chiama onUploadPhotoUrl', async () => {
     />,
   );
 
-  await userEvent.type(screen.getByLabelText('Photo 1 URL'), 'https://x/y.jpg{Enter}');
+  await userEvent.click(screen.getAllByRole('button', { name: /paste url/i })[0]);
 
   expect(onUploadPhotoUrl).toHaveBeenCalledWith(1, 'https://x/y.jpg');
 });

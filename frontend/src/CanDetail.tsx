@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Can } from './types';
 import { colorizeTab } from './colorizeTab';
+import { cloudinaryThumb } from './cloudinary';
 
 // Pannello di dettaglio completo (struttura/classi del vecchio): immagine
 // principale + miniature, tutti i campi, opening, descrizione. Lightbox locale.
@@ -45,11 +46,31 @@ export function CanDetail({
 
   return (
     <aside className="detail-panel open">
-      <div className="detail-head">
-        <div className="detail-title">{can.nome || '—'}</div>
-        <button type="button" className="detail-close" onClick={onClose}>
-          Close
+      <div className="detail-header">
+        <button type="button" className="detail-back" aria-label="Close" onClick={onClose}>
+          ←
         </button>
+        <div className="detail-title">{can.nome || '—'}</div>
+        {onToggleCompare && (
+          <button
+            type="button"
+            className="btn btn-ghost"
+            aria-pressed={inCompare}
+            onClick={onToggleCompare}
+          >
+            <span className="btn-label">{inCompare ? '✓ Comparing' : 'Compare'}</span>
+          </button>
+        )}
+        {isAdmin && onEdit && (
+          <button type="button" className="btn btn-ghost" onClick={onEdit}>
+            <span className="btn-label">Edit</span>
+          </button>
+        )}
+        {isAdmin && onDelete && (
+          <button type="button" className="btn btn-ghost" onClick={onDelete}>
+            <span className="btn-label">Delete</span>
+          </button>
+        )}
       </div>
       <div className="detail-body">
         <div className="detail-photos">
@@ -57,7 +78,7 @@ export function CanDetail({
             <>
               <img
                 className="detail-main-img"
-                src={main}
+                src={cloudinaryThumb(main, 800, 800)}
                 alt={can.nome}
                 onClick={() => setLightbox(main)}
               />
@@ -68,7 +89,7 @@ export function CanDetail({
                     <img
                       key={url}
                       className={'detail-thumb' + (i === mainIdx ? ' active' : '')}
-                      src={url}
+                      src={cloudinaryThumb(url, 80, 80)}
                       alt={can.nome}
                       onClick={() => setMainIdx(i)}
                     />
@@ -89,16 +110,6 @@ export function CanDetail({
             {can.stato && <span className="badge badge-stato-ok">{can.stato}</span>}
             {photos.length > 0 && <span className="badge badge-photo">{photos.length} photo</span>}
           </div>
-          {onToggleCompare && (
-            <button
-              type="button"
-              className="btn btn-ghost"
-              aria-pressed={inCompare}
-              onClick={onToggleCompare}
-            >
-              {inCompare ? '✓ In compare' : '＋ Add to compare'}
-            </button>
-          )}
           <div className="detail-fields">
             {shown.map((f) => {
               if (f.isTop) {
@@ -141,16 +152,6 @@ export function CanDetail({
             <div className="detail-description">
               <div className="detail-field-lbl">More Info</div>
               <div className="detail-field-val">{can.descrizione}</div>
-            </div>
-          )}
-          {isAdmin && (
-            <div className="admin-actions">
-              <button type="button" className="btn btn-ghost" onClick={onEdit}>
-                Edit
-              </button>
-              <button type="button" className="btn btn-ghost" onClick={onDelete}>
-                Delete
-              </button>
             </div>
           )}
         </div>
