@@ -142,78 +142,61 @@ export function CanEditForm({
           )}
           <div className="field-grid">
             <div className="field field-full">
-              <label>
-                Name
-                <input value={nome} onChange={(e) => setNome(e.target.value)} />
-              </label>
+              <label htmlFor="e-nome">Name</label>
+              <input id="e-nome" value={nome} onChange={(e) => setNome(e.target.value)} />
             </div>
             <div className="field">
-              <label>
-                SKU
-                <input value={sku} onChange={(e) => setSku(e.target.value)} />
-              </label>
+              <label htmlFor="e-sku">SKU</label>
+              <input id="e-sku" value={sku} onChange={(e) => setSku(e.target.value)} />
             </div>
             <div className="field">
-              <label>
-                Manufacturer
-                <input value={produttore} onChange={(e) => setProduttore(e.target.value)} />
-              </label>
+              <label htmlFor="e-produttore">Manufacturer</label>
+              <input
+                id="e-produttore"
+                value={produttore}
+                onChange={(e) => setProduttore(e.target.value)}
+              />
             </div>
             <div className="field">
-              <label>
-                Size
-                <input value={size} onChange={(e) => setSize(e.target.value)} />
-              </label>
+              <label htmlFor="e-size">Size</label>
+              <input id="e-size" value={size} onChange={(e) => setSize(e.target.value)} />
             </div>
             <div className="field">
-              <label>
-                Language / Country
-                <input value={lingua} onChange={(e) => setLingua(e.target.value)} />
-              </label>
+              <label htmlFor="e-lingua">Language / Country</label>
+              <input id="e-lingua" value={lingua} onChange={(e) => setLingua(e.target.value)} />
             </div>
             <div className="field">
-              <label>
-                Top / Tab
-                <input value={top} onChange={(e) => setTop(e.target.value)} />
-              </label>
+              <label htmlFor="e-top">Top / Tab</label>
+              <input id="e-top" value={top} onChange={(e) => setTop(e.target.value)} />
             </div>
             <div className="field">
-              <label>
-                Promo
-                <input value={promo} onChange={(e) => setPromo(e.target.value)} />
-              </label>
+              <label htmlFor="e-promo">Promo</label>
+              <input id="e-promo" value={promo} onChange={(e) => setPromo(e.target.value)} />
             </div>
             <div className="field">
-              <label>
-                Est. Value (€)
-                <input value={valore} onChange={(e) => setValore(e.target.value)} />
-              </label>
+              <label htmlFor="e-valore">Est. Value (€)</label>
+              <input id="e-valore" value={valore} onChange={(e) => setValore(e.target.value)} />
             </div>
             <div className="field">
-              <label>
-                Condition
-                <input value={stato} onChange={(e) => setStato(e.target.value)} />
-              </label>
+              <label htmlFor="e-stato">Condition</label>
+              <input id="e-stato" value={stato} onChange={(e) => setStato(e.target.value)} />
             </div>
             <div className="field field-full">
-              <label>
-                Opening
-                <input
-                  value={note}
-                  placeholder="e.g. TOP OPENED, FULL"
-                  onChange={(e) => setNote(e.target.value)}
-                />
-              </label>
+              <label htmlFor="e-note">Opening</label>
+              <input
+                id="e-note"
+                value={note}
+                placeholder="e.g. TOP OPENED, FULL"
+                onChange={(e) => setNote(e.target.value)}
+              />
             </div>
             <div className="field field-full">
-              <label>
-                More Info
-                <textarea
-                  value={descrizione}
-                  style={{ minHeight: 80 }}
-                  onChange={(e) => setDescrizione(e.target.value)}
-                />
-              </label>
+              <label htmlFor="e-descrizione">More Info</label>
+              <textarea
+                id="e-descrizione"
+                value={descrizione}
+                onChange={(e) => setDescrizione(e.target.value)}
+              />
             </div>
           </div>
         </div>

@@ -91,7 +91,14 @@ test('guest non vede il prezzo (Est. Value)', () => {
   expect(screen.queryByText('€20')).toBeNull();
 });
 
-test('admin vede il prezzo', () => {
-  render(<CanDetail can={{ id: '1', nome: 'Alpha', valore: '20' }} onClose={() => {}} isAdmin />);
+test('col prezzo attivo (showPrice) mostra Est. Value', () => {
+  render(
+    <CanDetail
+      can={{ id: '1', nome: 'Alpha', valore: '20' }}
+      onClose={() => {}}
+      isAdmin
+      showPrice
+    />,
+  );
   expect(screen.getByText('€20')).toBeTruthy();
 });

@@ -9,6 +9,7 @@ export function CanDetail({
   can,
   onClose,
   isAdmin,
+  showPrice,
   onEdit,
   onDelete,
   inCompare,
@@ -17,6 +18,7 @@ export function CanDetail({
   can: Can;
   onClose: () => void;
   isAdmin?: boolean;
+  showPrice?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
   inCompare?: boolean;
@@ -34,7 +36,7 @@ export function CanDetail({
     { lbl: 'Size', val: can.size },
     { lbl: 'Top / Tab', val: can.top, isTop: true },
     { lbl: 'Promo', val: can.promo },
-    { lbl: 'Est. Value', val: isAdmin && can.valore ? `€${can.valore}` : undefined },
+    { lbl: 'Est. Value', val: showPrice && can.valore ? `€${can.valore}` : undefined },
     { lbl: 'Condition', val: can.stato },
   ];
   const shown = fields.filter((f) => f.val);

@@ -66,6 +66,7 @@ function App() {
   const [showStats, setShowStats] = useState(false);
   const [showValue, setShowValue] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [showPrice, setShowPrice] = useState(false);
 
   useEffect(() => {
     loadCans();
@@ -377,6 +378,16 @@ function App() {
             : `${visible.length} of ${cans.length} cans`}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {isAdmin && (
+            <button
+              type="button"
+              className="share-view-btn"
+              aria-pressed={showPrice}
+              onClick={() => setShowPrice((v) => !v)}
+            >
+              € {showPrice ? 'Hide prices' : 'Show prices'}
+            </button>
+          )}
           <SavedViews current={currentFilters} onApply={applyShareFilters} />
           <button type="button" className="share-view-btn" onClick={shareCurrentView}>
             🔗 Share view
@@ -384,7 +395,7 @@ function App() {
         </div>
       </div>
       {gridMode === 'grid' ? (
-        <CanGrid cans={visible} isAdmin={isAdmin} onSelect={selectCan} />
+        <CanGrid cans={visible} showPrice={isAdmin && showPrice} onSelect={selectCan} />
       ) : gridMode === 'list' ? (
         <CanList cans={visible} isAdmin={isAdmin} onSelect={selectCan} />
       ) : (
@@ -414,6 +425,7 @@ function App() {
             can={selected}
             onClose={() => setSelectedId(null)}
             isAdmin={isAdmin}
+            showPrice={isAdmin && showPrice}
             onEdit={() => setEditing(true)}
             onDelete={async () => {
               await deleteCan(selected.id);

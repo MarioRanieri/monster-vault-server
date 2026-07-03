@@ -6,11 +6,11 @@ import { Flags } from './flags';
 // SKU, badge, nome, produttore, bandiere del paese e prezzo (solo admin).
 export function CanGrid({
   cans,
-  isAdmin,
+  showPrice,
   onSelect,
 }: {
   cans: Can[];
-  isAdmin?: boolean;
+  showPrice?: boolean;
   onSelect?: (can: Can) => void;
 }) {
   return (
@@ -63,7 +63,7 @@ export function CanGrid({
               <div className="card-meta">
                 <Flags lingua={can.lingua} />
               </div>
-              {isAdmin && pv && <div className="card-price">€{pv}</div>}
+              {showPrice && pv && <div className="card-price">€{pv}</div>}
             </div>
           </button>
         );
