@@ -1,4 +1,4 @@
-import { filterCans } from './filterCans';
+import { filterCans, sortCans, filterOptions } from './filterCans';
 import type { Can } from './types';
 
 const cans: Can[] = [
@@ -48,4 +48,39 @@ test('full tiene solo i cans con note FULL', () => {
 
 test('i filtri si combinano in AND', () => {
   expect(filterCans(cans, { query: 'a', withPhoto: true }).map((c) => c.nome)).toEqual(['Alpha']);
+});
+
+test('filtra per lingua/size/produttore/top (match esatto)', () => {
+  const list: Can[] = [
+    { id: '1', nome: 'A', lingua: 'USA', size: '500ml', produttore: 'X', top: 'gold' },
+    { id: '2', nome: 'B', lingua: 'Italy', size: '250ml', produttore: 'Y', top: 'red' },
+  ];
+  expect(filterCans(list, { lingua: 'USA' }).map((c) => c.nome)).toEqual(['A']);
+  expect(filterCans(list, { size: '250ml' }).map((c) => c.nome)).toEqual(['B']);
+  expect(filterCans(list, { produttore: 'X' }).map((c) => c.nome)).toEqual(['A']);
+  expect(filterCans(list, { top: 'red' }).map((c) => c.nome)).toEqual(['B']);
+});
+
+test('sortCans ordina per nome, lingua e valore senza mutare', () => {
+  const list: Can[] = [
+    { id: '1', nome: 'Beta', lingua: 'Zed', valore: '10' },
+    { id: '2', nome: 'Alpha', lingua: 'Abc', valore: '30' },
+  ];
+  expect(sortCans(list, 'nome-asc').map((c) => c.nome)).toEqual(['Alpha', 'Beta']);
+  expect(sortCans(list, 'lingua-asc').map((c) => c.lingua)).toEqual(['Abc', 'Zed']);
+  expect(sortCans(list, 'valore-desc').map((c) => c.valore)).toEqual(['30', '10']);
+  expect(sortCans(list, 'valore-asc').map((c) => c.valore)).toEqual(['10', '30']);
+  expect(list[0].nome).toBe('Beta'); // input intatto
+});
+
+test('filterOptions estrae i valori distinti ordinati', () => {
+  const list: Can[] = [
+    { id: '1', nome: 'A', lingua: 'USA', size: '500ml', produttore: 'X', top: 'gold' },
+    { id: '2', nome: 'B', lingua: 'Italy', size: '500ml', produttore: 'Y' },
+  ];
+  const opts = filterOptions(list);
+  expect(opts.countries).toEqual(['Italy', 'USA']);
+  expect(opts.sizes).toEqual(['500ml']);
+  expect(opts.manufacturers).toEqual(['X', 'Y']);
+  expect(opts.tops).toEqual(['gold']);
 });

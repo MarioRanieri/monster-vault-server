@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useCansStore } from './store';
 import { CanGrid } from './CanGrid';
 import { CanDetail } from './CanDetail';
-import { filterCans } from './filterCans';
+import { filterCans, sortCans, filterOptions, type SortKey } from './filterCans';
 import { Hero } from './Hero';
 import { FilterBar } from './FilterBar';
 import { computeStats } from './computeStats';
@@ -34,6 +34,11 @@ function App() {
   const [noPhoto, setNoPhoto] = useState(false);
   const [promo, setPromo] = useState(false);
   const [full, setFull] = useState(false);
+  const [flLingua, setFlLingua] = useState('');
+  const [flSize, setFlSize] = useState('');
+  const [flProduttore, setFlProduttore] = useState('');
+  const [flTop, setFlTop] = useState('');
+  const [sort, setSort] = useState<SortKey>('nome-asc');
   const [view, setView] = useState<'landing' | 'collection'>('landing');
   const [showLogin, setShowLogin] = useState(false);
   const [light, setLight] = useState(false);
@@ -46,7 +51,21 @@ function App() {
     document.body.classList.toggle('light', light);
   }, [light]);
 
-  const visible = filterCans(cans, { query, withPhoto, noPhoto, promo, full });
+  const options = filterOptions(cans);
+  const visible = sortCans(
+    filterCans(cans, {
+      query,
+      withPhoto,
+      noPhoto,
+      promo,
+      full,
+      lingua: flLingua,
+      size: flSize,
+      produttore: flProduttore,
+      top: flTop,
+    }),
+    sort,
+  );
   const selected = cans.find((c) => c.id === selectedId) ?? null;
   const stats = computeStats(cans);
 
@@ -85,6 +104,36 @@ function App() {
       <FilterBar
         query={query}
         onQuery={setQuery}
+        selects={[
+          {
+            key: 'lingua',
+            allLabel: 'ALL COUNTRIES',
+            value: flLingua,
+            options: options.countries,
+            onChange: setFlLingua,
+          },
+          {
+            key: 'size',
+            allLabel: 'ALL SIZES',
+            value: flSize,
+            options: options.sizes,
+            onChange: setFlSize,
+          },
+          {
+            key: 'produttore',
+            allLabel: 'ALL MANUFACTURERS',
+            value: flProduttore,
+            options: options.manufacturers,
+            onChange: setFlProduttore,
+          },
+          {
+            key: 'top',
+            allLabel: 'ALL TOPS/TABS',
+            value: flTop,
+            options: options.tops,
+            onChange: setFlTop,
+          },
+        ]}
         chips={[
           {
             key: 'promo',
@@ -119,6 +168,16 @@ function App() {
             onToggle: () => setNoPhoto((v) => !v),
           },
         ]}
+        sort={{
+          value: sort,
+          options: [
+            { value: 'nome-asc', label: 'NAME A→Z' },
+            { value: 'lingua-asc', label: 'COUNTRY A→Z' },
+            { value: 'valore-desc', label: 'VALUE ↓' },
+            { value: 'valore-asc', label: 'VALUE ↑' },
+          ],
+          onChange: (v) => setSort(v as SortKey),
+        }}
       />
       {loading && <p>Caricamento…</p>}
       {error && <p role="alert">Errore: {error}</p>}

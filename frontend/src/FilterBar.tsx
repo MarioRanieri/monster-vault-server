@@ -7,16 +7,34 @@ export interface Chip {
   onToggle: () => void;
 }
 
-// Barra filtri (classi .filter-bar/.search-wrap/.filter-chip del vecchio):
-// ricerca + chip a toggle con conteggio. Dropdown/sort arriveranno dopo.
+export interface SelectFilter {
+  key: string;
+  allLabel: string;
+  value: string;
+  options: string[];
+  onChange: (v: string) => void;
+}
+
+export interface SortControl {
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (v: string) => void;
+}
+
+// Barra filtri (classi .filter-bar/.search-wrap/.filter-select/.filter-chip del
+// vecchio): ricerca + dropdown + chip a toggle con conteggio + sort.
 export function FilterBar({
   query,
   onQuery,
   chips,
+  selects = [],
+  sort,
 }: {
   query: string;
   onQuery: (q: string) => void;
   chips: Chip[];
+  selects?: SelectFilter[];
+  sort?: SortControl;
 }) {
   return (
     <div className="filter-bar">
@@ -41,6 +59,22 @@ export function FilterBar({
           onChange={(e) => onQuery(e.target.value)}
         />
       </div>
+      {selects.map((s) => (
+        <select
+          key={s.key}
+          className="filter-select"
+          aria-label={s.allLabel}
+          value={s.value}
+          onChange={(e) => s.onChange(e.target.value)}
+        >
+          <option value="">{s.allLabel}</option>
+          {s.options.map((o) => (
+            <option key={o} value={o}>
+              {o}
+            </option>
+          ))}
+        </select>
+      ))}
       {chips.map((chip) => (
         <button
           key={chip.key}
@@ -53,6 +87,22 @@ export function FilterBar({
           <span className="chip-count">{chip.count}</span>
         </button>
       ))}
+      {sort && (
+        <div className="filter-tools">
+          <select
+            className="filter-select"
+            aria-label="Ordina"
+            value={sort.value}
+            onChange={(e) => sort.onChange(e.target.value)}
+          >
+            {sort.options.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
     </div>
   );
 }
