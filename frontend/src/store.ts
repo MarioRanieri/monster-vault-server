@@ -11,6 +11,7 @@ interface CansState {
   deleteCan: (id: string) => Promise<void>;
   createCan: (can: Can) => Promise<void>;
   uploadPhoto: (id: string, slot: number, file: File) => Promise<void>;
+  uploadPhotoFromUrl: (id: string, slot: number, url: string) => Promise<void>;
 }
 
 export const useCansStore = create<CansState>((set) => ({
@@ -66,6 +67,19 @@ export const useCansStore = create<CansState>((set) => ({
     const key = `p${slot}` as 'p1' | 'p2' | 'p3' | 'p4';
     set((s) => ({
       cans: s.cans.map((c) => (c.id === id ? { ...c, [key]: url } : c)),
+    }));
+  },
+  uploadPhotoFromUrl: async (id, slot, url) => {
+    const res = await authFetch(`/api/cans/${id}/photo/${slot}/from-url`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { url: newUrl } = (await res.json()) as { url: string };
+    const key = `p${slot}` as 'p1' | 'p2' | 'p3' | 'p4';
+    set((s) => ({
+      cans: s.cans.map((c) => (c.id === id ? { ...c, [key]: newUrl } : c)),
     }));
   },
 }));

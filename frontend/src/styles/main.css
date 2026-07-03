@@ -1354,6 +1354,36 @@ body.light .filter-select option {
   color: var(--text);
   border-color: rgba(255, 255, 255, 0.25);
 }
+/* CanEditForm (React): i 4 slot foto */
+.edit-photos {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+.edit-photo-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text3);
+}
+.edit-photo-slot img,
+.edit-photo-ph {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--bg3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text3);
+}
+.edit-photo-url {
+  width: 90px;
+  font-size: 10px;
+}
 /* SavedViews (React): wrapper posizionato + reset dei button custom del menu */
 .views-wrap {
   position: relative;

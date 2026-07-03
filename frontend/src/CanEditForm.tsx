@@ -7,11 +7,13 @@ export function CanEditForm({
   onSave,
   onCancel,
   onUploadPhoto,
+  onUploadPhotoUrl,
 }: {
   can: Can;
   onSave: (can: Can) => void;
   onCancel: () => void;
   onUploadPhoto?: (slot: number, file: File) => void;
+  onUploadPhotoUrl?: (slot: number, url: string) => void;
 }) {
   const [nome, setNome] = useState(can.nome);
   const [sku, setSku] = useState(can.sku ?? '');
@@ -48,17 +50,49 @@ export function CanEditForm({
         <input value={stato} onChange={(e) => setStato(e.target.value)} />
       </label>
       {onUploadPhoto && (
-        <label>
-          Photo 1
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) onUploadPhoto(1, file);
-            }}
-          />
-        </label>
+        <div className="edit-photos">
+          {([1, 2, 3, 4] as const).map((slot) => {
+            const url = can[`p${slot}` as 'p1' | 'p2' | 'p3' | 'p4'];
+            return (
+              <div key={slot} className="edit-photo-slot">
+                {url ? (
+                  <img src={url} alt={`Photo ${slot}`} />
+                ) : (
+                  <div className="edit-photo-ph">—</div>
+                )}
+                <label>
+                  Photo {slot}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) onUploadPhoto(slot, file);
+                    }}
+                  />
+                </label>
+                {onUploadPhotoUrl && (
+                  <input
+                    type="url"
+                    className="edit-photo-url"
+                    placeholder="…or paste URL"
+                    aria-label={`Photo ${slot} URL`}
+                    onKeyDown={(e) => {
+                      if (e.key !== 'Enter') return;
+                      e.preventDefault();
+                      const el = e.currentTarget;
+                      const u = el.value.trim();
+                      if (u) {
+                        onUploadPhotoUrl(slot, u);
+                        el.value = '';
+                      }
+                    }}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
       )}
       <button type="submit" className="btn btn-primary">
         Save

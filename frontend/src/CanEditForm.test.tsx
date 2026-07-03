@@ -49,3 +49,32 @@ test('caricando un file chiama onUploadPhoto con lo slot 1', async () => {
 
   expect(onUploadPhoto).toHaveBeenCalledWith(1, file);
 });
+
+test('supporta i 4 slot: upload su Photo 3 usa lo slot 3', async () => {
+  const onUploadPhoto = vi.fn();
+  render(
+    <CanEditForm can={can} onSave={() => {}} onCancel={() => {}} onUploadPhoto={onUploadPhoto} />,
+  );
+
+  const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' });
+  await userEvent.upload(screen.getByLabelText('Photo 3'), file);
+
+  expect(onUploadPhoto).toHaveBeenCalledWith(3, file);
+});
+
+test('inviando una URL con Enter chiama onUploadPhotoUrl', async () => {
+  const onUploadPhotoUrl = vi.fn();
+  render(
+    <CanEditForm
+      can={can}
+      onSave={() => {}}
+      onCancel={() => {}}
+      onUploadPhoto={() => {}}
+      onUploadPhotoUrl={onUploadPhotoUrl}
+    />,
+  );
+
+  await userEvent.type(screen.getByLabelText('Photo 1 URL'), 'https://x/y.jpg{Enter}');
+
+  expect(onUploadPhotoUrl).toHaveBeenCalledWith(1, 'https://x/y.jpg');
+});

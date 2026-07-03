@@ -29,6 +29,7 @@ function App() {
   const deleteCan = useCansStore((s) => s.deleteCan);
   const createCan = useCansStore((s) => s.createCan);
   const uploadPhoto = useCansStore((s) => s.uploadPhoto);
+  const uploadPhotoFromUrl = useCansStore((s) => s.uploadPhotoFromUrl);
   const isAdmin = useAuthStore((s) => s.isAdmin);
   const authError = useAuthStore((s) => s.error);
   const login = useAuthStore((s) => s.login);
@@ -365,6 +366,7 @@ function App() {
             }}
             onCancel={() => setEditing(false)}
             onUploadPhoto={(slot, file) => uploadPhoto(selected.id, slot, file)}
+            onUploadPhotoUrl={(slot, url) => uploadPhotoFromUrl(selected.id, slot, url)}
           />
         ) : (
           <CanDetail

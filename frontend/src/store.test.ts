@@ -118,3 +118,22 @@ test('uploadPhoto imposta l’URL foto sullo slot (POST multipart)', async () =>
 
   expect(useCansStore.getState().cans[0].p1).toBe('https://cdn/new.jpg');
 });
+
+test('uploadPhotoFromUrl imposta l’URL foto sullo slot (POST from-url)', async () => {
+  useCansStore.setState({
+    cans: [{ id: '1', nome: 'A' }],
+    loading: false,
+    error: null,
+  });
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ url: 'https://cdn/fromurl.jpg' }),
+    }),
+  );
+
+  await useCansStore.getState().uploadPhotoFromUrl('1', 2, 'https://src/y.jpg');
+
+  expect(useCansStore.getState().cans[0].p2).toBe('https://cdn/fromurl.jpg');
+});
