@@ -13,7 +13,8 @@ import { LoginForm } from './LoginForm';
 import { CanEditForm } from './CanEditForm';
 import { LandingPage } from './LandingPage';
 import { Header } from './Header';
-import { buildShareUrl, parseShareUrl } from './shareView';
+import { buildShareUrl, parseShareUrl, type ShareFilters } from './shareView';
+import { SavedViews } from './SavedViews';
 import type { Can } from './types';
 
 function App() {
@@ -135,23 +136,40 @@ function App() {
     setSelectedId(can.id);
     setEditing(false);
   };
+  const currentFilters: ShareFilters = {
+    query,
+    lingua: flLingua,
+    size: flSize,
+    produttore: flProduttore,
+    top: flTop,
+    promo,
+    full,
+    withPhoto,
+    noPhoto,
+    vmin,
+    vmax,
+    ymin,
+    ymax,
+    sort,
+  };
+  const applyShareFilters = (f: Partial<ShareFilters>) => {
+    setQuery(f.query ?? '');
+    setFlLingua(f.lingua ?? '');
+    setFlSize(f.size ?? '');
+    setFlProduttore(f.produttore ?? '');
+    setFlTop(f.top ?? '');
+    setPromo(f.promo ?? false);
+    setFull(f.full ?? false);
+    setWithPhoto(f.withPhoto ?? false);
+    setNoPhoto(f.noPhoto ?? false);
+    setVmin(f.vmin ?? '');
+    setVmax(f.vmax ?? '');
+    setYmin(f.ymin ?? '');
+    setYmax(f.ymax ?? '');
+    if (f.sort) setSort(f.sort as SortKey);
+  };
   const shareCurrentView = () => {
-    const url = buildShareUrl(window.location.origin + window.location.pathname, {
-      query,
-      lingua: flLingua,
-      size: flSize,
-      produttore: flProduttore,
-      top: flTop,
-      promo,
-      full,
-      withPhoto,
-      noPhoto,
-      vmin,
-      vmax,
-      ymin,
-      ymax,
-      sort,
-    });
+    const url = buildShareUrl(window.location.origin + window.location.pathname, currentFilters);
     void navigator.clipboard?.writeText(url);
     setToast('🔗 View link copied');
     setTimeout(() => setToast(null), 2000);
@@ -309,6 +327,7 @@ function App() {
             ? `${cans.length} cans`
             : `${visible.length} of ${cans.length} cans`}
         </span>
+        <SavedViews current={currentFilters} onApply={applyShareFilters} />
         <button type="button" className="btn btn-ghost" onClick={shareCurrentView}>
           Share view
         </button>
