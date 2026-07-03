@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useCansStore } from './store';
 import { CanGrid } from './CanGrid';
+import { CanList } from './CanList';
 import { CanDetail } from './CanDetail';
 import { filterCans, sortCans, filterOptions, type SortKey } from './filterCans';
 import { Hero } from './Hero';
@@ -46,6 +47,7 @@ function App() {
   const [view, setView] = useState<'landing' | 'collection'>('landing');
   const [showLogin, setShowLogin] = useState(false);
   const [light, setLight] = useState(false);
+  const [gridMode, setGridMode] = useState<'grid' | 'list'>('grid');
 
   useEffect(() => {
     loadCans();
@@ -104,6 +106,10 @@ function App() {
     setVmax('');
     setYmin('');
     setYmax('');
+  };
+  const selectCan = (can: Can) => {
+    setSelectedId(can.id);
+    setEditing(false);
   };
   const selected = cans.find((c) => c.id === selectedId) ?? null;
   const stats = computeStats(cans);
@@ -245,16 +251,18 @@ function App() {
           },
         ]}
         onReset={hasFilters ? resetFilters : undefined}
+        view={{
+          value: gridMode,
+          onChange: (v) => setGridMode(v as 'grid' | 'list'),
+        }}
       />
       {loading && <p>Caricamento…</p>}
       {error && <p role="alert">Errore: {error}</p>}
-      <CanGrid
-        cans={visible}
-        onSelect={(can) => {
-          setSelectedId(can.id);
-          setEditing(false);
-        }}
-      />
+      {gridMode === 'grid' ? (
+        <CanGrid cans={visible} onSelect={selectCan} />
+      ) : (
+        <CanList cans={visible} isAdmin={isAdmin} onSelect={selectCan} />
+      )}
       {selected &&
         (editing ? (
           <CanEditForm
