@@ -1354,6 +1354,34 @@ body.light .filter-select option {
   color: var(--text);
   border-color: rgba(255, 255, 255, 0.25);
 }
+/* SavedViews (React): wrapper posizionato + reset dei button custom del menu */
+.views-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.view-apply {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+button.view-save {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--border);
+  font-family: inherit;
+  cursor: pointer;
+}
 .share-sheet-wrap {
   position: relative;
   display: inline-flex;

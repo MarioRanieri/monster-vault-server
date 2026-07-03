@@ -321,16 +321,18 @@ function App() {
       />
       {loading && <p>Loading…</p>}
       {error && <p role="alert">Error: {error}</p>}
-      <div className="grid-info-bar">
-        <span className="grid-info">
+      <div className="grid-info">
+        <span>
           {visible.length === cans.length
             ? `${cans.length} cans`
             : `${visible.length} of ${cans.length} cans`}
         </span>
-        <SavedViews current={currentFilters} onApply={applyShareFilters} />
-        <button type="button" className="btn btn-ghost" onClick={shareCurrentView}>
-          Share view
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <SavedViews current={currentFilters} onApply={applyShareFilters} />
+          <button type="button" className="share-view-btn" onClick={shareCurrentView}>
+            🔗 Share view
+          </button>
+        </div>
       </div>
       {gridMode === 'grid' ? (
         <CanGrid cans={visible} onSelect={selectCan} />

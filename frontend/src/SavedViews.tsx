@@ -24,7 +24,7 @@ export function SavedViews({
     <div className="views-wrap">
       <button
         type="button"
-        className="btn btn-ghost"
+        className="reset-filters-btn"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
       >
