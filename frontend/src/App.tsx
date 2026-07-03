@@ -3,7 +3,7 @@ import { useCansStore } from './store';
 import { CanGrid } from './CanGrid';
 import { CanDetail } from './CanDetail';
 import { filterCans } from './filterCans';
-import { StatsBar } from './StatsBar';
+import { Hero } from './Hero';
 import { computeStats } from './computeStats';
 import { useAuthStore } from './authStore';
 import { LoginForm } from './LoginForm';
@@ -78,7 +78,7 @@ function App() {
         onLogin={() => setShowLogin(true)}
         onToggleTheme={() => setLight((v) => !v)}
       />
-      <StatsBar stats={stats} />
+      <Hero stats={stats} />
       <input
         type="search"
         aria-label="Cerca"
