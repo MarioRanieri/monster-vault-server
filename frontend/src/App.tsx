@@ -4,6 +4,7 @@ import { CanGrid } from './CanGrid';
 import { CanDetail } from './CanDetail';
 import { filterCans } from './filterCans';
 import { Hero } from './Hero';
+import { FilterBar } from './FilterBar';
 import { computeStats } from './computeStats';
 import { useAuthStore } from './authStore';
 import { LoginForm } from './LoginForm';
@@ -30,7 +31,9 @@ function App() {
   const [editing, setEditing] = useState(false);
   const [creating, setCreating] = useState<Can | null>(null);
   const [withPhoto, setWithPhoto] = useState(false);
+  const [noPhoto, setNoPhoto] = useState(false);
   const [promo, setPromo] = useState(false);
+  const [full, setFull] = useState(false);
   const [view, setView] = useState<'landing' | 'collection'>('landing');
   const [showLogin, setShowLogin] = useState(false);
   const [light, setLight] = useState(false);
@@ -43,7 +46,7 @@ function App() {
     document.body.classList.toggle('light', light);
   }, [light]);
 
-  const visible = filterCans(cans, { query, withPhoto, promo });
+  const visible = filterCans(cans, { query, withPhoto, noPhoto, promo, full });
   const selected = cans.find((c) => c.id === selectedId) ?? null;
   const stats = computeStats(cans);
 
@@ -79,21 +82,44 @@ function App() {
         onToggleTheme={() => setLight((v) => !v)}
       />
       <Hero stats={stats} />
-      <input
-        type="search"
-        aria-label="Cerca"
-        placeholder="Cerca per nome…"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
+      <FilterBar
+        query={query}
+        onQuery={setQuery}
+        chips={[
+          {
+            key: 'promo',
+            label: 'Promo',
+            cls: 'filter-chip-promo',
+            active: promo,
+            count: stats.promo,
+            onToggle: () => setPromo((v) => !v),
+          },
+          {
+            key: 'full',
+            label: 'FULL',
+            cls: 'filter-chip-full',
+            active: full,
+            count: stats.full,
+            onToggle: () => setFull((v) => !v),
+          },
+          {
+            key: 'withPhoto',
+            label: 'With photo',
+            cls: 'filter-chip-withphoto',
+            active: withPhoto,
+            count: stats.withPhoto,
+            onToggle: () => setWithPhoto((v) => !v),
+          },
+          {
+            key: 'noPhoto',
+            label: 'No photo',
+            cls: 'filter-chip-nophotos',
+            active: noPhoto,
+            count: stats.total - stats.withPhoto,
+            onToggle: () => setNoPhoto((v) => !v),
+          },
+        ]}
       />
-      <div className="chips">
-        <button type="button" aria-pressed={withPhoto} onClick={() => setWithPhoto((v) => !v)}>
-          Con foto
-        </button>
-        <button type="button" aria-pressed={promo} onClick={() => setPromo((v) => !v)}>
-          Promo
-        </button>
-      </div>
       {loading && <p>Caricamento…</p>}
       {error && <p role="alert">Errore: {error}</p>}
       <CanGrid

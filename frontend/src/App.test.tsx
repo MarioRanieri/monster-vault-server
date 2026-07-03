@@ -114,7 +114,7 @@ test('il chip "Con foto" mostra solo i cans con foto', async () => {
   await enterCollection();
   await screen.findByText('Alpha');
 
-  await userEvent.click(screen.getByRole('button', { name: /con foto/i }));
+  await userEvent.click(screen.getByRole('button', { name: /with photo/i }));
 
   expect(screen.queryByText('Beta')).toBeNull();
   expect(screen.getByText('Alpha')).toBeTruthy();
@@ -136,7 +136,7 @@ test('il chip "Promo" mostra solo i cans in promo', async () => {
   await enterCollection();
   await screen.findByText('Alpha');
 
-  await userEvent.click(screen.getByRole('button', { name: /^promo$/i }));
+  await userEvent.click(screen.getByRole('button', { name: /promo/i }));
 
   expect(screen.queryByText('Beta')).toBeNull();
   expect(screen.getByText('Alpha')).toBeTruthy();
