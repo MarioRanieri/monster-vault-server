@@ -18,6 +18,7 @@ import { SavedViews } from './SavedViews';
 import { CompareBar } from './CompareBar';
 import { ComparePanel } from './ComparePanel';
 import { StatsModal } from './StatsModal';
+import { ValueCalc } from './ValueCalc';
 import type { Can } from './types';
 
 function App() {
@@ -59,6 +60,7 @@ function App() {
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [showCompare, setShowCompare] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [showValue, setShowValue] = useState(false);
 
   useEffect(() => {
     loadCans();
@@ -223,7 +225,11 @@ function App() {
         onLogin={() => setShowLogin(true)}
         onToggleTheme={() => setLight((v) => !v)}
       />
-      <Hero stats={stats} onStats={() => setShowStats(true)} />
+      <Hero
+        stats={stats}
+        onStats={() => setShowStats(true)}
+        onValue={isAdmin ? () => setShowValue(true) : undefined}
+      />
       <FilterBar
         query={query}
         onQuery={setQuery}
@@ -405,6 +411,7 @@ function App() {
         <ComparePanel cans={compareCans} isAdmin={isAdmin} onClose={() => setShowCompare(false)} />
       )}
       {showStats && <StatsModal cans={cans} stats={stats} onClose={() => setShowStats(false)} />}
+      {showValue && <ValueCalc cans={visible} onClose={() => setShowValue(false)} />}
       {toast && (
         <div className="toast" role="status">
           {toast}

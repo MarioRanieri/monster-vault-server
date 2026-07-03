@@ -2,7 +2,15 @@ import type { Stats } from './computeStats';
 
 // Hero della collection (classi .hero/.hero-*/.stats-row del vecchio): titolo,
 // conteggio grande e riga di statistiche. Presentazionale (aggregati via props).
-export function Hero({ stats, onStats }: { stats: Stats; onStats?: () => void }) {
+export function Hero({
+  stats,
+  onStats,
+  onValue,
+}: {
+  stats: Stats;
+  onStats?: () => void;
+  onValue?: () => void;
+}) {
   return (
     <section className="hero">
       <div className="hero-bg" />
@@ -34,6 +42,13 @@ export function Hero({ stats, onStats }: { stats: Stats; onStats?: () => void })
           <div className="stat-item">
             <button type="button" className="stats-btn" onClick={onStats}>
               📊 Stats
+            </button>
+          </div>
+        )}
+        {onValue && (
+          <div className="stat-item">
+            <button type="button" className="stats-btn" onClick={onValue}>
+              💰 Value
             </button>
           </div>
         )}

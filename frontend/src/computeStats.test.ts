@@ -1,5 +1,16 @@
-import { computeStats, statsBreakdown } from './computeStats';
+import { computeStats, statsBreakdown, sumValue } from './computeStats';
 import type { Can } from './types';
+
+test('sumValue somma i valori, ignorando quelli vuoti/non numerici', () => {
+  const list: Can[] = [
+    { id: '1', nome: 'a', valore: '10' },
+    { id: '2', nome: 'b', valore: '30.5' },
+    { id: '3', nome: 'c' },
+    { id: '4', nome: 'd', valore: 'n/a' },
+  ];
+  expect(sumValue(list)).toBe(40.5);
+  expect(sumValue([])).toBe(0);
+});
 
 test('statsBreakdown conta, ordina desc e tronca al limite', () => {
   const list: Can[] = [

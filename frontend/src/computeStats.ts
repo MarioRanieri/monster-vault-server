@@ -18,6 +18,11 @@ export function computeStats(cans: Can[]): Stats {
   };
 }
 
+// Somma del valore stimato (campo `valore`) di una lista di lattine.
+export function sumValue(cans: Can[]): number {
+  return cans.reduce((s, c) => s + (parseFloat(c.valore ?? '') || 0), 0);
+}
+
 export interface Freq {
   k: string;
   n: number;
