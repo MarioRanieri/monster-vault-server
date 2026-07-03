@@ -46,6 +46,7 @@ test('caricando un file chiama onUploadPhoto con lo slot 1', async () => {
 
   const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' });
   await userEvent.upload(screen.getByLabelText('Photo 1'), file);
+  await userEvent.click(screen.getByRole('button', { name: /skip crop/i }));
 
   expect(onUploadPhoto).toHaveBeenCalledWith(1, file);
 });
@@ -58,6 +59,7 @@ test('supporta i 4 slot: upload su Photo 3 usa lo slot 3', async () => {
 
   const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' });
   await userEvent.upload(screen.getByLabelText('Photo 3'), file);
+  await userEvent.click(screen.getByRole('button', { name: /skip crop/i }));
 
   expect(onUploadPhoto).toHaveBeenCalledWith(3, file);
 });

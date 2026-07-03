@@ -319,6 +319,7 @@ test('admin: carica una foto durante la modifica', async () => {
 
   const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' });
   await userEvent.upload(screen.getByLabelText('Photo 1'), file);
+  await userEvent.click(screen.getByRole('button', { name: /skip crop/i }));
 
   await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
 

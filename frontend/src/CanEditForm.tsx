@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Can } from './types';
+import { PhotoCrop } from './PhotoCrop';
 
 // Form di modifica di una lattina; comunica la can aggiornata via onSave.
 export function CanEditForm({
@@ -20,6 +21,10 @@ export function CanEditForm({
   const [size, setSize] = useState(can.size ?? '');
   const [promo, setPromo] = useState(can.promo ?? '');
   const [stato, setStato] = useState(can.stato ?? '');
+  const [cropTarget, setCropTarget] = useState<{
+    slot: number;
+    file: File;
+  } | null>(null);
 
   return (
     <form
@@ -50,49 +55,62 @@ export function CanEditForm({
         <input value={stato} onChange={(e) => setStato(e.target.value)} />
       </label>
       {onUploadPhoto && (
-        <div className="edit-photos">
-          {([1, 2, 3, 4] as const).map((slot) => {
-            const url = can[`p${slot}` as 'p1' | 'p2' | 'p3' | 'p4'];
-            return (
-              <div key={slot} className="edit-photo-slot">
-                {url ? (
-                  <img src={url} alt={`Photo ${slot}`} />
-                ) : (
-                  <div className="edit-photo-ph">—</div>
-                )}
-                <label>
-                  Photo {slot}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) onUploadPhoto(slot, file);
-                    }}
-                  />
-                </label>
-                {onUploadPhotoUrl && (
-                  <input
-                    type="url"
-                    className="edit-photo-url"
-                    placeholder="…or paste URL"
-                    aria-label={`Photo ${slot} URL`}
-                    onKeyDown={(e) => {
-                      if (e.key !== 'Enter') return;
-                      e.preventDefault();
-                      const el = e.currentTarget;
-                      const u = el.value.trim();
-                      if (u) {
-                        onUploadPhotoUrl(slot, u);
-                        el.value = '';
-                      }
-                    }}
-                  />
-                )}
-              </div>
-            );
-          })}
-        </div>
+        <>
+          <div className="edit-photos">
+            {([1, 2, 3, 4] as const).map((slot) => {
+              const url = can[`p${slot}` as 'p1' | 'p2' | 'p3' | 'p4'];
+              return (
+                <div key={slot} className="edit-photo-slot">
+                  {url ? (
+                    <img src={url} alt={`Photo ${slot}`} />
+                  ) : (
+                    <div className="edit-photo-ph">—</div>
+                  )}
+                  <label>
+                    Photo {slot}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setCropTarget({ slot, file });
+                        e.currentTarget.value = '';
+                      }}
+                    />
+                  </label>
+                  {onUploadPhotoUrl && (
+                    <input
+                      type="url"
+                      className="edit-photo-url"
+                      placeholder="…or paste URL"
+                      aria-label={`Photo ${slot} URL`}
+                      onKeyDown={(e) => {
+                        if (e.key !== 'Enter') return;
+                        e.preventDefault();
+                        const el = e.currentTarget;
+                        const u = el.value.trim();
+                        if (u) {
+                          onUploadPhotoUrl(slot, u);
+                          el.value = '';
+                        }
+                      }}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {cropTarget && (
+            <PhotoCrop
+              file={cropTarget.file}
+              onApply={(f) => {
+                onUploadPhoto?.(cropTarget.slot, f);
+                setCropTarget(null);
+              }}
+              onCancel={() => setCropTarget(null)}
+            />
+          )}
+        </>
       )}
       <button type="submit" className="btn btn-primary">
         Save

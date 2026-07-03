@@ -1354,6 +1354,40 @@ body.light .filter-select option {
   color: var(--text);
   border-color: rgba(255, 255, 255, 0.25);
 }
+/* PhotoCrop (React): overlay di ritaglio */
+.crop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 20px;
+}
+.crop-stage {
+  position: relative;
+  display: inline-block;
+  touch-action: none;
+}
+.crop-stage img {
+  display: block;
+  max-width: 90vw;
+  max-height: 74vh;
+  user-select: none;
+}
+.crop-box {
+  position: absolute;
+  border: 2px dashed var(--green);
+  background: rgba(168, 255, 0, 0.12);
+  pointer-events: none;
+}
+.crop-actions {
+  display: flex;
+  gap: 10px;
+}
 /* CanEditForm (React): i 4 slot foto */
 .edit-photos {
   display: flex;
