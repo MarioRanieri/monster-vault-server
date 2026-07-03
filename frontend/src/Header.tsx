@@ -8,12 +8,16 @@ export function Header({
   onAdd,
   onLogin,
   onToggleTheme,
+  onExport,
+  onImport,
 }: {
   isAdmin: boolean;
   onSignOut: () => void;
   onAdd: () => void;
   onLogin: () => void;
   onToggleTheme: () => void;
+  onExport?: () => void;
+  onImport?: (file: File) => void;
 }) {
   return (
     <header className="header">
@@ -89,6 +93,27 @@ export function Header({
               </svg>
               <span className="btn-label">Add</span>
             </button>
+            {onExport && (
+              <button type="button" className="btn btn-ghost" onClick={onExport}>
+                <span className="btn-label">Export</span>
+              </button>
+            )}
+            {onImport && (
+              <label className="btn btn-ghost" style={{ cursor: 'pointer' }}>
+                <span className="btn-label">Import</span>
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  style={{ display: 'none' }}
+                  aria-label="Import CSV"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) onImport(f);
+                    e.currentTarget.value = '';
+                  }}
+                />
+              </label>
+            )}
             <div className="header-user">
               <span className="header-user-name">Admin</span>
               <button type="button" className="logout-btn" onClick={onSignOut} title="Sign out">

@@ -19,6 +19,7 @@ import { CompareBar } from './CompareBar';
 import { ComparePanel } from './ComparePanel';
 import { StatsModal } from './StatsModal';
 import { ValueCalc } from './ValueCalc';
+import { buildCsv, parseCsv } from './csv';
 import type { Can } from './types';
 
 function App() {
@@ -31,6 +32,7 @@ function App() {
   const createCan = useCansStore((s) => s.createCan);
   const uploadPhoto = useCansStore((s) => s.uploadPhoto);
   const uploadPhotoFromUrl = useCansStore((s) => s.uploadPhotoFromUrl);
+  const importCans = useCansStore((s) => s.importCans);
   const isAdmin = useAuthStore((s) => s.isAdmin);
   const authError = useAuthStore((s) => s.error);
   const login = useAuthStore((s) => s.login);
@@ -192,6 +194,25 @@ function App() {
     .map((id) => cans.find((c) => c.id === id))
     .filter((c): c is Can => Boolean(c));
   const toggleWatch = (can: Can) => saveCan({ ...can, watch: !can.watch });
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  };
+  const exportCsv = () => {
+    const blob = new Blob([buildCsv(visible)], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'monster_vault.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('📄 CSV exported');
+  };
+  const importCsv = async (file: File) => {
+    const parsed = parseCsv(await file.text());
+    await importCans(parsed);
+    showToast(`📥 Imported ${parsed.length} cans`);
+  };
   const selected = cans.find((c) => c.id === selectedId) ?? null;
   const stats = computeStats(cans);
 
@@ -225,6 +246,8 @@ function App() {
         onAdd={() => setCreating({ id: crypto.randomUUID(), nome: '' })}
         onLogin={() => setShowLogin(true)}
         onToggleTheme={() => setLight((v) => !v)}
+        onExport={exportCsv}
+        onImport={importCsv}
       />
       <Hero
         stats={stats}

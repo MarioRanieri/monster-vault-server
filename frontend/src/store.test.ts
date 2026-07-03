@@ -137,3 +137,21 @@ test('uploadPhotoFromUrl imposta l’URL foto sullo slot (POST from-url)', async
 
   expect(useCansStore.getState().cans[0].p2).toBe('https://cdn/fromurl.jpg');
 });
+
+test('importCans invia il batch e ricarica la lista', async () => {
+  const merged: Can[] = [
+    { id: '1', nome: 'A' },
+    { id: '2', nome: 'B' },
+  ];
+  vi.stubGlobal(
+    'fetch',
+    vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => [] }) // POST /batch
+      .mockResolvedValueOnce({ ok: true, json: async () => merged }), // reload GET
+  );
+
+  await useCansStore.getState().importCans([{ id: '2', nome: 'B' }]);
+
+  expect(useCansStore.getState().cans).toEqual(merged);
+});

@@ -12,6 +12,7 @@ interface CansState {
   createCan: (can: Can) => Promise<void>;
   uploadPhoto: (id: string, slot: number, file: File) => Promise<void>;
   uploadPhotoFromUrl: (id: string, slot: number, url: string) => Promise<void>;
+  importCans: (cans: Can[]) => Promise<void>;
 }
 
 export const useCansStore = create<CansState>((set) => ({
@@ -81,5 +82,16 @@ export const useCansStore = create<CansState>((set) => ({
     set((s) => ({
       cans: s.cans.map((c) => (c.id === id ? { ...c, [key]: newUrl } : c)),
     }));
+  },
+  importCans: async (cans) => {
+    const res = await authFetch('/api/cans/batch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cans),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    // ricarica dal server per riflettere il merge lato backend
+    const list = await fetch('/api/cans');
+    if (list.ok) set({ cans: (await list.json()) as Can[] });
   },
 }));
