@@ -33,7 +33,7 @@ export function Header({
         <button
           type="button"
           className="btn btn-ghost btn-icon"
-          aria-label="Cambia tema"
+          aria-label="Toggle theme"
           onClick={onToggleTheme}
         >
           <svg

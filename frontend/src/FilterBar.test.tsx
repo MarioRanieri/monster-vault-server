@@ -76,7 +76,7 @@ test('un range chiama onMin/onMax e il reset chiama onReset', async () => {
 test('il view-toggle chiama onChange', async () => {
   const onChange = vi.fn();
   render(<FilterBar query="" onQuery={() => {}} chips={[]} view={{ value: 'grid', onChange }} />);
-  await userEvent.click(screen.getByRole('button', { name: /vista lista/i }));
+  await userEvent.click(screen.getByRole('button', { name: /list view/i }));
   expect(onChange).toHaveBeenCalledWith('list');
 });
 
@@ -97,6 +97,6 @@ test('il sort chiama onChange', async () => {
       }}
     />,
   );
-  await userEvent.selectOptions(screen.getByRole('combobox', { name: /ordina/i }), 'valore-desc');
+  await userEvent.selectOptions(screen.getByRole('combobox', { name: /sort/i }), 'valore-desc');
   expect(onChange).toHaveBeenCalledWith('valore-desc');
 });

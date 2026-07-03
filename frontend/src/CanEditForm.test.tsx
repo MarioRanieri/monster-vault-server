@@ -11,13 +11,13 @@ test('precompila i campi e salva le modifiche', async () => {
 
   expect(screen.getByDisplayValue('Alpha')).toBeTruthy();
 
-  await userEvent.clear(screen.getByLabelText('Nome'));
-  await userEvent.type(screen.getByLabelText('Nome'), 'Beta');
+  await userEvent.clear(screen.getByLabelText('Name'));
+  await userEvent.type(screen.getByLabelText('Name'), 'Beta');
   await userEvent.type(screen.getByLabelText('SKU'), '-2');
   await userEvent.type(screen.getByLabelText('Size'), '500ml');
   await userEvent.type(screen.getByLabelText('Promo'), 'Zero');
-  await userEvent.type(screen.getByLabelText('Stato'), 'ok');
-  await userEvent.click(screen.getByRole('button', { name: /salva/i }));
+  await userEvent.type(screen.getByLabelText('Status'), 'ok');
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
   expect(onSave).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -34,7 +34,7 @@ test('precompila i campi e salva le modifiche', async () => {
 test('Annulla chiama onCancel', async () => {
   const onCancel = vi.fn();
   render(<CanEditForm can={can} onSave={() => {}} onCancel={onCancel} />);
-  await userEvent.click(screen.getByRole('button', { name: /annulla/i }));
+  await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
   expect(onCancel).toHaveBeenCalled();
 });
 
@@ -45,7 +45,7 @@ test('caricando un file chiama onUploadPhoto con lo slot 1', async () => {
   );
 
   const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' });
-  await userEvent.upload(screen.getByLabelText('Foto 1'), file);
+  await userEvent.upload(screen.getByLabelText('Photo 1'), file);
 
   expect(onUploadPhoto).toHaveBeenCalledWith(1, file);
 });

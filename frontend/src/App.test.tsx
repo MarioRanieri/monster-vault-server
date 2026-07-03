@@ -23,7 +23,7 @@ async function loginAsAdmin() {
   await userEvent.click(screen.getByRole('button', { name: /admin access/i }));
   await userEvent.type(screen.getByLabelText('Username'), 'admin');
   await userEvent.type(screen.getByLabelText('Password'), 'pw');
-  await userEvent.click(screen.getByRole('button', { name: /accedi/i }));
+  await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
   await screen.findByRole('button', { name: /sign out/i });
 }
 
@@ -91,11 +91,11 @@ test('cliccando una card si apre il dettaglio; Chiudi lo richiude', async () => 
   await enterCollection();
 
   await userEvent.click(await screen.findByRole('button', { name: /alpha/i }));
-  const chiudi = await screen.findByRole('button', { name: /^chiudi$/i });
+  const chiudi = await screen.findByRole('button', { name: /^close$/i });
   expect(chiudi).toBeTruthy();
 
   await userEvent.click(chiudi);
-  expect(screen.queryByRole('button', { name: /^chiudi$/i })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^close$/i })).toBeNull();
 });
 
 test('il chip "Con foto" mostra solo i cans con foto', async () => {
@@ -160,7 +160,7 @@ test('login, poi "Esci" riporta alla landing', async () => {
 
   await userEvent.type(screen.getByLabelText('Username'), 'admin');
   await userEvent.type(screen.getByLabelText('Password'), 'pw');
-  await userEvent.click(screen.getByRole('button', { name: /accedi/i }));
+  await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
 
   await userEvent.click(await screen.findByRole('button', { name: /sign out/i }));
 
@@ -182,7 +182,7 @@ test('admin: elimina una can dal dettaglio', async () => {
   await loginAsAdmin();
 
   await userEvent.click(screen.getByRole('button', { name: /alpha/i }));
-  await userEvent.click(screen.getByRole('button', { name: /elimina/i }));
+  await userEvent.click(screen.getByRole('button', { name: /delete/i }));
 
   expect(screen.queryByText('Alpha')).toBeNull();
 });
@@ -207,11 +207,11 @@ test('admin: modifica una can dal dettaglio', async () => {
   await loginAsAdmin();
 
   await userEvent.click(screen.getByRole('button', { name: /alpha/i }));
-  await userEvent.click(screen.getByRole('button', { name: /modifica/i }));
-  const nome = screen.getByLabelText('Nome');
+  await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+  const nome = screen.getByLabelText('Name');
   await userEvent.clear(nome);
   await userEvent.type(nome, 'Beta');
-  await userEvent.click(screen.getByRole('button', { name: /salva/i }));
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
   expect(screen.queryByText('Alpha')).toBeNull();
   expect((await screen.findAllByText('Beta')).length).toBeGreaterThan(0);
@@ -233,10 +233,10 @@ test('admin: Annulla chiude il form e torna al dettaglio', async () => {
   await loginAsAdmin();
 
   await userEvent.click(screen.getByRole('button', { name: /alpha/i }));
-  await userEvent.click(screen.getByRole('button', { name: /modifica/i }));
-  await userEvent.click(screen.getByRole('button', { name: /annulla/i }));
+  await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+  await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
 
-  expect(screen.getByRole('button', { name: /modifica/i })).toBeTruthy();
+  expect(screen.getByRole('button', { name: /edit/i })).toBeTruthy();
 });
 
 test('admin: crea una nuova can', async () => {
@@ -256,8 +256,8 @@ test('admin: crea una nuova can', async () => {
   await loginAsAdmin();
 
   await userEvent.click(screen.getByRole('button', { name: /add/i }));
-  await userEvent.type(screen.getByLabelText('Nome'), 'Nuova Lattina');
-  await userEvent.click(screen.getByRole('button', { name: /salva/i }));
+  await userEvent.type(screen.getByLabelText('Name'), 'Nuova Lattina');
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
   expect(await screen.findByText('Nuova Lattina')).toBeTruthy();
 });
@@ -275,9 +275,9 @@ test('admin: Annulla la creazione chiude il form', async () => {
   await loginAsAdmin();
 
   await userEvent.click(screen.getByRole('button', { name: /add/i }));
-  expect(screen.getByLabelText('Nome')).toBeTruthy();
-  await userEvent.click(screen.getByRole('button', { name: /annulla/i }));
-  expect(screen.queryByLabelText('Nome')).toBeNull();
+  expect(screen.getByLabelText('Name')).toBeTruthy();
+  await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
+  expect(screen.queryByLabelText('Name')).toBeNull();
 });
 
 test('admin: carica una foto durante la modifica', async () => {
@@ -297,12 +297,12 @@ test('admin: carica una foto durante la modifica', async () => {
   await loginAsAdmin();
 
   await userEvent.click(screen.getByRole('button', { name: /alpha/i }));
-  await userEvent.click(screen.getByRole('button', { name: /modifica/i }));
+  await userEvent.click(screen.getByRole('button', { name: /edit/i }));
 
   const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' });
-  await userEvent.upload(screen.getByLabelText('Foto 1'), file);
+  await userEvent.upload(screen.getByLabelText('Photo 1'), file);
 
-  await userEvent.click(screen.getByRole('button', { name: /annulla/i }));
+  await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
 
   expect((await screen.findAllByRole('img', { name: 'Alpha' })).length).toBeGreaterThan(0);
 });

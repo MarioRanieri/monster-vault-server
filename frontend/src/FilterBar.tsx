@@ -75,7 +75,7 @@ export function FilterBar({
         </svg>
         <input
           type="search"
-          aria-label="Cerca per nome, SKU o note"
+          aria-label="Search by name, SKU or notes"
           placeholder="Search by name, SKU, notes..."
           value={query}
           onChange={(e) => onQuery(e.target.value)}
@@ -142,7 +142,7 @@ export function FilterBar({
             <button
               type="button"
               className={`view-btn${view.value === 'grid' ? ' active' : ''}`}
-              aria-label="Vista griglia"
+              aria-label="Grid view"
               aria-pressed={view.value === 'grid'}
               onClick={() => view.onChange('grid')}
             >
@@ -164,7 +164,7 @@ export function FilterBar({
             <button
               type="button"
               className={`view-btn${view.value === 'list' ? ' active' : ''}`}
-              aria-label="Vista lista"
+              aria-label="List view"
               aria-pressed={view.value === 'list'}
               onClick={() => view.onChange('list')}
             >
@@ -190,7 +190,7 @@ export function FilterBar({
         {sort && (
           <select
             className="filter-select"
-            aria-label="Ordina"
+            aria-label="Sort"
             value={sort.value}
             onChange={(e) => sort.onChange(e.target.value)}
           >

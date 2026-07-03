@@ -16,7 +16,7 @@ export function CanList({
       <table className="list-table">
         <thead>
           <tr>
-            <th aria-label="Foto" />
+            <th aria-label="Photo" />
             <th>Name</th>
             <th>SKU</th>
             <th>Manufacturer</th>

@@ -28,7 +28,7 @@ export function CanEditForm({
       }}
     >
       <label>
-        Nome
+        Name
         <input value={nome} onChange={(e) => setNome(e.target.value)} />
       </label>
       <label>
@@ -44,12 +44,12 @@ export function CanEditForm({
         <input value={promo} onChange={(e) => setPromo(e.target.value)} />
       </label>
       <label>
-        Stato
+        Status
         <input value={stato} onChange={(e) => setStato(e.target.value)} />
       </label>
       {onUploadPhoto && (
         <label>
-          Foto 1
+          Photo 1
           <input
             type="file"
             accept="image/*"
@@ -60,9 +60,9 @@ export function CanEditForm({
           />
         </label>
       )}
-      <button type="submit">Salva</button>
+      <button type="submit">Save</button>
       <button type="button" onClick={onCancel}>
-        Annulla
+        Cancel
       </button>
     </form>
   );

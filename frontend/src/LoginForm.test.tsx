@@ -8,7 +8,7 @@ test('inviando il form chiama onLogin con le credenziali', async () => {
 
   await userEvent.type(screen.getByLabelText('Username'), 'admin');
   await userEvent.type(screen.getByLabelText('Password'), 'pw');
-  await userEvent.click(screen.getByRole('button', { name: /accedi/i }));
+  await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
 
   expect(onLogin).toHaveBeenCalledWith('admin', 'pw');
 });

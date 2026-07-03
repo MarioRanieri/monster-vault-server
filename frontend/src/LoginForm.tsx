@@ -34,9 +34,9 @@ export function LoginForm({
         </div>
         <div className="auth-title">Admin access</div>
         <div className="auth-sub">
-          Inserisci le credenziali per gestire la collezione.
+          Enter your credentials to manage the collection.
           <br />
-          Gli altri possono navigare in sola lettura.
+          Others can browse in read-only mode.
         </div>
         <form
           className="auth-form"
@@ -66,7 +66,7 @@ export function LoginForm({
             <button
               type="button"
               className="auth-pw-eye"
-              aria-label={showPw ? 'Nascondi password' : 'Mostra password'}
+              aria-label={showPw ? 'Hide password' : 'Show password'}
               aria-pressed={showPw}
               onClick={() => setShowPw((v) => !v)}
             >
@@ -91,12 +91,12 @@ export function LoginForm({
             </p>
           )}
           <button type="submit" className="auth-google-btn">
-            Accedi
+            Sign in
           </button>
         </form>
         {onGuest && (
           <button type="button" className="auth-public-btn" onClick={onGuest}>
-            Continua in sola lettura &rarr;
+            Continue in read-only mode &rarr;
           </button>
         )}
       </div>

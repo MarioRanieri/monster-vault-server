@@ -256,8 +256,8 @@ function App() {
           onChange: (v) => setGridMode(v as 'grid' | 'list'),
         }}
       />
-      {loading && <p>Caricamento…</p>}
-      {error && <p role="alert">Errore: {error}</p>}
+      {loading && <p>Loading…</p>}
+      {error && <p role="alert">Error: {error}</p>}
       {gridMode === 'grid' ? (
         <CanGrid cans={visible} onSelect={selectCan} />
       ) : (

@@ -15,7 +15,7 @@ test('mostra i dettagli della can', () => {
 test('il bottone Chiudi chiama onClose', async () => {
   const onClose = vi.fn();
   render(<CanDetail can={can} onClose={onClose} />);
-  await userEvent.click(screen.getByRole('button', { name: /chiudi/i }));
+  await userEvent.click(screen.getByRole('button', { name: /close/i }));
   expect(onClose).toHaveBeenCalled();
 });
 
@@ -57,7 +57,7 @@ test('cliccando una foto si apre la lightbox; il suo Chiudi la chiude', async ()
   await userEvent.click(screen.getByRole('img', { name: 'Alpha' }));
   expect(screen.getByRole('dialog')).toBeTruthy();
 
-  await userEvent.click(screen.getByRole('button', { name: /chiudi foto/i }));
+  await userEvent.click(screen.getByRole('button', { name: /close photo/i }));
   expect(screen.queryByRole('dialog')).toBeNull();
 });
 
@@ -74,8 +74,8 @@ test('da admin mostra Modifica ed Elimina con le callback', async () => {
     />,
   );
 
-  await userEvent.click(screen.getByRole('button', { name: /modifica/i }));
-  await userEvent.click(screen.getByRole('button', { name: /elimina/i }));
+  await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+  await userEvent.click(screen.getByRole('button', { name: /delete/i }));
 
   expect(onEdit).toHaveBeenCalled();
   expect(onDelete).toHaveBeenCalled();
@@ -83,7 +83,7 @@ test('da admin mostra Modifica ed Elimina con le callback', async () => {
 
 test('senza admin non mostra Modifica/Elimina', () => {
   render(<CanDetail can={{ id: '1', nome: 'Alpha' }} onClose={() => {}} />);
-  expect(screen.queryByRole('button', { name: /elimina/i })).toBeNull();
+  expect(screen.queryByRole('button', { name: /delete/i })).toBeNull();
 });
 
 test('guest non vede il prezzo (Est. Value)', () => {

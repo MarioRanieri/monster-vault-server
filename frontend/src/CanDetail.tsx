@@ -44,7 +44,7 @@ export function CanDetail({
       <div className="detail-head">
         <div className="detail-title">{can.nome || '—'}</div>
         <button type="button" className="detail-close" onClick={onClose}>
-          Chiudi
+          Close
         </button>
       </div>
       <div className="detail-body">
@@ -132,19 +132,19 @@ export function CanDetail({
           {isAdmin && (
             <div className="admin-actions">
               <button type="button" onClick={onEdit}>
-                Modifica
+                Edit
               </button>
               <button type="button" onClick={onDelete}>
-                Elimina
+                Delete
               </button>
             </div>
           )}
         </div>
       </div>
       {lightbox && (
-        <div className="lightbox" role="dialog" aria-label="Foto ingrandita">
+        <div className="lightbox" role="dialog" aria-label="Enlarged photo">
           <button type="button" onClick={() => setLightbox(null)}>
-            Chiudi foto
+            Close photo
           </button>
           <img src={lightbox} alt={can.nome} />
         </div>

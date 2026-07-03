@@ -35,6 +35,6 @@ test('il toggle tema chiama onToggleTheme', async () => {
       onToggleTheme={onToggleTheme}
     />,
   );
-  await userEvent.click(screen.getByRole('button', { name: /tema/i }));
+  await userEvent.click(screen.getByRole('button', { name: /theme/i }));
   expect(onToggleTheme).toHaveBeenCalled();
 });
