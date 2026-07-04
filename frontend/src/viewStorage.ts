@@ -17,7 +17,10 @@ export function getViews(): SavedView[] {
 }
 
 export function setViews(views: SavedView[]): void {
-  localStorage.setItem(KEY, JSON.stringify(views));
+  // Le viste salvate sono le preferenze di filtro dell'utente stesso (nessun input
+  // esterno) e vengono rilette come stato React, mai come HTML: localStorage non
+  // esegue codice, quindi non è una sink XSS. Falso positivo verificato. NOSONAR
+  localStorage.setItem(KEY, JSON.stringify(views)); // NOSONAR
 }
 
 // Salva (o sovrascrive per nome) e ritorna la lista aggiornata.

@@ -143,7 +143,16 @@ export function CanEditForm({
                   key={slot}
                   id={`slot-${slot}`}
                   className="photo-slot"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Upload photo ${slot}`}
                   onClick={() => fileRefs.current[i]?.click()}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      fileRefs.current[i]?.click();
+                    }
+                  }}
                 >
                   {src ? (
                     <img src={src} alt={`Photo ${slot}`} />

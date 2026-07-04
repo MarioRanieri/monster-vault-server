@@ -78,7 +78,14 @@ export function CanDetail({
                 className="detail-main-img"
                 src={cloudinaryThumb(main, 800, 800)}
                 alt={can.nome}
+                tabIndex={0}
                 onClick={() => setLbIdx(mainIdx)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setLbIdx(mainIdx);
+                  }
+                }}
               />
               <div className="detail-tap-zoom">tap to zoom</div>
               {photos.length > 1 && (
@@ -89,7 +96,14 @@ export function CanDetail({
                       className={'detail-thumb' + (i === mainIdx ? ' active' : '')}
                       src={cloudinaryThumb(url, 80, 80)}
                       alt={can.nome}
+                      tabIndex={0}
                       onClick={() => setMainIdx(i)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setMainIdx(i);
+                        }
+                      }}
                     />
                   ))}
                 </div>
