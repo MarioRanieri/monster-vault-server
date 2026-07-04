@@ -48,7 +48,7 @@ export function FilterBar({
   sort,
   onReset,
   view,
-}: {
+}: Readonly<{
   query: string;
   onQuery: (q: string) => void;
   chips: Chip[];
@@ -57,7 +57,7 @@ export function FilterBar({
   sort?: SortControl;
   onReset?: () => void;
   view?: ViewToggle;
-}) {
+}>) {
   return (
     <div className="filter-bar">
       <div className="search-wrap">

@@ -8,12 +8,12 @@ export function Lightbox({
   start = 0,
   alt,
   onClose,
-}: {
+}: Readonly<{
   photos: string[];
   start?: number;
   alt?: string;
   onClose: () => void;
-}) {
+}>) {
   const [idx, setIdx] = useState(start);
   const prev = () => setIdx((i) => (i + photos.length - 1) % photos.length);
   const next = () => setIdx((i) => (i + 1) % photos.length);
@@ -24,8 +24,8 @@ export function Lightbox({
       else if (e.key === 'ArrowLeft') prev();
       else if (e.key === 'ArrowRight') next();
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    globalThis.addEventListener('keydown', onKey);
+    return () => globalThis.removeEventListener('keydown', onKey);
   }, [photos.length]);
 
   if (photos.length === 0) return null;

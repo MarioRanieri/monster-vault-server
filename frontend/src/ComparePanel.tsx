@@ -8,11 +8,11 @@ export function ComparePanel({
   cans,
   isAdmin,
   onClose,
-}: {
+}: Readonly<{
   cans: Can[];
   isAdmin?: boolean;
   onClose: () => void;
-}) {
+}>) {
   const rows: { lbl: string; key: keyof Can; isTop?: boolean; money?: boolean }[] = [
     { lbl: 'SKU', key: 'sku' },
     { lbl: 'Manufacturer', key: 'produttore' },

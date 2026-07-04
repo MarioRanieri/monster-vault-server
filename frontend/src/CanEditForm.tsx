@@ -45,14 +45,14 @@ export function CanEditForm({
   onSave,
   onCancel,
   onDelete,
-}: {
+}: Readonly<{
   can: Can;
   title?: string;
   suggestions?: Suggestions;
   onSave: (can: Can, uploads: Upload[]) => void;
   onCancel: () => void;
   onDelete?: () => void;
-}) {
+}>) {
   const [nome, setNome] = useState(can.nome);
   const [sku, setSku] = useState(can.sku ?? '');
   const [produttore, setProduttore] = useState(can.produttore ?? '');
@@ -186,7 +186,7 @@ export function CanEditForm({
                     aria-label="Paste URL"
                     onClick={(e) => {
                       e.stopPropagation();
-                      const u = window.prompt('Paste image URL');
+                      const u = globalThis.prompt('Paste image URL');
                       if (u?.trim()) setSlot(i, { kind: 'url', url: u.trim() });
                     }}
                   >

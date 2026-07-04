@@ -17,7 +17,7 @@ const CHART_COLORS = [
 
 // Grafico a ciambella (donut) in SVG: una fetta per categoria, buco centrale col
 // totale. Portato da tools.ts:donutSVG.
-function Donut({ data, total }: { data: Freq[]; total: number }) {
+function Donut({ data, total }: Readonly<{ data: Freq[]; total: number }>) {
   const r = 56;
   const circ = 2 * Math.PI * r;
   let offset = 0;
@@ -72,11 +72,11 @@ export function StatsModal({
   cans,
   stats,
   onClose,
-}: {
+}: Readonly<{
   cans: Can[];
   stats: Stats;
   onClose: () => void;
-}) {
+}>) {
   const pct = stats.total ? Math.round((stats.withPhoto / stats.total) * 100) : 0;
 
   const sections: { title: string; data: Freq[] }[] = [

@@ -5,12 +5,12 @@ export function LandingPage({
   withPhoto,
   onEnter,
   onAdmin,
-}: {
+}: Readonly<{
   total: number;
   withPhoto: number;
   onEnter: () => void;
   onAdmin: () => void;
-}) {
+}>) {
   return (
     // Il CSS vecchio parte da display:none (nel vanilla la mostrava il JS);
     // qui la montiamo in modo condizionale, quindi la forziamo visibile.

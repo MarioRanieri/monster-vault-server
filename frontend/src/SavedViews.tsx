@@ -7,15 +7,15 @@ import { getViews, saveView, deleteView, type SavedView } from './viewStorage';
 export function SavedViews({
   current,
   onApply,
-}: {
+}: Readonly<{
   current: ShareFilters;
   onApply: (f: ShareFilters) => void;
-}) {
+}>) {
   const [open, setOpen] = useState(false);
   const [views, setLocalViews] = useState<SavedView[]>(() => getViews());
 
   const save = () => {
-    const name = window.prompt('Name this view:')?.trim();
+    const name = globalThis.prompt('Name this view:')?.trim();
     if (!name) return;
     setLocalViews(saveView(name, current));
   };

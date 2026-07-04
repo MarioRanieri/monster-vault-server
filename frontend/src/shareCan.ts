@@ -5,7 +5,7 @@ import type { Can } from './types';
 const isFull = (can: Can) => (can.note ?? '').toUpperCase().includes('FULL');
 
 export function canShareUrl(id: string): string {
-  return `${window.location.origin}/share/${encodeURIComponent(id)}`;
+  return `${globalThis.location.origin}/share/${encodeURIComponent(id)}`;
 }
 
 export function canShareText(can: Can, url: string): string {

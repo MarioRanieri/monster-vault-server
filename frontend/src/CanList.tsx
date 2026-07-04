@@ -5,7 +5,7 @@ import { Flags } from './flags';
 import { colorizeTab } from './colorizeTab';
 
 type SortKey = 'nome' | 'sku' | 'produttore' | 'lingua' | 'size' | 'top' | 'valore';
-const num = (v?: string) => parseFloat(v ?? '') || 0;
+const num = (v?: string) => Number.parseFloat(v ?? '') || 0;
 
 // Vista lista/tabella (classi .list-view-wrap/.list-table del vecchio): riga
 // interamente cliccabile, flag del paese, miniature Cloudinary, header ordinabili.
@@ -14,11 +14,11 @@ export function CanList({
   cans,
   onSelect,
   showPrice,
-}: {
+}: Readonly<{
   cans: Can[];
   onSelect?: (can: Can) => void;
   showPrice?: boolean;
-}) {
+}>) {
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 } | null>(null);
 
   const rows = sort

@@ -84,7 +84,7 @@ function App() {
 
   // Deep-link condiviso: al mount rilegge i filtri dalla URL e salta la landing.
   useEffect(() => {
-    const f = parseShareUrl(window.location.search);
+    const f = parseShareUrl(globalThis.location.search);
     if (Object.keys(f).length === 0) return;
     if (f.query != null) setQuery(f.query);
     if (f.lingua != null) setFlLingua(f.lingua);
@@ -208,7 +208,10 @@ function App() {
     if (f.sort) setSort(f.sort as SortKey);
   };
   const shareCurrentView = () => {
-    const url = buildShareUrl(window.location.origin + window.location.pathname, currentFilters);
+    const url = buildShareUrl(
+      globalThis.location.origin + globalThis.location.pathname,
+      currentFilters,
+    );
     void navigator.clipboard?.writeText(url);
     setToast('🔗 View link copied');
     setTimeout(() => setToast(null), 2000);

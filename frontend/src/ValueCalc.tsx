@@ -3,7 +3,7 @@ import { sumValue } from './computeStats';
 
 // Calcolatore di valore (modal, classi come StatsModal): somma/media del valore
 // stimato delle lattine attualmente filtrate. Admin-only (i prezzi lo sono).
-export function ValueCalc({ cans, onClose }: { cans: Can[]; onClose: () => void }) {
+export function ValueCalc({ cans, onClose }: Readonly<{ cans: Can[]; onClose: () => void }>) {
   const withValue = cans.filter((c) => c.valore);
   const total = sumValue(cans);
   const avg = withValue.length ? total / withValue.length : 0;

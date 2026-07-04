@@ -4,7 +4,10 @@ import { Flags } from './flags';
 
 // Vista "wall" (classe .wall-grid del vecchio): mosaico di sole foto, miniature
 // Cloudinary leggere. All'hover una caption col nome + flag; il tile apre il dettaglio.
-export function CanWall({ cans, onSelect }: { cans: Can[]; onSelect?: (can: Can) => void }) {
+export function CanWall({
+  cans,
+  onSelect,
+}: Readonly<{ cans: Can[]; onSelect?: (can: Can) => void }>) {
   const withPhotos = cans.filter((c) => c.p1);
   if (withPhotos.length === 0) {
     return (

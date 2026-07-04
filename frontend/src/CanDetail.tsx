@@ -18,7 +18,7 @@ export function CanDetail({
   inCompare,
   onToggleCompare,
   onToast,
-}: {
+}: Readonly<{
   can: Can;
   onClose: () => void;
   isAdmin?: boolean;
@@ -28,7 +28,7 @@ export function CanDetail({
   inCompare?: boolean;
   onToggleCompare?: () => void;
   onToast?: (msg: string) => void;
-}) {
+}>) {
   const photos = [can.p1, can.p2, can.p3, can.p4].filter((url): url is string => Boolean(url));
   const [mainIdx, setMainIdx] = useState(0);
   const [lbIdx, setLbIdx] = useState<number | null>(null);

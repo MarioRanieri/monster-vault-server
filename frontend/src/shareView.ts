@@ -39,7 +39,7 @@ export function buildShareUrl(base: string, f: ShareFilters): string {
   return qs ? `${base}?${qs}` : base;
 }
 
-// Legge i filtri da una query-string (window.location.search). Inverso del build.
+// Legge i filtri da una query-string (globalThis.location.search). Inverso del build.
 export function parseShareUrl(search: string): Partial<ShareFilters> {
   const p = new URLSearchParams(search);
   const out: Partial<ShareFilters> = {};

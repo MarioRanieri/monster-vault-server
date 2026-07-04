@@ -16,7 +16,7 @@ export interface CanFilters {
   ymax?: number;
 }
 
-const num = (v?: string) => parseFloat(v ?? '') || 0;
+const num = (v?: string) => Number.parseFloat(v ?? '') || 0;
 const isFull = (can: Can) => (can.note ?? '').toUpperCase().includes('FULL');
 
 // Anno di produzione dallo SKU (es. 0610 = 06/2010, 093 = 09/2003). null se non
@@ -24,9 +24,9 @@ const isFull = (can: Can) => (can.note ?? '').toUpperCase().includes('FULL');
 export function extractYearFromCan(can: Can): number | null {
   const s = String(can.sku ?? '').trim();
   if (!/^\d{3,4}$/.test(s)) return null;
-  const mm = parseInt(s.slice(0, 2), 10);
+  const mm = Number.parseInt(s.slice(0, 2), 10);
   if (mm < 1 || mm > 12) return null;
-  return 2000 + parseInt(s.slice(2), 10);
+  return 2000 + Number.parseInt(s.slice(2), 10);
 }
 
 // Applica tutti i criteri insieme (AND); un filtro assente non restringe.
@@ -95,7 +95,7 @@ export function filterOptions(cans: Can[]): FilterOptions {
       cmp ?? ((a, b) => a.localeCompare(b)),
     );
   // le taglie vanno per ml crescenti (89ML < 90ML < 250ML < 500ML), non alfabetico
-  const sizeMl = (s: string) => parseFloat(s.replace(/[^0-9.]/g, '')) || 0;
+  const sizeMl = (s: string) => Number.parseFloat(s.replace(/[^0-9.]/g, '')) || 0;
   return {
     countries: distinct((c) => c.lingua),
     sizes: distinct(

@@ -3,7 +3,7 @@ import { useAuthStore } from './authStore';
 
 // Pannello "Account & security" (admin): cambio password + generazione del codice
 // di recupero (mostrato una sola volta). Riusa il guscio modale di Stats.
-export function AccountPanel({ onClose }: { onClose: () => void }) {
+export function AccountPanel({ onClose }: Readonly<{ onClose: () => void }>) {
   const changePassword = useAuthStore((s) => s.changePassword);
   const generateRecoveryCode = useAuthStore((s) => s.generateRecoveryCode);
 

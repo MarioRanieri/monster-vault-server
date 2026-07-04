@@ -8,15 +8,15 @@ export function CanGrid({
   cans,
   showPrice,
   onSelect,
-}: {
+}: Readonly<{
   cans: Can[];
   showPrice?: boolean;
   onSelect?: (can: Can) => void;
-}) {
+}>) {
   return (
     <div className="grid" id="grid">
       {cans.map((can) => {
-        const pv = can.valore ? parseFloat(can.valore).toLocaleString('en-US') : '';
+        const pv = can.valore ? Number.parseFloat(can.valore).toLocaleString('en-US') : '';
         const isFull = (can.note ?? '').toUpperCase().includes('FULL');
         return (
           <button key={can.id} type="button" className="card" onClick={() => onSelect?.(can)}>

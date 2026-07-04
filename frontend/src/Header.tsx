@@ -12,7 +12,7 @@ export function Header({
   onExport,
   onImport,
   onAccount,
-}: {
+}: Readonly<{
   isAdmin: boolean;
   onSignOut: () => void;
   onAdd: () => void;
@@ -22,7 +22,7 @@ export function Header({
   onExport?: () => void;
   onImport?: (file: File) => void;
   onAccount?: () => void;
-}) {
+}>) {
   return (
     <header className="header">
       <div className="logo">

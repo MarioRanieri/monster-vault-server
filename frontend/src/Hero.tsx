@@ -7,12 +7,12 @@ export function Hero({
   isAdmin,
   onStats,
   onValue,
-}: {
+}: Readonly<{
   stats: Stats;
   isAdmin?: boolean;
   onStats?: () => void;
   onValue?: () => void;
-}) {
+}>) {
   return (
     <section className="hero">
       <div className="hero-bg" />

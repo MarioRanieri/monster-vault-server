@@ -8,11 +8,11 @@ export function PhotoCrop({
   file,
   onApply,
   onCancel,
-}: {
+}: Readonly<{
   file: File;
   onApply: (f: File) => void;
   onCancel: () => void;
-}) {
+}>) {
   const [src, setSrc] = useState('');
   const imgRef = useRef<HTMLImageElement>(null);
   const [drag, setDrag] = useState<{

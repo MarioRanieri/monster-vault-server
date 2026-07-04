@@ -4,7 +4,10 @@ import { canShareUrl, canShareText, canWhatsappUrl, canTelegramUrl } from './sha
 
 // Bottone "Share" della lattina + sheet a tendina (classi .share-sheet* del vecchio):
 // Copy link / Copy text / WhatsApp / Telegram. Visibile a tutti (guest e admin).
-export function CanShare({ can, onToast }: { can: Can; onToast?: (msg: string) => void }) {
+export function CanShare({
+  can,
+  onToast,
+}: Readonly<{ can: Can; onToast?: (msg: string) => void }>) {
   const [open, setOpen] = useState(false);
   const url = canShareUrl(can.id);
 
@@ -14,7 +17,7 @@ export function CanShare({ can, onToast }: { can: Can; onToast?: (msg: string) =
     setOpen(false);
   };
   const go = (href: string) => {
-    window.open(href, '_blank', 'noopener');
+    globalThis.open(href, '_blank', 'noopener');
     setOpen(false);
   };
 

@@ -51,12 +51,12 @@ export function LoginForm({
   error,
   onGuest,
   onRecover,
-}: {
+}: Readonly<{
   onLogin: (username: string, password: string) => void | Promise<void>;
   error?: string | null;
   onGuest?: () => void;
   onRecover?: (username: string, recoveryCode: string, newPassword: string) => Promise<Result>;
-}) {
+}>) {
   const [mode, setMode] = useState<'login' | 'recover'>('login');
 
   // login

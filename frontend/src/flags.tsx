@@ -360,7 +360,7 @@ export function parseFlags(lingua: string | undefined): FlagToken[] {
 }
 
 // Rende le bandiere del campo lingua (immagini flagcdn + nome), come nel vecchio.
-export function Flags({ lingua }: { lingua?: string }) {
+export function Flags({ lingua }: Readonly<{ lingua?: string }>) {
   const tokens = parseFlags(lingua);
   if (tokens.length === 0) return null;
   return (

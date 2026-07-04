@@ -7,12 +7,12 @@ export function CompareBar({
   onRemove,
   onOpen,
   onClear,
-}: {
+}: Readonly<{
   cans: Can[];
   onRemove: (id: string) => void;
   onOpen: () => void;
   onClear: () => void;
-}) {
+}>) {
   if (cans.length === 0) return null;
   return (
     <div className="compare-bar open">
