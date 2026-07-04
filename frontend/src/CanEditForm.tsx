@@ -15,6 +15,14 @@ const OPENING = [
 ];
 
 // Uno slot foto: file nuovo (staged), URL nuovo, foto esistente da tenere, o vuoto.
+// Anteprima di uno slot foto: URL Cloudinary (esistente), URL esterno, o file staged.
+function slotSrc(s: Slot): string | null {
+  if (!s) return null;
+  if (s.kind === 'keep') return cloudinaryThumb(s.url, 400, 400);
+  if (s.kind === 'url') return s.url;
+  return s.preview;
+}
+
 type Slot =
   | { kind: 'file'; file: File; preview: string }
   | { kind: 'url'; url: string }
@@ -131,13 +139,7 @@ export function CanEditForm({
             {[0, 1, 2, 3].map((i) => {
               const slot = i + 1;
               const s = pending[i];
-              const src = !s
-                ? null
-                : s.kind === 'keep'
-                  ? cloudinaryThumb(s.url, 400, 400)
-                  : s.kind === 'url'
-                    ? s.url
-                    : s.preview;
+              const src = slotSrc(s);
               return (
                 <div
                   key={slot}

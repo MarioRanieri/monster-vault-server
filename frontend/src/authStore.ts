@@ -21,6 +21,18 @@ interface AuthState {
 const authHeader = (token: string | null): Record<string, string> =>
   token ? { Authorization: `Bearer ${token}` } : {};
 
+function changePwError(status: number): string {
+  if (status === 401) return 'Current password is wrong';
+  if (status === 400) return 'New password must be at least 8 characters';
+  return 'Something went wrong';
+}
+
+function recoverError(status: number): string {
+  if (status === 429) return 'Too many attempts. Wait a minute.';
+  if (status === 400) return 'New password must be at least 8 characters';
+  return 'Invalid username or recovery code';
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   accessToken: null,
   isAdmin: false,
@@ -75,12 +87,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (res.ok) return { ok: true };
     return {
       ok: false,
-      error:
-        res.status === 401
-          ? 'Current password is wrong'
-          : res.status === 400
-            ? 'New password must be at least 8 characters'
-            : 'Something went wrong',
+      error: changePwError(res.status),
     };
   },
   generateRecoveryCode: async () => {
@@ -101,12 +108,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (res.ok) return { ok: true };
     return {
       ok: false,
-      error:
-        res.status === 429
-          ? 'Too many attempts. Wait a minute.'
-          : res.status === 400
-            ? 'New password must be at least 8 characters'
-            : 'Invalid username or recovery code',
+      error: recoverError(res.status),
     };
   },
 }));
