@@ -280,6 +280,7 @@ function App() {
       />
       <Hero
         stats={stats}
+        isAdmin={isAdmin}
         onStats={() => setShowStats(true)}
         onValue={isAdmin ? () => setShowValue(true) : undefined}
       />

@@ -4,17 +4,19 @@ import type { Stats } from './computeStats';
 // conteggio grande e riga di statistiche. Presentazionale (aggregati via props).
 export function Hero({
   stats,
+  isAdmin,
   onStats,
   onValue,
 }: {
   stats: Stats;
+  isAdmin?: boolean;
   onStats?: () => void;
   onValue?: () => void;
 }) {
   return (
     <section className="hero">
       <div className="hero-bg" />
-      <div className="hero-label">Your Collection</div>
+      <div className="hero-label">{isAdmin ? 'Your Collection' : "RedMghost's Collection"}</div>
       <div className="hero-count">
         <span>{stats.total}</span> cans
       </div>
