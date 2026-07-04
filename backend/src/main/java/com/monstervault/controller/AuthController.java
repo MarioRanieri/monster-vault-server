@@ -1,5 +1,6 @@
 package com.monstervault.controller;
 
+import com.monstervault.service.AccountService;
 import com.monstervault.service.AuthResponse;
 import com.monstervault.service.AuthService;
 import jakarta.servlet.http.Cookie;
@@ -23,12 +24,14 @@ public class AuthController {
     static final String REFRESH_COOKIE = "mv_refresh";
 
     private final AuthService authService;
+    private final AccountService accountService;
 
     @Value("${app.jwt.refresh-cookie-secure:true}")
     private boolean cookieSecure;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, AccountService accountService) {
         this.authService = authService;
+        this.accountService = accountService;
     }
 
     @PostMapping("/login")
@@ -59,6 +62,19 @@ public class AuthController {
         }
         clearRefreshCookie(response);
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    @PostMapping("/recover")
+    public ResponseEntity<?> recover(@RequestBody RecoverRequest req) {
+        if (AccountController.tooShort(req.newPassword())) {
+            return ResponseEntity.badRequest().body("Password must be at least 8 characters");
+        }
+        if (accountService.recover(req.username(), req.recoveryCode(), req.newPassword())) {
+            log.info("Password reimpostata tramite codice di recupero per '{}'", req.username());
+            return ResponseEntity.noContent().build();
+        }
+        log.warn("Recupero password fallito per '{}'", req.username());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or recovery code");
     }
 
     @PostMapping("/logout")
@@ -103,4 +119,6 @@ public class AuthController {
     }
 
     record LoginRequest(String username, String password) {}
+
+    record RecoverRequest(String username, String recoveryCode, String newPassword) {}
 }

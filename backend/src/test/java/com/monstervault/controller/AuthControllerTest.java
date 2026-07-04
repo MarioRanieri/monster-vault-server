@@ -1,6 +1,7 @@
 package com.monstervault.controller;
 
 import com.monstervault.security.JwtUtil;
+import com.monstervault.service.AccountService;
 import com.monstervault.service.AuthResponse;
 import com.monstervault.service.AuthService;
 import jakarta.servlet.http.Cookie;
@@ -35,6 +36,7 @@ class AuthControllerTest {
     @Autowired MockMvc mockMvc;
 
     @MockBean AuthService authService;
+    @MockBean AccountService accountService;
     @MockBean PasswordEncoder passwordEncoder;
 
     // ── login ────────────────────────────────────────────────────────────────
@@ -122,5 +124,35 @@ class AuthControllerTest {
     void logout_noCookie_returns204() throws Exception {
         mockMvc.perform(post("/api/auth/logout"))
                 .andExpect(status().isNoContent());
+    }
+
+    // ── recover (password dimenticata con codice) ─────────────────────────────
+
+    @Test
+    void recover_validCode_returns204() throws Exception {
+        when(accountService.recover("testadmin", "MV-CODE", "newpassword")).thenReturn(true);
+
+        mockMvc.perform(post("/api/auth/recover")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"testadmin\",\"recoveryCode\":\"MV-CODE\",\"newPassword\":\"newpassword\"}"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void recover_wrongCode_returns401() throws Exception {
+        when(accountService.recover(anyString(), anyString(), anyString())).thenReturn(false);
+
+        mockMvc.perform(post("/api/auth/recover")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"testadmin\",\"recoveryCode\":\"BAD\",\"newPassword\":\"newpassword\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void recover_shortPassword_returns400() throws Exception {
+        mockMvc.perform(post("/api/auth/recover")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"testadmin\",\"recoveryCode\":\"MV-CODE\",\"newPassword\":\"short\"}"))
+                .andExpect(status().isBadRequest());
     }
 }

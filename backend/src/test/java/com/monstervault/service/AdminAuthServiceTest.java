@@ -1,10 +1,13 @@
 package com.monstervault.service;
 
+import com.monstervault.model.AdminCredential;
+import com.monstervault.repository.AdminCredentialRepository;
 import com.monstervault.security.RefreshTokenStore;
 import com.monstervault.security.TokenGenerator;
 import com.monstervault.security.TokenValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -20,6 +23,7 @@ class AdminAuthServiceTest {
     private TokenGenerator tokenGenerator;
     private TokenValidator tokenValidator;
     private RefreshTokenStore refreshTokenStore;
+    private AdminCredentialRepository credentialRepository;
     private AdminAuthService authService;
 
     @BeforeEach
@@ -28,9 +32,11 @@ class AdminAuthServiceTest {
         tokenGenerator = mock(TokenGenerator.class);
         tokenValidator = mock(TokenValidator.class);
         refreshTokenStore = mock(RefreshTokenStore.class);
-        authService = new AdminAuthService(passwordEncoder, tokenGenerator, tokenValidator, refreshTokenStore);
-        ReflectionTestUtils.setField(authService, "adminUsername", "admin");
-        ReflectionTestUtils.setField(authService, "adminPasswordHash", "$2a$10$fakehash");
+        credentialRepository = mock(AdminCredentialRepository.class);
+        authService = new AdminAuthService(passwordEncoder, tokenGenerator, tokenValidator,
+                refreshTokenStore, credentialRepository);
+        when(credentialRepository.find())
+                .thenReturn(Optional.of(new AdminCredential("admin", "admin", "$2a$10$fakehash", null)));
     }
 
     // ── authenticate ─────────────────────────────────────────────────────────
@@ -122,5 +128,96 @@ class AdminAuthServiceTest {
     void logout_nullToken_doesNothing() {
         authService.logout(null);
         verifyNoInteractions(refreshTokenStore);
+    }
+
+    // ── account: change password ──────────────────────────────────────────────
+
+    @Test
+    void changePassword_correctCurrent_updatesHashAndRevokesSessions() {
+        when(passwordEncoder.matches("secret", "$2a$10$fakehash")).thenReturn(true);
+        when(passwordEncoder.encode("newpass123")).thenReturn("$2a$10$newhash");
+
+        boolean ok = authService.changePassword("secret", "newpass123");
+
+        assertThat(ok).isTrue();
+        ArgumentCaptor<AdminCredential> saved = ArgumentCaptor.forClass(AdminCredential.class);
+        verify(credentialRepository).save(saved.capture());
+        assertThat(saved.getValue().getPasswordHash()).isEqualTo("$2a$10$newhash");
+        verify(refreshTokenStore).revokeAllForUser("admin");
+    }
+
+    @Test
+    void changePassword_wrongCurrent_returnsFalseAndDoesNotSave() {
+        when(passwordEncoder.matches("wrong", "$2a$10$fakehash")).thenReturn(false);
+        assertThat(authService.changePassword("wrong", "newpass123")).isFalse();
+        verify(credentialRepository, never()).save(any());
+    }
+
+    // ── account: recovery code ────────────────────────────────────────────────
+
+    @Test
+    void generateRecoveryCode_returnsReadableCodeAndStoresOnlyHash() {
+        when(passwordEncoder.encode(anyString())).thenReturn("$2a$10$codehash");
+
+        String code = authService.generateRecoveryCode();
+
+        assertThat(code).matches("MV-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}");
+        ArgumentCaptor<AdminCredential> saved = ArgumentCaptor.forClass(AdminCredential.class);
+        verify(credentialRepository).save(saved.capture());
+        assertThat(saved.getValue().getRecoveryCodeHash()).isEqualTo("$2a$10$codehash");
+    }
+
+    @Test
+    void recover_validCode_resetsPasswordAndClearsCode() {
+        when(credentialRepository.find()).thenReturn(
+                Optional.of(new AdminCredential("admin", "admin", "$2a$10$old", "$2a$10$codehash")));
+        when(passwordEncoder.matches("MV-CODE", "$2a$10$codehash")).thenReturn(true);
+        when(passwordEncoder.encode("newpass123")).thenReturn("$2a$10$newhash");
+
+        boolean ok = authService.recover("admin", "MV-CODE", "newpass123");
+
+        assertThat(ok).isTrue();
+        ArgumentCaptor<AdminCredential> saved = ArgumentCaptor.forClass(AdminCredential.class);
+        verify(credentialRepository).save(saved.capture());
+        assertThat(saved.getValue().getPasswordHash()).isEqualTo("$2a$10$newhash");
+        assertThat(saved.getValue().getRecoveryCodeHash()).isNull(); // monouso
+        verify(refreshTokenStore).revokeAllForUser("admin");
+    }
+
+    @Test
+    void recover_wrongCode_returnsFalse() {
+        when(credentialRepository.find()).thenReturn(
+                Optional.of(new AdminCredential("admin", "admin", "$2a$10$old", "$2a$10$codehash")));
+        when(passwordEncoder.matches("MV-BAD", "$2a$10$codehash")).thenReturn(false);
+        assertThat(authService.recover("admin", "MV-BAD", "newpass123")).isFalse();
+        verify(credentialRepository, never()).save(any());
+    }
+
+    @Test
+    void recover_wrongUsername_returnsFalse() {
+        when(credentialRepository.find()).thenReturn(
+                Optional.of(new AdminCredential("admin", "admin", "$2a$10$old", "$2a$10$codehash")));
+        assertThat(authService.recover("hacker", "MV-CODE", "newpass123")).isFalse();
+    }
+
+    @Test
+    void recover_noCodeGenerated_returnsFalse() {
+        // credenziale di default (recoveryCodeHash null) → nessun recupero possibile
+        assertThat(authService.recover("admin", "MV-CODE", "newpass123")).isFalse();
+    }
+
+    // ── seeding ───────────────────────────────────────────────────────────────
+
+    @Test
+    void authenticate_whenNoCredentialDoc_seedsFromConfig() {
+        when(credentialRepository.find()).thenReturn(Optional.empty());
+        ReflectionTestUtils.setField(authService, "adminUsername", "RedMghost");
+        ReflectionTestUtils.setField(authService, "adminPasswordHash", "$2a$10$seed");
+        when(passwordEncoder.matches("pw", "$2a$10$seed")).thenReturn(true);
+        when(tokenGenerator.generateAccess("RedMghost")).thenReturn("a");
+        when(tokenGenerator.generateRefresh("RedMghost")).thenReturn("r");
+
+        assertThat(authService.authenticate("RedMghost", "pw")).isPresent();
+        verify(credentialRepository).save(any(AdminCredential.class)); // ha seedato
     }
 }
