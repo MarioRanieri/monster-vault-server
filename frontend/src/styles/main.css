@@ -589,6 +589,50 @@ body.public-mode .public-banner {
   object-fit: contain;
   border-radius: 8px;
 }
+.lb-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: 17px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lb-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: 30px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lb-close:hover,
+.lb-nav:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+.lb-prev {
+  left: 18px;
+}
+.lb-next {
+  right: 18px;
+}
 .lb-top {
   position: absolute;
   top: 1.25rem;
