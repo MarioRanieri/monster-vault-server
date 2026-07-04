@@ -24,3 +24,17 @@ test('mostra WhatsApp e Telegram nella sheet', async () => {
   expect(screen.getByText('WhatsApp')).toBeTruthy();
   expect(screen.getByText('Telegram')).toBeTruthy();
 });
+
+test('WhatsApp/Telegram aprono un link in una nuova scheda', async () => {
+  const open = vi.fn();
+  vi.stubGlobal('open', open);
+  render(<CanShare can={{ id: '1', nome: 'Alpha', lingua: 'USA' }} />);
+
+  await userEvent.click(screen.getByRole('button', { name: /share/i }));
+  await userEvent.click(screen.getByText('WhatsApp'));
+  expect(open).toHaveBeenCalledWith(expect.stringContaining('wa.me'), '_blank', 'noopener');
+
+  await userEvent.click(screen.getByRole('button', { name: /share/i }));
+  await userEvent.click(screen.getByText('Telegram'));
+  expect(open).toHaveBeenCalledWith(expect.stringContaining('t.me'), '_blank', 'noopener');
+});
