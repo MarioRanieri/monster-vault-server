@@ -21,6 +21,7 @@ import { StatsModal } from './StatsModal';
 import { ValueCalc } from './ValueCalc';
 import { buildCsv, parseCsv } from './csv';
 import { HelpModal } from './HelpModal';
+import { Lightbox } from './Lightbox';
 import type { Can } from './types';
 
 function App() {
@@ -67,6 +68,7 @@ function App() {
   const [showValue, setShowValue] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [showPrice, setShowPrice] = useState(false);
+  const [wallPhotos, setWallPhotos] = useState<{ photos: string[]; alt: string } | null>(null);
 
   useEffect(() => {
     loadCans();
@@ -417,7 +419,13 @@ function App() {
       ) : gridMode === 'list' ? (
         <CanList cans={visible} showPrice={isAdmin && showPrice} onSelect={selectCan} />
       ) : (
-        <CanWall cans={visible} onSelect={selectCan} />
+        <CanWall
+          cans={visible}
+          onSelect={(can) => {
+            const ph = [can.p1, can.p2, can.p3, can.p4].filter((u): u is string => Boolean(u));
+            if (ph.length) setWallPhotos({ photos: ph, alt: can.nome });
+          }}
+        />
       )}
       {selected &&
         (editing ? (
@@ -481,6 +489,13 @@ function App() {
       {showStats && <StatsModal cans={cans} stats={stats} onClose={() => setShowStats(false)} />}
       {showValue && <ValueCalc cans={visible} onClose={() => setShowValue(false)} />}
       {showGuide && <HelpModal onClose={() => setShowGuide(false)} />}
+      {wallPhotos && (
+        <Lightbox
+          photos={wallPhotos.photos}
+          alt={wallPhotos.alt}
+          onClose={() => setWallPhotos(null)}
+        />
+      )}
       {toast && (
         <div className="toast" role="status">
           {toast}

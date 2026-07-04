@@ -2,8 +2,9 @@ import { useState } from 'react';
 import type { Can } from './types';
 import { cloudinaryThumb } from './cloudinary';
 import { Flags } from './flags';
+import { colorizeTab } from './colorizeTab';
 
-type SortKey = 'nome' | 'sku' | 'produttore' | 'lingua' | 'size' | 'valore';
+type SortKey = 'nome' | 'sku' | 'produttore' | 'lingua' | 'size' | 'top' | 'valore';
 const num = (v?: string) => parseFloat(v ?? '') || 0;
 
 // Vista lista/tabella (classi .list-view-wrap/.list-table del vecchio): riga
@@ -36,6 +37,15 @@ export function CanList({
       {arrow(key)}
     </th>
   );
+  const renderTab = (top?: string) => {
+    if (!top) return '—';
+    return colorizeTab(top).parts.map((p, i) => (
+      <span key={i}>
+        {i > 0 && '/'}
+        <span style={p.color ? { color: p.color } : undefined}>{p.text}</span>
+      </span>
+    ));
+  };
 
   return (
     <div className="list-view-wrap">
@@ -48,6 +58,8 @@ export function CanList({
             {th('produttore', 'Manufacturer')}
             {th('lingua', 'Country')}
             {th('size', 'Size')}
+            {th('top', 'Top/Tab')}
+            <th>Status</th>
             {showPrice && th('valore', 'Value')}
           </tr>
         </thead>
@@ -76,6 +88,12 @@ export function CanList({
               <td>{can.produttore || '—'}</td>
               <td>{can.lingua ? <Flags lingua={can.lingua} /> : '—'}</td>
               <td>{can.size || '—'}</td>
+              <td className="lt-top">{renderTab(can.top)}</td>
+              <td className="lt-status">
+                {can.promo && <span className="badge badge-promo">{can.promo}</span>}
+                {can.stato && <span className="badge badge-stato-ok">{can.stato}</span>}
+                {!can.promo && !can.stato && '—'}
+              </td>
               {showPrice && <td>{can.valore ? `€${can.valore}` : '—'}</td>}
             </tr>
           ))}

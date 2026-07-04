@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { Can } from './types';
 import { colorizeTab } from './colorizeTab';
 import { cloudinaryThumb } from './cloudinary';
 import { CanShare } from './CanShare';
+import { Lightbox } from './Lightbox';
 
 // Pannello di dettaglio completo (struttura/classi del vecchio): immagine
 // principale + miniature, tutti i campi, opening, descrizione. Lightbox con
@@ -32,22 +33,6 @@ export function CanDetail({
   const [mainIdx, setMainIdx] = useState(0);
   const [lbIdx, setLbIdx] = useState<number | null>(null);
   const main = photos[mainIdx] ?? photos[0];
-
-  const prev = () => setLbIdx((i) => (i === null ? i : (i + photos.length - 1) % photos.length));
-  const next = () => setLbIdx((i) => (i === null ? i : (i + 1) % photos.length));
-
-  // Lightbox: ESC per chiudere, ← / → per scorrere le foto della lattina.
-  useEffect(() => {
-    if (lbIdx === null) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setLbIdx(null);
-      else if (e.key === 'ArrowLeft') prev();
-      else if (e.key === 'ArrowRight') next();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lbIdx, photos.length]);
 
   const fields: { lbl: string; val?: string; isTop?: boolean }[] = [
     { lbl: 'SKU', val: can.sku },
@@ -183,33 +168,8 @@ export function CanDetail({
           )}
         </div>
       </div>
-      {lbIdx !== null && photos[lbIdx] && (
-        <div className="lightbox open" role="dialog" aria-label="Enlarged photo">
-          <button
-            type="button"
-            className="lb-close"
-            aria-label="Close photo"
-            onClick={() => setLbIdx(null)}
-          >
-            ✕
-          </button>
-          {photos.length > 1 && (
-            <button
-              type="button"
-              className="lb-nav lb-prev"
-              aria-label="Previous photo"
-              onClick={prev}
-            >
-              ‹
-            </button>
-          )}
-          <img src={cloudinaryThumb(photos[lbIdx], 1200, 1200)} alt={can.nome} />
-          {photos.length > 1 && (
-            <button type="button" className="lb-nav lb-next" aria-label="Next photo" onClick={next}>
-              ›
-            </button>
-          )}
-        </div>
+      {lbIdx !== null && (
+        <Lightbox photos={photos} start={lbIdx} alt={can.nome} onClose={() => setLbIdx(null)} />
       )}
     </aside>
   );
