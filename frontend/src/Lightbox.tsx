@@ -26,7 +26,6 @@ export function Lightbox({
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [photos.length]);
 
   if (photos.length === 0) return null;
