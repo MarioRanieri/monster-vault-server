@@ -64,3 +64,30 @@ test('guest: la ricerca filtra e il reset ripristina', async () => {
     expect(await screen.findByText('Beta')).toBeTruthy();
   }
 });
+
+test('admin: apre il pannello Account e il Value calc', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [{ id: '1', nome: 'Alpha', valore: '10' }],
+      })
+      .mockResolvedValueOnce({ ok: false }) // refresh al mount
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) }), // login
+  );
+  render(<App />);
+  await userEvent.click(screen.getByRole('button', { name: /admin access/i }));
+  await userEvent.type(screen.getByLabelText('Username'), 'admin');
+  await userEvent.type(screen.getByLabelText('Password'), 'pw');
+  await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
+  await screen.findByRole('button', { name: /sign out/i });
+
+  await userEvent.click(screen.getByRole('button', { name: /account/i }));
+  expect(await screen.findByRole('button', { name: /generate recovery code/i })).toBeTruthy();
+  await userEvent.click(screen.getByRole('button', { name: /close/i }));
+
+  await userEvent.click(screen.getByRole('button', { name: /value/i }));
+  expect(await screen.findByText(/value calculator/i)).toBeTruthy();
+});
