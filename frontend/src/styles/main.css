@@ -583,6 +583,12 @@ body.public-mode .public-banner {
 .lightbox.open {
   display: flex;
 }
+.lightbox img {
+  max-width: 90vw;
+  max-height: 82vh;
+  object-fit: contain;
+  border-radius: 8px;
+}
 .lb-top {
   position: absolute;
   top: 1.25rem;

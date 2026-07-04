@@ -167,7 +167,7 @@ export function CanDetail({
           <button type="button" onClick={() => setLightbox(null)}>
             Close photo
           </button>
-          <img src={lightbox} alt={can.nome} />
+          <img src={cloudinaryThumb(lightbox, 1200, 1200)} alt={can.nome} />
         </div>
       )}
     </aside>

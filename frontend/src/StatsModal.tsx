@@ -83,7 +83,6 @@ export function StatsModal({
     { title: 'By country / language', data: statsBreakdown(cans, (c) => c.lingua, 15) },
     { title: 'By size', data: statsBreakdown(cans, (c) => c.size, 15) },
     { title: 'By manufacturer', data: statsBreakdown(cans, (c) => c.produttore, 15) },
-    { title: 'By condition', data: statsBreakdown(cans, (c) => c.stato, 15) },
   ];
 
   return (
