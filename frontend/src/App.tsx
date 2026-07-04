@@ -415,7 +415,7 @@ function App() {
       {gridMode === 'grid' ? (
         <CanGrid cans={visible} showPrice={isAdmin && showPrice} onSelect={selectCan} />
       ) : gridMode === 'list' ? (
-        <CanList cans={visible} isAdmin={isAdmin} onSelect={selectCan} />
+        <CanList cans={visible} showPrice={isAdmin && showPrice} onSelect={selectCan} />
       ) : (
         <CanWall cans={visible} onSelect={selectCan} />
       )}

@@ -18,6 +18,11 @@ test('mostra solo i cans con foto come tile cliccabili', async () => {
   expect(onSelect).toHaveBeenCalled();
 });
 
+test('ogni tile ha la caption col nome della lattina', () => {
+  render(<CanWall cans={[{ id: '1', nome: 'Alpha', p1: 'a.jpg' }]} />);
+  expect(screen.getByText('Alpha')).toBeTruthy();
+});
+
 test('senza foto mostra un messaggio', () => {
   render(<CanWall cans={[{ id: '1', nome: 'Alpha' }]} />);
   expect(screen.getByText(/no photos/i)).toBeTruthy();
