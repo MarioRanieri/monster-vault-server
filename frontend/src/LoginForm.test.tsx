@@ -17,3 +17,17 @@ test('mostra un errore quando passato', () => {
   render(<LoginForm onLogin={() => {}} error="Credenziali non valide" />);
   expect(screen.getByRole('alert')).toBeTruthy();
 });
+
+test('"Forgot password?" apre il recupero e chiama onRecover', async () => {
+  const onRecover = vi.fn().mockResolvedValue({ ok: true });
+  render(<LoginForm onLogin={() => {}} onRecover={onRecover} />);
+
+  await userEvent.click(screen.getByRole('button', { name: /forgot password/i }));
+  await userEvent.type(screen.getByLabelText('Username'), 'admin');
+  await userEvent.type(screen.getByLabelText('Recovery code'), 'MV-CODE');
+  await userEvent.type(screen.getByLabelText('New password'), 'newpass12');
+  await userEvent.click(screen.getByRole('button', { name: /reset password/i }));
+
+  expect(onRecover).toHaveBeenCalledWith('admin', 'MV-CODE', 'newpass12');
+  expect(await screen.findByText(/password updated/i)).toBeTruthy();
+});

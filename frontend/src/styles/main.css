@@ -228,6 +228,106 @@ body {
 .auth-pw-eye:hover {
   color: var(--text);
 }
+/* Login restyle (React): label, icona nel campo, caps-lock, link, spinner */
+.auth-label {
+  display: block;
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text3);
+  margin: 8px 0 4px;
+}
+.auth-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.auth-field-icon {
+  position: absolute;
+  left: 13px;
+  color: var(--text3);
+  display: flex;
+  pointer-events: none;
+}
+.auth-field .auth-input {
+  padding-left: 40px;
+}
+.auth-caps {
+  font-size: 12px;
+  color: #f5a623;
+  text-align: left;
+  margin: 2px 0 0;
+}
+.auth-link {
+  background: none;
+  border: none;
+  color: var(--green);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px;
+  font-family: inherit;
+}
+.auth-link:hover {
+  text-decoration: underline;
+}
+.auth-success {
+  color: var(--green);
+  font-size: 13px;
+  text-align: center;
+  margin: 6px 0;
+}
+.auth-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(0, 0, 0, 0.25);
+  border-top-color: #000;
+  border-radius: 50%;
+  animation: auth-spin 0.7s linear infinite;
+}
+@keyframes auth-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* Account panel (React): cambio password + codice di recupero */
+.account-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+.account-input {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+}
+.account-input:focus {
+  outline: none;
+  border-color: var(--green);
+}
+.recovery-code-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 8px;
+}
+.recovery-code {
+  font-family: 'Courier New', monospace;
+  font-size: 18px;
+  letter-spacing: 2px;
+  background: var(--bg3);
+  border: 1px dashed var(--green);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: var(--green);
+  user-select: all;
+}
 .auth-google-btn {
   display: flex;
   align-items: center;

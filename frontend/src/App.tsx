@@ -22,6 +22,7 @@ import { ValueCalc } from './ValueCalc';
 import { buildCsv, parseCsv } from './csv';
 import { HelpModal } from './HelpModal';
 import { Lightbox } from './Lightbox';
+import { AccountPanel } from './AccountPanel';
 import type { Can } from './types';
 
 function App() {
@@ -40,6 +41,7 @@ function App() {
   const login = useAuthStore((s) => s.login);
   const logout = useAuthStore((s) => s.logout);
   const refresh = useAuthStore((s) => s.refresh);
+  const recover = useAuthStore((s) => s.recover);
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -69,6 +71,7 @@ function App() {
   const [showGuide, setShowGuide] = useState(false);
   const [showPrice, setShowPrice] = useState(false);
   const [wallPhotos, setWallPhotos] = useState<{ photos: string[]; alt: string } | null>(null);
+  const [showAccount, setShowAccount] = useState(false);
 
   useEffect(() => {
     loadCans();
@@ -273,6 +276,7 @@ function App() {
         onGuide={() => setShowGuide(true)}
         onExport={exportCsv}
         onImport={importCsv}
+        onAccount={() => setShowAccount(true)}
       />
       <Hero
         stats={stats}
@@ -475,7 +479,12 @@ function App() {
         />
       )}
       {showLogin && (
-        <LoginForm onLogin={handleLogin} error={authError} onGuest={() => setShowLogin(false)} />
+        <LoginForm
+          onLogin={handleLogin}
+          error={authError}
+          onGuest={() => setShowLogin(false)}
+          onRecover={recover}
+        />
       )}
       <CompareBar
         cans={compareCans}
@@ -489,6 +498,7 @@ function App() {
       {showStats && <StatsModal cans={cans} stats={stats} onClose={() => setShowStats(false)} />}
       {showValue && <ValueCalc cans={visible} onClose={() => setShowValue(false)} />}
       {showGuide && <HelpModal onClose={() => setShowGuide(false)} />}
+      {showAccount && <AccountPanel onClose={() => setShowAccount(false)} />}
       {wallPhotos && (
         <Lightbox
           photos={wallPhotos.photos}

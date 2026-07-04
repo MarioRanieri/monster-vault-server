@@ -11,6 +11,7 @@ export function Header({
   onGuide,
   onExport,
   onImport,
+  onAccount,
 }: {
   isAdmin: boolean;
   onSignOut: () => void;
@@ -20,6 +21,7 @@ export function Header({
   onGuide?: () => void;
   onExport?: () => void;
   onImport?: (file: File) => void;
+  onAccount?: () => void;
 }) {
   return (
     <header className="header">
@@ -120,6 +122,11 @@ export function Header({
                   }}
                 />
               </label>
+            )}
+            {onAccount && (
+              <button type="button" className="btn btn-ghost" onClick={onAccount}>
+                <span className="btn-label">Account</span>
+              </button>
             )}
             <div className="header-user">
               <span className="header-user-name">Admin</span>
