@@ -7,9 +7,9 @@ interface CansState {
   loading: boolean;
   error: string | null;
   loadCans: () => Promise<void>;
-  saveCan: (can: Can) => Promise<void>;
+  saveCan: (can: Can) => Promise<Can>;
   deleteCan: (id: string) => Promise<void>;
-  createCan: (can: Can) => Promise<void>;
+  createCan: (can: Can) => Promise<Can>;
   uploadPhoto: (id: string, slot: number, file: File) => Promise<void>;
   uploadPhotoFromUrl: (id: string, slot: number, url: string) => Promise<void>;
   importCans: (cans: Can[]) => Promise<void>;
@@ -39,6 +39,7 @@ export const useCansStore = create<CansState>((set) => ({
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const saved = (await res.json()) as Can;
     set((s) => ({ cans: s.cans.map((c) => (c.id === saved.id ? saved : c)) }));
+    return saved;
   },
   deleteCan: async (id) => {
     const res = await authFetch(`/api/cans/${id}`, { method: 'DELETE' });
@@ -54,6 +55,7 @@ export const useCansStore = create<CansState>((set) => ({
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const saved = (await res.json()) as Can;
     set((s) => ({ cans: [...s.cans, saved] }));
+    return saved;
   },
   uploadPhoto: async (id, slot, file) => {
     const form = new FormData();

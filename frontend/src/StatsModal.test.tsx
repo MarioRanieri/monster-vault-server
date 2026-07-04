@@ -18,7 +18,7 @@ test('mostra i tile riepilogo, la coverage e le sezioni a barre', () => {
   );
   expect(screen.getByText('Total')).toBeTruthy();
   expect(screen.getByText('By country / language')).toBeTruthy();
-  expect(screen.getByText('USA')).toBeTruthy();
+  expect(screen.getAllByText('USA').length).toBeGreaterThan(0);
   expect(screen.getByText(/photo coverage/i)).toBeTruthy();
 });
 

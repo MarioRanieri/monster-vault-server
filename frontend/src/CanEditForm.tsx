@@ -3,27 +3,55 @@ import type { Can } from './types';
 import { PhotoCrop } from './PhotoCrop';
 import { cloudinaryThumb } from './cloudinary';
 
-// Modale di modifica/creazione (classi .modal/.photo-grid/.photo-slot/.field-grid
-// del vecchio): 4 slot foto (click per caricare + crop, incolla URL, rimuovi) e
-// tutti i campi. Salva la can aggiornata via onSave.
+// Le scelte di "Opening" (gruppo di pill mutuamente esclusive, come il vecchio).
+const OPENING = [
+  'TOP OPENED',
+  'BOTTOM OPENED',
+  'FULL',
+  'PLASTIC FULL',
+  'PLASTIC EMPTY',
+  'GLASS FULL',
+  'GLASS EMPTY',
+];
+
+// Uno slot foto: file nuovo (staged), URL nuovo, foto esistente da tenere, o vuoto.
+type Slot =
+  | { kind: 'file'; file: File; preview: string }
+  | { kind: 'url'; url: string }
+  | { kind: 'keep'; url: string }
+  | null;
+
+export interface Upload {
+  slot: number;
+  file?: File;
+  url?: string;
+}
+
+export interface Suggestions {
+  manufacturers?: string[];
+  sizes?: string[];
+  countries?: string[];
+  tops?: string[];
+  promos?: string[];
+}
+
+// Modale di modifica/creazione (classi .modal/.photo-grid/.field-grid del vecchio).
+// Le foto sono "staged": si scelgono qui e vengono caricate dopo il salvataggio
+// (così funziona anche creando una can nuova, che ancora non ha un id sul server).
 export function CanEditForm({
   can,
   title = 'Edit Can',
+  suggestions,
   onSave,
   onCancel,
   onDelete,
-  onUploadPhoto,
-  onUploadPhotoUrl,
-  onRemovePhoto,
 }: {
   can: Can;
   title?: string;
-  onSave: (can: Can) => void;
+  suggestions?: Suggestions;
+  onSave: (can: Can, uploads: Upload[]) => void;
   onCancel: () => void;
   onDelete?: () => void;
-  onUploadPhoto?: (slot: number, file: File) => void;
-  onUploadPhotoUrl?: (slot: number, url: string) => void;
-  onRemovePhoto?: (slot: number) => void;
 }) {
   const [nome, setNome] = useState(can.nome);
   const [sku, setSku] = useState(can.sku ?? '');
@@ -36,11 +64,16 @@ export function CanEditForm({
   const [stato, setStato] = useState(can.stato ?? '');
   const [note, setNote] = useState(can.note ?? '');
   const [descrizione, setDescrizione] = useState(can.descrizione ?? '');
-  const [cropTarget, setCropTarget] = useState<{ slot: number; file: File } | null>(null);
+  const [pending, setPending] = useState<Slot[]>(() =>
+    [can.p1, can.p2, can.p3, can.p4].map<Slot>((u) => (u ? { kind: 'keep', url: u } : null)),
+  );
+  const [cropTarget, setCropTarget] = useState<{ idx: number; file: File } | null>(null);
   const fileRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const save = () =>
-    onSave({
+  const setSlot = (i: number, s: Slot) => setPending((p) => p.map((x, j) => (j === i ? s : x)));
+
+  const save = () => {
+    const canData: Can = {
       ...can,
       nome,
       sku,
@@ -53,7 +86,30 @@ export function CanEditForm({
       stato,
       note,
       descrizione,
+    };
+    const uploads: Upload[] = [];
+    pending.forEach((s, i) => {
+      const key = `p${i + 1}` as 'p1' | 'p2' | 'p3' | 'p4';
+      if (!s) canData[key] = '';
+      else if (s.kind === 'keep') canData[key] = s.url;
+      else {
+        canData[key] = '';
+        uploads.push(
+          s.kind === 'file' ? { slot: i + 1, file: s.file } : { slot: i + 1, url: s.url },
+        );
+      }
     });
+    onSave(canData, uploads);
+  };
+
+  const datalist = (id: string, values?: string[]) =>
+    values && values.length > 0 ? (
+      <datalist id={id}>
+        {values.map((v) => (
+          <option key={v} value={v} />
+        ))}
+      </datalist>
+    ) : null;
 
   return (
     <div className="modal-backdrop open" role="dialog" aria-modal="true" aria-label={title}>
@@ -71,75 +127,80 @@ export function CanEditForm({
           </button>
         </div>
         <div className="modal-body">
-          {onUploadPhoto && (
-            <div className="photo-grid">
-              {([1, 2, 3, 4] as const).map((slot) => {
-                const url = can[`p${slot}` as 'p1' | 'p2' | 'p3' | 'p4'];
-                return (
-                  <div
-                    key={slot}
-                    className="photo-slot"
-                    onClick={() => fileRefs.current[slot - 1]?.click()}
+          <div className="photo-grid">
+            {[0, 1, 2, 3].map((i) => {
+              const slot = i + 1;
+              const s = pending[i];
+              const src = !s
+                ? null
+                : s.kind === 'keep'
+                  ? cloudinaryThumb(s.url, 400, 400)
+                  : s.kind === 'url'
+                    ? s.url
+                    : s.preview;
+              return (
+                <div
+                  key={slot}
+                  id={`slot-${slot}`}
+                  className="photo-slot"
+                  onClick={() => fileRefs.current[i]?.click()}
+                >
+                  {src ? (
+                    <img src={src} alt={`Photo ${slot}`} />
+                  ) : (
+                    <div className="photo-slot-ph">
+                      <span>{slot === 1 ? 'Main photo' : `Photo ${slot}`}</span>
+                      <small>Click or paste URL</small>
+                    </div>
+                  )}
+                  <span className="photo-slot-lbl">
+                    {slot}
+                    {slot === 1 ? ' · Main' : ''}
+                  </span>
+                  {src && (
+                    <button
+                      type="button"
+                      className="photo-slot-del"
+                      aria-label={`Remove photo ${slot}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSlot(i, null);
+                      }}
+                    >
+                      ✕
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="photo-slot-url"
+                    title="Paste URL"
+                    aria-label="Paste URL"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const u = window.prompt('Paste image URL');
+                      if (u?.trim()) setSlot(i, { kind: 'url', url: u.trim() });
+                    }}
                   >
-                    {url ? (
-                      <img src={cloudinaryThumb(url, 300, 300)} alt={`Photo ${slot}`} />
-                    ) : (
-                      <div className="photo-slot-ph">
-                        <span>{slot === 1 ? 'Main photo' : `Photo ${slot}`}</span>
-                        <small>Click or paste URL</small>
-                      </div>
-                    )}
-                    <span className="photo-slot-lbl">
-                      {slot}
-                      {slot === 1 ? ' · Main' : ''}
-                    </span>
-                    {url && onRemovePhoto && (
-                      <button
-                        type="button"
-                        className="photo-slot-del"
-                        aria-label={`Remove photo ${slot}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onRemovePhoto(slot);
-                        }}
-                      >
-                        ✕
-                      </button>
-                    )}
-                    {onUploadPhotoUrl && (
-                      <button
-                        type="button"
-                        className="photo-slot-url"
-                        title="Paste URL"
-                        aria-label="Paste URL"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const u = window.prompt('Paste image URL');
-                          if (u?.trim()) onUploadPhotoUrl(slot, u.trim());
-                        }}
-                      >
-                        🔗
-                      </button>
-                    )}
-                    <input
-                      ref={(el) => {
-                        fileRefs.current[slot - 1] = el;
-                      }}
-                      type="file"
-                      accept="image/*"
-                      aria-label={`Photo ${slot}`}
-                      style={{ display: 'none' }}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) setCropTarget({ slot, file });
-                        e.currentTarget.value = '';
-                      }}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                    🔗
+                  </button>
+                  <input
+                    ref={(el) => {
+                      fileRefs.current[i] = el;
+                    }}
+                    type="file"
+                    accept="image/*"
+                    aria-label={`Photo ${slot}`}
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) setCropTarget({ idx: i, file });
+                      e.currentTarget.value = '';
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
           <div className="field-grid">
             <div className="field field-full">
               <label htmlFor="e-nome">Name</label>
@@ -153,25 +214,51 @@ export function CanEditForm({
               <label htmlFor="e-produttore">Manufacturer</label>
               <input
                 id="e-produttore"
+                list="dl-produttore"
                 value={produttore}
                 onChange={(e) => setProduttore(e.target.value)}
               />
+              {datalist('dl-produttore', suggestions?.manufacturers)}
             </div>
             <div className="field">
               <label htmlFor="e-size">Size</label>
-              <input id="e-size" value={size} onChange={(e) => setSize(e.target.value)} />
+              <input
+                id="e-size"
+                list="dl-size"
+                value={size}
+                onChange={(e) => setSize(e.target.value)}
+              />
+              {datalist('dl-size', suggestions?.sizes)}
             </div>
             <div className="field">
               <label htmlFor="e-lingua">Language / Country</label>
-              <input id="e-lingua" value={lingua} onChange={(e) => setLingua(e.target.value)} />
+              <input
+                id="e-lingua"
+                list="dl-lingua"
+                value={lingua}
+                onChange={(e) => setLingua(e.target.value)}
+              />
+              {datalist('dl-lingua', suggestions?.countries)}
             </div>
             <div className="field">
               <label htmlFor="e-top">Top / Tab</label>
-              <input id="e-top" value={top} onChange={(e) => setTop(e.target.value)} />
+              <input
+                id="e-top"
+                list="dl-top"
+                value={top}
+                onChange={(e) => setTop(e.target.value)}
+              />
+              {datalist('dl-top', suggestions?.tops)}
             </div>
             <div className="field">
               <label htmlFor="e-promo">Promo</label>
-              <input id="e-promo" value={promo} onChange={(e) => setPromo(e.target.value)} />
+              <input
+                id="e-promo"
+                list="dl-promo"
+                value={promo}
+                onChange={(e) => setPromo(e.target.value)}
+              />
+              {datalist('dl-promo', suggestions?.promos)}
             </div>
             <div className="field">
               <label htmlFor="e-valore">Est. Value (€)</label>
@@ -182,13 +269,21 @@ export function CanEditForm({
               <input id="e-stato" value={stato} onChange={(e) => setStato(e.target.value)} />
             </div>
             <div className="field field-full">
-              <label htmlFor="e-note">Opening</label>
-              <input
-                id="e-note"
-                value={note}
-                placeholder="e.g. TOP OPENED, FULL"
-                onChange={(e) => setNote(e.target.value)}
-              />
+              <label>Opening</label>
+              <div className="opening-grid">
+                {OPENING.map((o) => (
+                  <label key={o} className="opening-opt">
+                    <input
+                      type="radio"
+                      name="opening"
+                      value={o}
+                      checked={note === o}
+                      onChange={() => setNote(o)}
+                    />
+                    <span>{o}</span>
+                  </label>
+                ))}
+              </div>
             </div>
             <div className="field field-full">
               <label htmlFor="e-descrizione">More Info</label>
@@ -223,7 +318,7 @@ export function CanEditForm({
         <PhotoCrop
           file={cropTarget.file}
           onApply={(f) => {
-            onUploadPhoto?.(cropTarget.slot, f);
+            setSlot(cropTarget.idx, { kind: 'file', file: f, preview: URL.createObjectURL(f) });
             setCropTarget(null);
           }}
           onCancel={() => setCropTarget(null)}

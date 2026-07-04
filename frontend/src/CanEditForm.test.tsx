@@ -28,6 +28,7 @@ test('precompila i campi e salva le modifiche', async () => {
       promo: 'Zero',
       stato: 'ok',
     }),
+    expect.any(Array),
   );
 });
 
@@ -38,46 +39,48 @@ test('Annulla chiama onCancel', async () => {
   expect(onCancel).toHaveBeenCalled();
 });
 
-test('caricando un file chiama onUploadPhoto con lo slot 1', async () => {
-  const onUploadPhoto = vi.fn();
-  render(
-    <CanEditForm can={can} onSave={() => {}} onCancel={() => {}} onUploadPhoto={onUploadPhoto} />,
-  );
+test('Opening è un gruppo di pill: selezionandone una la salva in note', async () => {
+  const onSave = vi.fn();
+  render(<CanEditForm can={can} onSave={onSave} onCancel={() => {}} />);
+  await userEvent.click(screen.getByRole('radio', { name: 'FULL' }));
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ note: 'FULL' }), expect.any(Array));
+});
 
+test('un file (staged) al Save finisce in uploads sullo slot 1', async () => {
+  const onSave = vi.fn();
+  render(<CanEditForm can={can} onSave={onSave} onCancel={() => {}} />);
   const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' });
   await userEvent.upload(screen.getByLabelText('Photo 1'), file);
   await userEvent.click(screen.getByRole('button', { name: /skip crop/i }));
-
-  expect(onUploadPhoto).toHaveBeenCalledWith(1, file);
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  expect(onSave).toHaveBeenCalledWith(
+    expect.any(Object),
+    expect.arrayContaining([expect.objectContaining({ slot: 1, file })]),
+  );
 });
 
-test('supporta i 4 slot: upload su Photo 3 usa lo slot 3', async () => {
-  const onUploadPhoto = vi.fn();
-  render(
-    <CanEditForm can={can} onSave={() => {}} onCancel={() => {}} onUploadPhoto={onUploadPhoto} />,
-  );
-
+test('un file su Photo 3 finisce sullo slot 3', async () => {
+  const onSave = vi.fn();
+  render(<CanEditForm can={can} onSave={onSave} onCancel={() => {}} />);
   const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' });
   await userEvent.upload(screen.getByLabelText('Photo 3'), file);
   await userEvent.click(screen.getByRole('button', { name: /skip crop/i }));
-
-  expect(onUploadPhoto).toHaveBeenCalledWith(3, file);
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  expect(onSave).toHaveBeenCalledWith(
+    expect.any(Object),
+    expect.arrayContaining([expect.objectContaining({ slot: 3, file })]),
+  );
 });
 
-test('il bottone URL di uno slot chiede un link e chiama onUploadPhotoUrl', async () => {
-  const onUploadPhotoUrl = vi.fn();
+test('il bottone URL mette in coda un upload da URL sullo slot 1', async () => {
+  const onSave = vi.fn();
   vi.spyOn(window, 'prompt').mockReturnValue('https://x/y.jpg');
-  render(
-    <CanEditForm
-      can={can}
-      onSave={() => {}}
-      onCancel={() => {}}
-      onUploadPhoto={() => {}}
-      onUploadPhotoUrl={onUploadPhotoUrl}
-    />,
-  );
-
+  render(<CanEditForm can={can} onSave={onSave} onCancel={() => {}} />);
   await userEvent.click(screen.getAllByRole('button', { name: /paste url/i })[0]);
-
-  expect(onUploadPhotoUrl).toHaveBeenCalledWith(1, 'https://x/y.jpg');
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  expect(onSave).toHaveBeenCalledWith(
+    expect.any(Object),
+    expect.arrayContaining([expect.objectContaining({ slot: 1, url: 'https://x/y.jpg' })]),
+  );
 });

@@ -80,10 +80,10 @@ export function StatsModal({
   const pct = stats.total ? Math.round((stats.withPhoto / stats.total) * 100) : 0;
 
   const sections: { title: string; data: Freq[] }[] = [
-    { title: 'By country / language', data: statsBreakdown(cans, (c) => c.lingua, 12) },
-    { title: 'By size', data: statsBreakdown(cans, (c) => c.size, 12) },
-    { title: 'By manufacturer', data: statsBreakdown(cans, (c) => c.produttore, 12) },
-    { title: 'By condition', data: statsBreakdown(cans, (c) => c.stato, 12) },
+    { title: 'By country / language', data: statsBreakdown(cans, (c) => c.lingua, 15) },
+    { title: 'By size', data: statsBreakdown(cans, (c) => c.size, 15) },
+    { title: 'By manufacturer', data: statsBreakdown(cans, (c) => c.produttore, 15) },
+    { title: 'By condition', data: statsBreakdown(cans, (c) => c.stato, 15) },
   ];
 
   return (
@@ -137,29 +137,60 @@ export function StatsModal({
           </div>
 
           {sections.map((sec) => {
-            const shown = sec.data.slice(0, 10);
-            const secTotal = shown.reduce((s, d) => s + d.n, 0);
+            const bars = sec.data.slice(0, 15);
+            const donutData = sec.data.slice(0, 10);
+            const total = bars.reduce((s, d) => s + d.n, 0);
+            const maxBar = bars[0]?.n || 1;
             return (
               <div key={sec.title} className="chart-section">
                 <div className="chart-title">{sec.title}</div>
-                {shown.length === 0 ? (
+                {bars.length === 0 ? (
                   <div className="view-empty">No data</div>
                 ) : (
-                  <div className="donut-row">
-                    <Donut data={shown} total={secTotal} />
-                    <div className="donut-legend">
-                      {shown.map((d, i) => (
-                        <div key={d.k} className="donut-legend-item">
-                          <span
-                            className="donut-legend-dot"
-                            style={{ background: CHART_COLORS[i % CHART_COLORS.length] }}
-                          />
-                          <span className="donut-legend-label">{d.k}</span>
-                          <span className="donut-legend-count">{d.n}</span>
+                  <>
+                    <div className="donut-wrap">
+                      <div className="donut-canvas-wrap">
+                        <Donut data={donutData} total={total} />
+                      </div>
+                      <div className="donut-legend">
+                        {donutData.map((d, i) => (
+                          <div key={d.k} className="legend-item">
+                            <span
+                              className="legend-dot"
+                              style={{ background: CHART_COLORS[i % CHART_COLORS.length] }}
+                            />
+                            <span
+                              style={{
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {d.k}
+                            </span>
+                            <span className="legend-count">{d.n}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="bar-chart" style={{ marginTop: 12 }}>
+                      {bars.map((d, i) => (
+                        <div key={d.k} className="bar-row">
+                          <span className="bar-label">{d.k}</span>
+                          <div className="bar-track">
+                            <div
+                              className="bar-fill"
+                              style={{
+                                width: `${(d.n / maxBar) * 100}%`,
+                                background: CHART_COLORS[i % CHART_COLORS.length],
+                              }}
+                            />
+                          </div>
+                          <span className="bar-count">{d.n}</span>
                         </div>
                       ))}
                     </div>
-                  </div>
+                  </>
                 )}
               </div>
             );

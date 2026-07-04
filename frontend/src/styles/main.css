@@ -1354,6 +1354,13 @@ body.light .filter-select option {
   color: var(--text);
   border-color: rgba(255, 255, 255, 0.25);
 }
+/* Detail: azioni admin (Edit verde / Delete) sotto More Info */
+.admin-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
 /* Stats: grafico a ciambella + legenda (React) */
 .donut-row {
   display: flex;

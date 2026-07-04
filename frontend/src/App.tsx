@@ -99,6 +99,24 @@ function App() {
   }, []);
 
   const options = filterOptions(cans);
+  const suggestions = {
+    manufacturers: options.manufacturers,
+    sizes: options.sizes,
+    countries: options.countries,
+    tops: options.tops,
+    promos: [
+      ...new Set(cans.map((c) => c.promo?.trim()).filter((v): v is string => Boolean(v))),
+    ].sort((a, b) => a.localeCompare(b)),
+  };
+  const uploadStaged = async (
+    id: string,
+    uploads: { slot: number; file?: File; url?: string }[],
+  ) => {
+    for (const u of uploads) {
+      if (u.file) await uploadPhoto(id, u.slot, u.file);
+      else if (u.url) await uploadPhotoFromUrl(id, u.slot, u.url);
+    }
+  };
   const numOrUndef = (s: string) => (s === '' ? undefined : Number(s));
   const visible = sortCans(
     filterCans(cans, {
@@ -406,8 +424,10 @@ function App() {
           <CanEditForm
             can={selected}
             title="Edit Can"
-            onSave={async (updated) => {
-              await saveCan(updated);
+            suggestions={suggestions}
+            onSave={async (canData, uploads) => {
+              const saved = await saveCan(canData);
+              await uploadStaged(saved.id, uploads);
               setEditing(false);
             }}
             onCancel={() => setEditing(false)}
@@ -416,9 +436,6 @@ function App() {
               setEditing(false);
               setSelectedId(null);
             }}
-            onUploadPhoto={(slot, file) => uploadPhoto(selected.id, slot, file)}
-            onUploadPhotoUrl={(slot, url) => uploadPhotoFromUrl(selected.id, slot, url)}
-            onRemovePhoto={(slot) => saveCan({ ...selected, [`p${slot}`]: '' } as Can)}
           />
         ) : (
           <CanDetail
@@ -439,8 +456,10 @@ function App() {
         <CanEditForm
           can={creating}
           title="Add Can"
-          onSave={async (newCan) => {
-            await createCan(newCan);
+          suggestions={suggestions}
+          onSave={async (canData, uploads) => {
+            const saved = await createCan(canData);
+            await uploadStaged(saved.id, uploads);
             setCreating(null);
           }}
           onCancel={() => setCreating(null)}

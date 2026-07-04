@@ -63,16 +63,6 @@ export function CanDetail({
             <span className="btn-label">{inCompare ? '✓ Comparing' : 'Compare'}</span>
           </button>
         )}
-        {isAdmin && onEdit && (
-          <button type="button" className="btn btn-ghost" onClick={onEdit}>
-            <span className="btn-label">Edit</span>
-          </button>
-        )}
-        {isAdmin && onDelete && (
-          <button type="button" className="btn btn-ghost" onClick={onDelete}>
-            <span className="btn-label">Delete</span>
-          </button>
-        )}
       </div>
       <div className="detail-body">
         <div className="detail-photos">
@@ -156,10 +146,24 @@ export function CanDetail({
               <div className="detail-field-val">{can.descrizione}</div>
             </div>
           )}
+          {isAdmin && (
+            <div className="admin-actions">
+              {onEdit && (
+                <button type="button" className="btn btn-primary" onClick={onEdit}>
+                  Edit
+                </button>
+              )}
+              {onDelete && (
+                <button type="button" className="btn btn-ghost" onClick={onDelete}>
+                  Delete
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
       {lightbox && (
-        <div className="lightbox" role="dialog" aria-label="Enlarged photo">
+        <div className="lightbox open" role="dialog" aria-label="Enlarged photo">
           <button type="button" onClick={() => setLightbox(null)}>
             Close photo
           </button>
