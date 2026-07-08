@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Can } from './types';
+import { statoBadgeClass } from './statoBadge';
 import { colorizeTab } from './colorizeTab';
 import { cloudinaryThumb } from './cloudinary';
 import { CanShare } from './CanShare';
@@ -119,7 +120,9 @@ export function CanDetail({
           <div className="detail-badges">
             {can.size && <span className="badge badge-size">{can.size}</span>}
             {can.promo && <span className="badge badge-promo">{can.promo}</span>}
-            {can.stato && <span className="badge badge-stato-ok">{can.stato}</span>}
+            {can.stato && (
+              <span className={`badge ${statoBadgeClass(can.stato)}`}>{can.stato}</span>
+            )}
             {photos.length > 0 && <span className="badge badge-photo">{photos.length} photo</span>}
           </div>
           <div className="detail-fields">

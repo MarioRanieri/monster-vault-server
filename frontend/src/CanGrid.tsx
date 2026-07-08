@@ -1,4 +1,5 @@
 import type { Can } from './types';
+import { statoBadgeClass } from './statoBadge';
 import { cloudinaryThumb, cloudinaryLqip } from './cloudinary';
 import { Flags } from './flags';
 
@@ -73,7 +74,9 @@ export function CanGrid({
               <div className="card-badges">
                 {can.size && <span className="badge badge-size">{can.size}</span>}
                 {can.promo && <span className="badge badge-promo">{can.promo}</span>}
-                {can.stato && <span className="badge badge-stato-ok">{can.stato}</span>}
+                {can.stato && (
+                  <span className={`badge ${statoBadgeClass(can.stato)}`}>{can.stato}</span>
+                )}
               </div>
               <div className="card-overlay">
                 <button
