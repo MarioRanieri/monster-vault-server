@@ -2,10 +2,23 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-06-25 (rev 42 — MongoDB migration)  
-**Branch:** main  
+**Updated:** 2026-07-08 (rev 43 — React migration + password management)  
+**Branch:** main (lavoro su `feat/react-migration`, mergiato a `main`)  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
+
+> **2026-07-08 — Frontend riscritto in React + gestione password.** I 7 moduli TS
+> (`core/ui/tools/photos/share/pwa`) sostituiti da un'app **React 19 + Vite + TS strict** con stato
+> **Zustand**, una componente per feature; test **Vitest + React Testing Library** (158) al posto
+> della suite Jest legacy (gli smoke Playwright restano in CI). Look dark e feature invariati, build
+> ancora embeddata nelle static (stesso origin). Aggiunta la **gestione password admin**: credenziale
+> spostata in Mongo (`admin_credentials`, seedata dalla config, solo hash), `PUT /api/account/password`
+> (autenticato, verifica la corrente, revoca le sessioni), `POST /api/account/recovery-code` (codice
+> backup monouso, mostrato una volta), `POST /api/auth/recover` (reset col codice — rate-limited,
+> monouso, mai consegnato a chi lo richiede). Login ridisegnato. Fix flusso foto Add/Edit (crop non
+> più forzato all'upload, on-demand cliccando la foto). **SonarQube gate verde** (0 bug/vuln, coverage
+> nuovo codice ≥80%, ~40 smell puliti). ⚠️ I PDF di studio (`OneDrive\…\teoria_Monster_vault`) sono
+> aggiornati fino al PDF 26 (gestione password).
 
 > **2026-06-25 — Migrazione DB: Firestore → MongoDB Atlas.** Il progetto GCP ha perso il
 > billing account (Firestore rispondeva `PERMISSION_DENIED`). Persistenza spostata su MongoDB
@@ -18,7 +31,7 @@
 
 ## Summary
 
-Monorepo: **`backend/`** Spring Boot 3.3 (Java 17), REST API stateless con JWT; **`frontend/`** PWA in **TypeScript** modulare bundlata con **Vite** (build embeddata nelle static del backend a build-time → stesso origin, no CORS). Auth con **access token (15 min, in memoria) + refresh token (7 gg, cookie HttpOnly, rotazione + revoca**). Deploy su Render con **Dockerfile 3-stage** (Node/Vite → Maven → JRE). SEO/AEO (robots/sitemap/llms.txt/JSON-LD/`/share/{id}`). Test: **82 unit/integrazione backend + 58 E2E Selenium (skip in CI senza Chrome) + smoke test Playwright (in CI) + suite Jest legacy**.
+Monorepo: **`backend/`** Spring Boot 3.3 (Java 17), REST API stateless con JWT; **`frontend/`** app **React 19 + Vite + TypeScript strict** con stato **Zustand** (build embeddata nelle static del backend a build-time → stesso origin, no CORS). Auth con **access token (15 min, in memoria) + refresh token (7 gg, cookie HttpOnly, rotazione + revoca)**; gestione password admin (cambio + codice di recupero) con credenziale in Mongo. Deploy su Render con **Dockerfile 3-stage** (Node/Vite → Maven → JRE). SEO/AEO (robots/sitemap/llms.txt/JSON-LD/`/share/{id}`). Qualità: **SonarCloud gate verde** in CI. Test: **~105 unit/integrazione backend + 58 E2E Selenium (skip in CI senza Chrome) + 158 test frontend Vitest/RTL + smoke test Playwright (in CI)**.
 
 ---
 

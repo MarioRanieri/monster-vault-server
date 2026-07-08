@@ -4,13 +4,14 @@
 
 ![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3-6DB33F?logo=springboot&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-bundler-646CFF?logo=vite&logoColor=white)
 ![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8?logo=pwa&logoColor=white)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Live demo](https://img.shields.io/badge/demo-live-success?logo=render&logoColor=white)](https://monster-vault-server.onrender.com)
 
-**Monster Vault** is a full‑stack app for managing a large Monster Energy can collection (1,800+ cans). It's a monorepo: a **`backend/`** Spring Boot 3.3 / Java 17 service exposing a stateless JWT REST API (MongoDB + Cloudinary), and a **`frontend/`** TypeScript Progressive Web App (modular, bundled with Vite). The built frontend is embedded into the backend's static resources at build time, so it's served same‑origin — no CORS. Auth uses a short‑lived access token plus a rotating refresh token in an HttpOnly cookie.
+**Monster Vault** is a full‑stack app for managing a large Monster Energy can collection (1,800+ cans). It's a monorepo: a **`backend/`** Spring Boot 3.3 / Java 17 service exposing a stateless JWT REST API (MongoDB + Cloudinary), and a **`frontend/`** **React 19 + Vite + TypeScript** single‑page app (Zustand state, installable PWA). The built frontend is embedded into the backend's static resources at build time, so it's served same‑origin — no CORS. Auth uses a short‑lived access token plus a rotating refresh token in an HttpOnly cookie; the admin can change their password or reset it with a one‑time recovery code.
 
 **🔗 Live demo:** https://monster-vault-server.onrender.com
 
@@ -43,7 +44,7 @@
 ### System overview
 
 ```
-        Browser / PWA  (TypeScript modules · Vite · installable · offline)
+        Browser / PWA  (React 19 · Vite · Zustand · installable · offline)
                 │  HTTPS · REST · JWT access token + refresh cookie (stateless)
                 ▼
         ┌───────────────────────────────────────────┐
@@ -76,14 +77,16 @@ SecurityConfig     ← decides if the route is public or requires authentication
      │
      ▼
 Controller         ← receives the HTTP request, delegates to services
-  ├── AuthController   → POST /api/auth/login · /refresh (cookie) · /logout
-  ├── CanController    → CRUD /api/cans, photo upload
-  └── ShareController  → GET /share/{id} (dynamic Open Graph meta)
+  ├── AuthController    → POST /api/auth/login · /refresh (cookie) · /logout · /recover
+  ├── AccountController → PUT /api/account/password · POST /recovery-code (JWT)
+  ├── CanController     → CRUD /api/cans, photo upload
+  └── ShareController   → GET /share/{id} (dynamic Open Graph meta)
 
      │
      ▼
 Service            ← business logic
-  ├── AdminAuthService  → verifies credentials, issues access + refresh tokens (rotation)
+  ├── AdminAuthService  → verifies credentials, issues access + refresh tokens (rotation),
+  │                       change-password + one-time recovery code (AccountService)
   ├── CanService        → in-memory cache + delegates to repository
   └── CloudinaryService → uploads photos to Cloudinary
   + RefreshTokenStore   → in-memory store of active refresh tokens (SHA-256 hashed)
@@ -115,11 +118,12 @@ This makes each component independently testable with mocks.
 | Observability | Spring Boot Actuator, Micrometer, Prometheus, Grafana |
 | Containerization | Docker (3-stage: Node/Vite build → Maven build → JRE runtime) |
 | Hosting | Render free tier |
-| Frontend | TypeScript (strict) · Vite bundler · ESLint · Prettier · PWA (manifest + service worker) |
+| Frontend | React 19 · TypeScript (strict) · Vite · Zustand · ESLint · Prettier · PWA (manifest + service worker) |
+| Code quality | SonarCloud quality gate in CI (new-code coverage, reliability, security) |
 | Orchestration | Kubernetes (Deployment/Service/ConfigMap/Secret) — local minikube |
 | IaC | Terraform — GCP Cloud Run + Artifact Registry (`infra/`) |
 | CI/CD | GitHub Actions — backend tests · frontend lint/format/build · Playwright E2E |
-| Testing | JUnit + Mockito · Selenium (E2E) · Playwright (frontend smoke) |
+| Testing | JUnit + Mockito · Selenium (E2E) · Vitest + React Testing Library (frontend) · Playwright (frontend smoke) |
 | Companion tool | Python eBay monitor (Browse API + Telegram) |
 
 ---
@@ -144,6 +148,18 @@ This makes each component independently testable with mocks.
 ```
 …plus a `Set-Cookie: mv_refresh=<JWT>; HttpOnly; Secure; SameSite=Strict; Path=/api/auth`.
 **Response 401:** Invalid credentials.
+
+---
+
+### Account & password recovery
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| PUT | `/api/account/password` | JWT | Change the password — verifies the current one, then stores the new hash and revokes all sessions (400 if new < 8 chars, 401 if current is wrong) |
+| POST | `/api/account/recovery-code` | JWT | Generate a one‑time recovery code, returned **once** — only its hash is stored |
+| POST | `/api/auth/recover` | Public + code | Reset the password with a valid recovery code (rate‑limited, single‑use) |
+
+The admin credential lives in MongoDB (`admin_credentials`, seeded from `app.admin.*` config on first run); only BCrypt hashes of the password and the recovery code are stored. The recovery code works like a GitHub/Google backup code — generated while logged in, saved by the user, and required to reset. It is **never handed to whoever clicks "forgot password"**: without the code, no reset happens.
 
 ---
 
@@ -254,20 +270,22 @@ Monorepo with two top-level apps. The frontend is built and copied into the back
 │       │   ├── CanService.java           # cache + photo orchestration
 │       │   └── PhotoStorage / CloudinaryService
 │       └── controller/                   # AuthController, CanController, ShareController, GlobalExceptionHandler
-└── frontend/                             # TypeScript PWA (Vite)
-    ├── index.html                        # Vite entry (markup only)
-    ├── vite.config.ts · tsconfig.json · eslint.config.js · .prettierrc
+└── frontend/                             # React 19 + Vite PWA
+    ├── index.html                        # Vite entry (mounts #root)
+    ├── vite.config.ts · vitest.config.ts · tsconfig.json · eslint.config.js · .prettierrc
     ├── src/
-    │   ├── main.ts                       # entry: wires modules, exposes them on window
-    │   ├── core.ts                       # state, API, auth, cache, utils
-    │   ├── ui.ts                         # filters, views, detail, edit, boot
-    │   ├── tools.ts                      # stats, value calculator, import/export
-    │   ├── photos.ts · share.ts · pwa.ts · types.ts
+    │   ├── main.tsx                      # entry: mounts <App/>
+    │   ├── App.tsx                       # composition: filters, views, modals, auth wiring
+    │   ├── store.ts · authStore.ts       # Zustand stores (cans · auth/password)
+    │   ├── CanGrid/CanList/CanWall.tsx   # the three gallery views
+    │   ├── CanDetail · CanEditForm · PhotoCrop   # detail, edit modal, on-demand crop
+    │   ├── LoginForm · AccountPanel      # login + password/recovery UI
+    │   ├── StatsModal · ValueCalc · ComparePanel · SavedViews · Lightbox · Header · FilterBar · Hero
+    │   ├── filterCans · computeStats · csv · shareView · cloudinary · flags   # pure helpers (unit-tested)
+    │   ├── *.test.tsx / *.test.ts        # co-located Vitest + RTL tests
     │   └── styles/main.css
     ├── public/                           # sw.js, map.html, manifest.json, robots.txt, sitemap.xml, llms.txt, images
-    └── tests/
-        ├── frontend.test.js              # legacy Jest unit suite
-        └── e2e/smoke.spec.ts             # Playwright smoke tests (run in CI)
+    └── tests/e2e/smoke.spec.ts           # Playwright smoke tests (run in CI)
 ```
 
 ---
@@ -306,7 +324,8 @@ cd frontend
 npm ci
 npm run dev        # Vite dev server on :5173, proxies /api → :8080
 # build + checks:
-npm run build      # tsc --noEmit && vite build → dist/
+npm run build      # tsc -b && vite build → dist/
+npx vitest run     # unit tests (Vitest + React Testing Library)
 npm run lint && npm run format:check
 npm run test:e2e   # Playwright smoke tests (needs `npx playwright install chromium` once)
 ```
@@ -333,12 +352,13 @@ mvn test
 
 ## Test Suite
 
-### Backend — 82 unit/integration + 58 E2E (Selenium)
+### Backend — ~105 unit/integration + 58 E2E (Selenium)
 
 | File | What it covers |
 |---|---|
 | `CanServiceTest` | Cache warm/cold, save/update/softDelete/restore/permanentDelete with Cloudinary cleanup, InOrder save-before-delete, deleteFolder, failure resilience |
-| `AdminAuthServiceTest` | Login → `AuthResponse`, refresh with rotation, logout/revocation |
+| `AdminAuthServiceTest` | Login → `AuthResponse`, refresh with rotation, logout/revocation, change-password + one-time recovery code (credential seeded from config) |
+| `AccountControllerTest` | Change password (204 / 400 too-short / 401 wrong current), recovery-code generation |
 | `RefreshTokenStoreTest` | store / isActive / revoke / revokeAllForUser, SHA-256 hashing |
 | `JwtUtilTest` | Access vs refresh tokens, `type` claim, dual expirations, invalid/expired |
 | `AuthControllerTest` | Login sets HttpOnly cookie + access body, refresh rotates cookie, logout clears it |
@@ -349,42 +369,16 @@ Controller tests use `@WebMvcTest` with `@Import({SecurityConfig.class, JwtUtil.
 
 **E2E (Selenium, headless Chrome)** — `AdminFlowE2ETest`, `GuestFlowE2ETest`, `ResponsiveE2ETest` = 58 tests. The base class mocks the repository/storage; admin tests inject the access token into memory and force admin UI via the window-exposed functions (the new in-memory auth flow). **These need a local Chrome and are skipped on the CI runner** — run them locally with `mvn test`.
 
-### Frontend — Playwright smoke (CI) + legacy Jest
+### Frontend — 158 Vitest + RTL · Playwright smoke (CI)
 
-- **Playwright smoke** (`frontend/tests/e2e/smoke.spec.ts`, runs in CI): builds the frontend, serves it via `vite preview` with the API mocked (`page.route`), and asserts the app loads, the grid renders, photo detail opens, admin Add opens the edit modal, and vault→map→back still renders — **failing on any uncaught JS error**. This catches the kind of cross-module wiring bug a browserless suite can't.
+- **Vitest + React Testing Library** (`frontend/src/**/*.test.{ts,tsx}`, jsdom, runs in CI): 158 tests co-located with the components. They cover the pure helpers (`filterCans`, `computeStats`, `csv`, `shareView`, `cloudinary`, `flags`, `cropRect`, `colorizeTab`), the Zustand stores (`store`, `authStore` — login / refresh / change-password / recovery), and the components (grid/list/wall, can detail, edit modal + photo staging, stats, value calculator, compare, saved views, login + recovery, and App-level flows). New-code coverage is gated at >=80% by SonarCloud.
+  ```bash
+  cd frontend && npm ci && npx vitest run
+  ```
+- **Playwright smoke** (`frontend/tests/e2e/smoke.spec.ts`, runs in CI): builds the frontend, serves it via `vite preview` with the API mocked (`page.route`), and asserts the app loads, the grid renders, photo detail opens, admin Add opens the edit modal, and vault->map->back still renders — **failing on any uncaught JS error**.
   ```bash
   cd frontend && npx playwright install chromium && npm run test:e2e
   ```
-- **Legacy Jest** (`frontend/tests/frontend.test.js`, jsdom): pure-function and behaviour tests against the pre-modularization `src/index.html`; kept as a reference suite. `cd frontend/tests && npm ci && npm test`.
-
-| Suite | Tests | What it covers |
-|---|---|---|
-| `esc()` | 3 | XSS escaping: `< > & "`, null/undefined, plain text |
-| `simpleHash()` | 3 | Non-empty output, determinism, different inputs → different hashes |
-| `apiCall()` | 2 | `Authorization: Bearer` header, `extraHeaders` merging |
-| `batchDeleteAllFS()` | 2 | Sends `X-Confirm-Delete: all` header, not sent on other DELETE calls |
-| `shareCanLink()` | 6 | `can.lingua` used (not the removed `can.paese`), FULL detection from `can.note`, no-op when share name not set |
-| `clearAll()` | 3 | localStorage cache emptied, in-memory `cans` cleared, confirm cancellation |
-| `renderComparePanel()` | 4 | Est. Value hidden in guest mode, visible in admin mode |
-| `statsFreq()` | 3 | Frequency map sorted desc, ignores empty values, respects limit (pure fn) |
-| `buildStatsData()` | 3 | total/withPhoto/promo/fullCans/pct aggregation, empty-safe pct, case-insensitive FULL (pure fn) |
-| `buildTimelineData()` | 2 | 12 monthly buckets, counts current month, excludes out-of-window (pure fn) |
-| `renderTimeline()` | 2 | Empty string when no can has `updatedAt`; SVG + Months/Years toggle when data present |
-| `buildYearlyData()` | 3 | Groups cans by year (all-time): count `n` + summed value `v`, ignores missing/non-numeric (pure fn) |
-| `setTimelineMode()` | 1 | Switches the timeline months↔years; chart reflects the active mode |
-| `setTimelineMetric()` | 1 | Switches the timeline Count↔€ Value; chart shows the amount |
-| `jsq()` | 5 | XSS escaping for ids/values inside inline handlers: quote/backslash/HTML neutralised, hostile id rendered inert in `cardHTML` |
-| `watch flag (eBay monitor)` | 4 | `watch` toggle on a can: eye button, `.watching` class, persisted on the can object |
-| `colorizeTop()` | 5 | Top/Tab colour map: word after the slash rendered in its own colour (orange→arancione), escaped output |
-| `captureFilterState() / applyFilterState()` | 3 | Saved-view filter round-trip: captures and re-applies search/select/year |
-| `extractYearFromCan() / year filter from SKU` | 3 | Year decoded from SKU (`0610`→2010, `093`→2003); month >12 or bad format → excluded when filter active |
-| `buildTopValue()` | 2 | Top 10 by value: descending sort, ignores non-numeric values (pure fn) |
-| `renderWall()` | 2 | Wall view: only cans with photos, ids via jsq; `setView('wall')` activates the view |
-| `cloudinaryThumb()` | 3 | CDN `c_fit` transform (whole can, no crop) + dimensions; non-Cloudinary/null URLs left unchanged |
-| `lightbox: viewer foto` | 4 | `setLbPhoto` resets opacity (anti dark-photo) + 1600 CDN, 128 thumbs, arrows don't navigate the can underneath |
-| `regressioni layout foto (CSS/markup)` | 5 | Guards: lightbox `#000`, `onload` opacity reset, mobile `100dvh` max-height, details `contain`, LQIP `background-image:none` |
-| `calcolatore valore (filtri + somma)` | 11 | `calcMatch` per ogni criterio (gusto, paese multi-nation, full, promo, photo, SKU contains/starts/exact, year, AND), `calcTotals`, `calcGroups` (subtotals sorted desc), opzioni "solo possibili" (`calcDistinct` sul sottoinsieme filtrato) |
-| `demo / fallback offline` | 1 | `showDemo` mostra le mock senza salvare (no cache, no POST) — regressione "2 lattine prova" su cold start |
 
 ### API — Newman collection
 
@@ -455,7 +449,7 @@ Deploys are automatic: pushing to `main` triggers a Render build from the root `
 
 **Rate limiting on login** — `LoginRateLimitInterceptor` (Bucket4j) allows 10 login attempts per minute per IP. Uses `X-Forwarded-For` header to get the real client IP behind Render's proxy. The IP→bucket map is an **LRU-bounded** `LinkedHashMap` (cap 10,000 IPs) so a client rotating its source IP / `X-Forwarded-For` cannot grow the map without bound (memory-exhaustion DoS). Buckets reset on container restart (acceptable on free tier where containers sleep frequently).
 
-**Frontend XSS escaping** — all dynamic text is rendered through `esc()` (HTML-entity encoding); any id/value interpolated into an inline `onclick="…('<value>')"` handler goes through `jsq()`, which neutralises the JS-string breakout (quote/backslash) and the attribute's HTML special chars. Because collections can be shared read-only to untrusted viewers and the CSP allows `'unsafe-inline'`, an un-escaped id (e.g. from an Excel import) would otherwise be a stored-XSS vector. Covered by Jest tests (`jsq()` + a hostile-id case rendered inert in `cardHTML`).
+**Frontend XSS safety (React)** — the React rewrite renders all dynamic text as JSX children, which React HTML-escapes by default, and builds no HTML strings or inline `onclick` handlers, so the hand-rolled `esc()`/`jsq()` escaping the vanilla app needed is gone. `dangerouslySetInnerHTML` is not used anywhere. This matters because collections can be shared read-only to untrusted viewers and an un-escaped id (e.g. from an Excel import) would otherwise be a stored-XSS vector.
 
 **Deterministic JWT signing key** — `JwtUtil` derives the HMAC key with `secret.getBytes(StandardCharsets.UTF_8)` rather than the platform default charset, so a token signed on Windows (Cp1252) verifies on Linux/Render (UTF-8) even if the secret contains non-ASCII characters.
 

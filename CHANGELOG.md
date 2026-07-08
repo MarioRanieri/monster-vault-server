@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Frontend rewritten in React** — the seven vanilla-TypeScript modules (`core/ui/tools/photos/share/pwa/types`) were replaced by a **React 19 + Vite + TypeScript (strict)** single-page app with **Zustand** state, one component per feature (grid/list/wall views, can detail, edit modal, stats, compare, value calculator, saved views, share). The old dark-theme look and all features were preserved; the build still embeds into the backend's static resources (same-origin). Tested with **Vitest + React Testing Library** (158 tests) instead of the legacy Jest suite; Playwright smoke tests kept in CI.
+- **Admin password management (no email)** — the admin credential moved from `application.properties` into MongoDB (`admin_credentials`, seeded from config on first run, only hashes stored). New endpoints: `PUT /api/account/password` (change password — authenticated, verifies the current one, revokes all sessions), `POST /api/account/recovery-code` (generate a one-time backup code, shown once), `POST /api/auth/recover` (reset the password with that code — rate-limited, single-use). The recovery code is never handed to whoever requests it; it must be entered, like GitHub/Google backup codes.
+- **SonarCloud quality gate** — wired into CI on the new-code period; currently **green** (0 bugs, 0 vulnerabilities, new-code coverage ≥ 80%).
+
+### Changed
+- **Login redesigned** — labels + icons, show/hide password, Caps-Lock warning, loading spinner, and distinct errors from the HTTP status (401 wrong credentials, 429 too many attempts, network). A "Forgot password?" link opens the recovery flow; an Account panel changes the password and generates the recovery code. The guest hero shows the owner's name ("RedMghost's Collection"), not "Your Collection".
+
+### Fixed
+- **Add/Edit can photo flow** — uploading a photo no longer forces the full-screen crop overlay (which covered the Save button, so saving looked broken). Uploads stage directly; cropping is on-demand by clicking a photo (works for existing Cloudinary photos too, via `crossOrigin`). Photo upload on save is wrapped so a storage hiccup shows a toast instead of hanging the modal.
+- **Accessibility + SonarQube smells** — added keyboard handlers to clickable photos/slots, silenced a localStorage false-positive, and cleared ~40 code smells (read-only component props, `Number.parseInt/parseFloat`, `globalThis`, extracted nested ternaries).
+
 ### Changed
 - **Database migrated from Firestore to MongoDB Atlas** — the Firestore adapter was replaced by `MongoCanRepository` behind the existing `CanRepository` port (SOLID DIP), so `CanService` and the controllers were untouched. Removed `firebase-admin`, `FirebaseConfig` and the Firestore-specific quota exception; the connection URI now comes from the `SPRING_DATA_MONGODB_URI` env var. Data was restored from the weekly `backups` branch dump.
 
