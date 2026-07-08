@@ -1,32 +1,52 @@
 package com.monstervault.security;
 
+import com.monstervault.model.RefreshToken;
+import com.monstervault.repository.RefreshTokenRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Date;
 import java.util.HexFormat;
-import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Registro dei refresh token attivi (rotation + revoca).
+ *
+ * Delega la persistenza a {@link RefreshTokenRepository} (MongoDB in produzione):
+ * prima teneva i token in una {@code ConcurrentHashMap} in memoria, che si azzerava
+ * a ogni riavvio del backend costringendo l'utente a rifare login a ogni ricarica.
+ * Nel DB si salva solo l'HASH SHA-256 del token, mai il valore in chiaro.
+ */
 @Component
 public class RefreshTokenStore {
 
-    private final ConcurrentHashMap<String, String> activeTokens = new ConcurrentHashMap<>();
+    private final RefreshTokenRepository repo;
+    private final long refreshExpirationMs;
+
+    public RefreshTokenStore(
+            RefreshTokenRepository repo,
+            @Value("${app.jwt.refresh-expiration:604800000}") long refreshExpirationMs) {
+        this.repo = repo;
+        this.refreshExpirationMs = refreshExpirationMs;
+    }
 
     public void store(String token, String username) {
-        activeTokens.put(hash(token), username);
+        Date expiresAt = new Date(System.currentTimeMillis() + refreshExpirationMs);
+        repo.save(new RefreshToken(hash(token), username, expiresAt));
     }
 
     public boolean isActive(String token) {
-        return activeTokens.containsKey(hash(token));
+        return repo.existsById(hash(token));
     }
 
     public void revoke(String token) {
-        activeTokens.remove(hash(token));
+        repo.deleteById(hash(token));
     }
 
     public void revokeAllForUser(String username) {
-        activeTokens.entrySet().removeIf(e -> e.getValue().equals(username));
+        repo.deleteByUsername(username);
     }
 
     static String hash(String token) {
