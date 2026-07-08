@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Can } from './types';
 import { authFetch } from './api';
+import { compressImage } from './compressImage';
 
 interface CansState {
   cans: Can[];
@@ -58,8 +59,11 @@ export const useCansStore = create<CansState>((set) => ({
     return saved;
   },
   uploadPhoto: async (id, slot, file) => {
+    // Comprimi prima dell'upload: le foto da telefono superano il limite
+    // multipart del backend, quindi vanno rimpicciolite lato client.
+    const compressed = await compressImage(file);
     const form = new FormData();
-    form.append('file', file);
+    form.append('file', compressed);
     // Niente header Content-Type: il browser lo imposta con il boundary multipart.
     const res = await authFetch(`/api/cans/${id}/photo/${slot}`, {
       method: 'POST',

@@ -44,3 +44,29 @@ test('clic su una card chiama onSelect con la can', async () => {
 
   expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: '1' }));
 });
+
+test('overlay Details chiama onSelect', async () => {
+  const onSelect = vi.fn();
+  render(<CanGrid cans={[{ id: '1', nome: 'Alpha' }]} onSelect={onSelect} onEdit={() => {}} />);
+
+  await userEvent.click(screen.getByRole('button', { name: /details/i }));
+
+  expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: '1' }));
+});
+
+test('overlay Edit chiama onEdit e NON onSelect (stopPropagation)', async () => {
+  const onSelect = vi.fn();
+  const onEdit = vi.fn();
+  render(<CanGrid cans={[{ id: '1', nome: 'Alpha' }]} onSelect={onSelect} onEdit={onEdit} />);
+
+  await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+
+  expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: '1' }));
+  expect(onSelect).not.toHaveBeenCalled();
+});
+
+test('senza onEdit (guest) il bottone Edit non compare', () => {
+  render(<CanGrid cans={[{ id: '1', nome: 'Alpha' }]} onSelect={() => {}} />);
+
+  expect(screen.queryByRole('button', { name: /edit/i })).toBeNull();
+});

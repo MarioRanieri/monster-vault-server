@@ -423,7 +423,19 @@ function App() {
         </div>
       </div>
       {gridMode === 'grid' ? (
-        <CanGrid cans={visible} showPrice={isAdmin && showPrice} onSelect={selectCan} />
+        <CanGrid
+          cans={visible}
+          showPrice={isAdmin && showPrice}
+          onSelect={selectCan}
+          onEdit={
+            isAdmin
+              ? (can) => {
+                  setSelectedId(can.id);
+                  setEditing(true);
+                }
+              : undefined
+          }
+        />
       ) : gridMode === 'list' ? (
         <CanList cans={visible} showPrice={isAdmin && showPrice} onSelect={selectCan} />
       ) : (
@@ -446,6 +458,7 @@ function App() {
                 const saved = await saveCan(canData);
                 try {
                   await uploadStaged(saved.id, uploads);
+                  showToast('Can updated ✓');
                 } catch {
                   showToast('⚠ Some photos could not be uploaded');
                 }
@@ -487,6 +500,7 @@ function App() {
               const saved = await createCan(canData);
               try {
                 await uploadStaged(saved.id, uploads);
+                showToast('Can added ✓');
               } catch {
                 showToast('⚠ Some photos could not be uploaded');
               }

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import App from './App';
 import userEvent from '@testing-library/user-event';
 import { useCansStore } from './store';
@@ -210,7 +210,7 @@ test('admin: modifica una can dal dettaglio', async () => {
   await loginAsAdmin();
 
   await userEvent.click(screen.getByRole('button', { name: /alpha/i }));
-  await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+  await userEvent.click(within(screen.getByRole('complementary')).getByRole('button', { name: /edit/i }));
   const nome = screen.getByLabelText('Name');
   await userEvent.clear(nome);
   await userEvent.type(nome, 'Beta');
@@ -237,10 +237,10 @@ test('admin: Annulla chiude il form e torna al dettaglio', async () => {
   await loginAsAdmin();
 
   await userEvent.click(screen.getByRole('button', { name: /alpha/i }));
-  await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+  await userEvent.click(within(screen.getByRole('complementary')).getByRole('button', { name: /edit/i }));
   await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
 
-  expect(screen.getByRole('button', { name: /edit/i })).toBeTruthy();
+  expect(within(screen.getByRole('complementary')).getByRole('button', { name: /edit/i })).toBeTruthy();
 });
 
 test('admin: crea una nuova can', async () => {
@@ -320,7 +320,7 @@ test('admin: carica una foto durante la modifica', async () => {
   await loginAsAdmin();
 
   await userEvent.click(screen.getByRole('button', { name: /alpha/i }));
-  await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+  await userEvent.click(within(screen.getByRole('complementary')).getByRole('button', { name: /edit/i }));
 
   const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' });
   await userEvent.upload(screen.getByLabelText('Photo 1'), file);

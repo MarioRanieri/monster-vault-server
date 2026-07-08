@@ -1804,7 +1804,8 @@ button.view-save {
   transform: translateY(-3px);
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
 }
-.card:hover .card-overlay {
+.card:hover .card-overlay,
+.card:focus-within .card-overlay {
   opacity: 1;
 }
 .card-img {
