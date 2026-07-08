@@ -64,7 +64,7 @@ export function CanEditForm({
   can: Can;
   title?: string;
   suggestions?: Suggestions;
-  onSave: (can: Can, uploads: Upload[]) => void;
+  onSave: (can: Can, uploads: Upload[]) => void | Promise<void>;
   onCancel: () => void;
   onDelete?: () => void;
 }>) {
@@ -83,6 +83,7 @@ export function CanEditForm({
     [can.p1, can.p2, can.p3, can.p4].map<Slot>((u) => (u ? { kind: 'keep', url: u } : null)),
   );
   const [cropTarget, setCropTarget] = useState<{ idx: number; src: string } | null>(null);
+  const [saving, setSaving] = useState(false);
   const fileRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const setSlot = (i: number, s: Slot) => setPending((p) => p.map((x, j) => (j === i ? s : x)));
@@ -93,7 +94,10 @@ export function CanEditForm({
     else fileRefs.current[i]?.click();
   };
 
-  const save = () => {
+  // Async con stato `saving`: durante il salvataggio (PUT + upload foto, lento su
+  // mobile) Save/Cancel sono disabilitati — niente UI congelata né doppio invio.
+  const save = async () => {
+    if (saving) return;
     const canData: Can = {
       ...can,
       nome,
@@ -120,7 +124,12 @@ export function CanEditForm({
         );
       }
     });
-    onSave(canData, uploads);
+    setSaving(true);
+    try {
+      await onSave(canData, uploads);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const datalist = (id: string, values?: string[]) =>
@@ -328,15 +337,16 @@ export function CanEditForm({
               className="btn btn-ghost"
               style={{ marginRight: 'auto' }}
               onClick={onDelete}
+              disabled={saving}
             >
               Delete
             </button>
           )}
-          <button type="button" className="btn btn-ghost" onClick={onCancel}>
+          <button type="button" className="btn btn-ghost" onClick={onCancel} disabled={saving}>
             Cancel
           </button>
-          <button type="submit" className="btn btn-primary">
-            Save
+          <button type="submit" className="btn btn-primary" disabled={saving}>
+            {saving ? 'Saving…' : 'Save'}
           </button>
         </div>
       </form>

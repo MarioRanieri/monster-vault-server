@@ -3386,7 +3386,10 @@ button.view-save {
   .logo-text {
     display: none;
   }
-  .btn-label {
+  /* Spoglia il testo SOLO ai bottoni con icona (Map, Add) → restano icon-only.
+     I bottoni solo-testo (Guide/Export/Import/Account/Sign out) tengono la label,
+     altrimenti su mobile diventerebbero scatole vuote. */
+  .btn:has(svg) .btn-label {
     display: none;
   }
   .btn {
@@ -3398,18 +3401,16 @@ button.view-save {
   .header-right {
     flex: 1;
     min-width: 0;
+    flex-wrap: wrap;
     justify-content: flex-end;
     gap: 6px;
+    row-gap: 6px;
   }
   .header-user-name {
     display: none;
   }
   .logout-btn {
     padding: 4px 8px;
-  }
-  #btn-export,
-  #btn-import {
-    display: none !important;
   }
   /* Cloud bar */
   .cloud-bar {

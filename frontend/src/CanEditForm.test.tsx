@@ -81,6 +81,19 @@ test('cliccando una foto caricata si apre il crop (non è forzato all’upload)'
   expect(screen.getByRole('button', { name: /apply crop/i })).toBeTruthy();
 });
 
+test('mentre onSave è in corso, Save è disabilitato e mostra "Saving…"', async () => {
+  let finish!: () => void;
+  const onSave = vi.fn(() => new Promise<void>((r) => (finish = r)));
+  render(<CanEditForm can={can} onSave={onSave} onCancel={() => {}} />);
+
+  await userEvent.click(screen.getByRole('button', { name: /^save$/i }));
+  const btn = await screen.findByRole('button', { name: /saving/i });
+  expect(btn).toBeDisabled();
+  expect(screen.getByRole('button', { name: /cancel/i })).toBeDisabled();
+
+  finish();
+});
+
 test('il bottone URL mette in coda un upload da URL sullo slot 1', async () => {
   const onSave = vi.fn();
   vi.spyOn(window, 'prompt').mockReturnValue('https://x/y.jpg');

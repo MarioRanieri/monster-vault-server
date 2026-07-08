@@ -442,13 +442,17 @@ function App() {
             title="Edit Can"
             suggestions={suggestions}
             onSave={async (canData, uploads) => {
-              const saved = await saveCan(canData);
               try {
-                await uploadStaged(saved.id, uploads);
+                const saved = await saveCan(canData);
+                try {
+                  await uploadStaged(saved.id, uploads);
+                } catch {
+                  showToast('⚠ Some photos could not be uploaded');
+                }
+                setEditing(false);
               } catch {
-                showToast('⚠ Some photos could not be uploaded');
+                showToast('⚠ Could not save changes');
               }
-              setEditing(false);
             }}
             onCancel={() => setEditing(false)}
             onDelete={async () => {
@@ -479,13 +483,17 @@ function App() {
           title="Add Can"
           suggestions={suggestions}
           onSave={async (canData, uploads) => {
-            const saved = await createCan(canData);
             try {
-              await uploadStaged(saved.id, uploads);
+              const saved = await createCan(canData);
+              try {
+                await uploadStaged(saved.id, uploads);
+              } catch {
+                showToast('⚠ Some photos could not be uploaded');
+              }
+              setCreating(null);
             } catch {
-              showToast('⚠ Some photos could not be uploaded');
+              showToast('⚠ Could not save changes');
             }
-            setCreating(null);
           }}
           onCancel={() => setCreating(null)}
         />
