@@ -3,11 +3,13 @@
 export function LandingPage({
   total,
   withPhoto,
+  loading = false,
   onEnter,
   onAdmin,
 }: Readonly<{
   total: number;
   withPhoto: number;
+  loading?: boolean;
   onEnter: () => void;
   onAdmin: () => void;
 }>) {
@@ -39,13 +41,14 @@ export function LandingPage({
         <div className="land-bar" aria-hidden="true" />
 
         <div className="land-stats">
+          {/* "…" durante il primo load: i totali a 0 sui deploy freschi sembravano un bug */}
           <div className="land-stat">
-            <b>{total}</b>
+            <b>{loading ? '…' : total}</b>
             <span>Cans</span>
           </div>
           <span className="land-stat-div" />
           <div className="land-stat">
-            <b>{withPhoto}</b>
+            <b>{loading ? '…' : withPhoto}</b>
             <span>With photo</span>
           </div>
         </div>

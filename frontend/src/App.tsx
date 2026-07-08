@@ -29,6 +29,8 @@ function App() {
   const cans = useCansStore((s) => s.cans);
   const loading = useCansStore((s) => s.loading);
   const error = useCansStore((s) => s.error);
+  const warming = useCansStore((s) => s.warming);
+  const updatedAt = useCansStore((s) => s.updatedAt);
   const loadCans = useCansStore((s) => s.loadCans);
   const saveCan = useCansStore((s) => s.saveCan);
   const deleteCan = useCansStore((s) => s.deleteCan);
@@ -281,6 +283,7 @@ function App() {
       <LandingPage
         total={stats.total}
         withPhoto={stats.withPhoto}
+        loading={loading}
         onEnter={() => setView('collection')}
         onAdmin={() => {
           setView('collection');
@@ -422,13 +425,35 @@ function App() {
           onChange: (v) => setGridMode(v as 'grid' | 'list' | 'wall'),
         }}
       />
-      {loading && <p>Loading…</p>}
+      {loading && (
+        <p>
+          {warming ? (
+            <>
+              Server warming up…{' '}
+              <small style={{ color: 'var(--text2)', fontSize: 11 }}>
+                Free tier cold start · usually 30–50s
+              </small>
+            </>
+          ) : (
+            'Loading…'
+          )}
+        </p>
+      )}
       {error && <p role="alert">Error: {error}</p>}
       <div className="grid-info">
         <span>
           {visible.length === cans.length
             ? `${cans.length} cans`
             : `${visible.length} of ${cans.length} cans`}
+          {updatedAt != null && (
+            <span style={{ fontSize: 11, color: 'var(--text3)', marginLeft: 6 }}>
+              · Updated {new Date(updatedAt).toLocaleDateString('en-US')}{' '}
+              {new Date(updatedAt).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </span>
+          )}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {isAdmin && (

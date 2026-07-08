@@ -3,10 +3,46 @@ import type { Can } from './types';
 import { authFetch } from './api';
 import { compressImage } from './compressImage';
 
+const CACHE_KEY = 'mv_cache';
+
+// Cache locale {ts, cans} (chiave e formato del vecchio saveCache/loadFromCache):
+// apertura istantanea per chi torna e fallback offline.
+function readCache(): { ts: number; cans: Can[] } | null {
+  try {
+    const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+    if (c && Array.isArray(c.cans) && c.cans.length) return c;
+  } catch {
+    /* cache corrotta: ignora */
+  }
+  return null;
+}
+
+function writeCache(cans: Can[]): void {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), cans }));
+  } catch {
+    /* quota piena: ignora */
+  }
+}
+
+// Retry sui 5xx per il cold start di Render (free tier): 3 tentativi, 2s di pausa.
+async function fetchWithRetry(attempt = 1): Promise<Can[]> {
+  const res = await fetch('/api/cans');
+  if (res.status >= 500 && attempt < 3) {
+    useCansStore.setState({ warming: true });
+    await new Promise((r) => setTimeout(r, 2000));
+    return fetchWithRetry(attempt + 1);
+  }
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as Can[];
+}
+
 interface CansState {
   cans: Can[];
   loading: boolean;
   error: string | null;
+  warming: boolean;
+  updatedAt: number | null;
   loadCans: () => Promise<void>;
   saveCan: (can: Can) => Promise<Can>;
   deleteCan: (id: string) => Promise<void>;
@@ -22,15 +58,32 @@ export const useCansStore = create<CansState>((set) => ({
   cans: [],
   loading: false,
   error: null,
+  warming: false,
+  updatedAt: null,
   loadCans: async () => {
+    // Stale-while-revalidate: con la cache mostra subito la collezione, poi
+    // aggiorna in background; se il server è giù la vista in cache resta valida.
+    const cached = readCache();
+    if (cached) {
+      hydrating = true;
+      set({ cans: cached.cans, updatedAt: cached.ts, loading: false, error: null });
+      hydrating = false;
+      try {
+        const fresh = await fetchWithRetry();
+        if (JSON.stringify(fresh) !== JSON.stringify(cached.cans)) set({ cans: fresh });
+      } catch {
+        /* offline o errore: resta la cache */
+      } finally {
+        set({ warming: false });
+      }
+      return;
+    }
     set({ loading: true, error: null });
     try {
-      const res = await fetch('/api/cans');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const cans = (await res.json()) as Can[];
-      set({ cans, loading: false });
+      const cans = await fetchWithRetry();
+      set({ cans, loading: false, warming: false });
     } catch (e) {
-      set({ error: (e as Error).message, loading: false });
+      set({ error: (e as Error).message, loading: false, warming: false });
     }
   },
   saveCan: async (can) => {
@@ -115,3 +168,15 @@ export const useCansStore = create<CansState>((set) => ({
     if (list.ok) set({ cans: (await list.json()) as Can[] });
   },
 }));
+
+// Come il vecchio saveCache() dopo ogni mutazione: ogni cambio di `cans`
+// (load, salvataggi, delete, upload, import) finisce in cache — tranne
+// l'idratazione iniziale dalla cache stessa, che non è un dato nuovo e non
+// deve rinfrescare il timestamp "Updated".
+let hydrating = false;
+useCansStore.subscribe((s, prev) => {
+  if (!hydrating && s.cans !== prev.cans) {
+    writeCache(s.cans);
+    useCansStore.setState({ updatedAt: Date.now() });
+  }
+});

@@ -5,8 +5,9 @@ import { useCansStore } from './store';
 import { useAuthStore } from './authStore';
 
 beforeEach(() => {
-  useCansStore.setState({ cans: [], loading: false, error: null });
+  useCansStore.setState({ cans: [], loading: false, error: null, warming: false, updatedAt: null });
   useAuthStore.setState({ accessToken: null, isAdmin: false, error: null });
+  localStorage.clear(); // la cache offline inquinerebbe i test successivi
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [] }));
 });
 
@@ -32,6 +33,20 @@ test('la landing mostra il wordmark "Monster Vault"', () => {
   expect(screen.getByRole('heading', { name: /monster vault/i })).toBeTruthy();
 });
 
+test('la landing mostra "…" (non 0) mentre i dati caricano', () => {
+  // solo /api/cans resta appesa: il refresh auth deve risolversi o il suo
+  // singleton single-flight resterebbe bloccato anche nei test successivi
+  vi.stubGlobal(
+    'fetch',
+    vi.fn((url: string) =>
+      url === '/api/cans' ? new Promise(() => {}) : Promise.resolve({ ok: false }),
+    ),
+  );
+  render(<App />);
+  expect(screen.getAllByText('…')).toHaveLength(2); // Cans + With photo
+  expect(screen.queryByText('0')).toBeNull();
+});
+
 test('carica e mostra i cans dall’API al montaggio', async () => {
   vi.stubGlobal(
     'fetch',
@@ -48,7 +63,8 @@ test('carica e mostra i cans dall’API al montaggio', async () => {
 });
 
 test('mostra un messaggio di errore se la fetch fallisce', async () => {
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+  // 404 e non 500: sui 5xx ora scatta il retry del cold start
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }));
 
   render(<App />);
   await enterCollection();
