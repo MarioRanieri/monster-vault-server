@@ -443,7 +443,11 @@ function App() {
             suggestions={suggestions}
             onSave={async (canData, uploads) => {
               const saved = await saveCan(canData);
-              await uploadStaged(saved.id, uploads);
+              try {
+                await uploadStaged(saved.id, uploads);
+              } catch {
+                showToast('⚠ Some photos could not be uploaded');
+              }
               setEditing(false);
             }}
             onCancel={() => setEditing(false)}
@@ -476,7 +480,11 @@ function App() {
           suggestions={suggestions}
           onSave={async (canData, uploads) => {
             const saved = await createCan(canData);
-            await uploadStaged(saved.id, uploads);
+            try {
+              await uploadStaged(saved.id, uploads);
+            } catch {
+              showToast('⚠ Some photos could not be uploaded');
+            }
             setCreating(null);
           }}
           onCancel={() => setCreating(null)}

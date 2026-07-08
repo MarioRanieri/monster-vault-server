@@ -23,6 +23,13 @@ function slotSrc(s: Slot): string | null {
   return s.preview;
 }
 
+// Sorgente per il CROP: versione grande per le foto già su Cloudinary (kind:'keep').
+function cropSource(s: Exclude<Slot, null>): string {
+  if (s.kind === 'file') return s.preview;
+  if (s.kind === 'url') return s.url;
+  return cloudinaryThumb(s.url, 1600, 1600);
+}
+
 type Slot =
   | { kind: 'file'; file: File; preview: string }
   | { kind: 'url'; url: string }
@@ -75,10 +82,16 @@ export function CanEditForm({
   const [pending, setPending] = useState<Slot[]>(() =>
     [can.p1, can.p2, can.p3, can.p4].map<Slot>((u) => (u ? { kind: 'keep', url: u } : null)),
   );
-  const [cropTarget, setCropTarget] = useState<{ idx: number; file: File } | null>(null);
+  const [cropTarget, setCropTarget] = useState<{ idx: number; src: string } | null>(null);
   const fileRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const setSlot = (i: number, s: Slot) => setPending((p) => p.map((x, j) => (j === i ? s : x)));
+  // Slot con foto → apri il crop; slot vuoto → apri il file picker (upload).
+  const slotClick = (i: number) => {
+    const s = pending[i];
+    if (s) setCropTarget({ idx: i, src: cropSource(s) });
+    else fileRefs.current[i]?.click();
+  };
 
   const save = () => {
     const canData: Can = {
@@ -147,12 +160,13 @@ export function CanEditForm({
                   className="photo-slot"
                   role="button"
                   tabIndex={0}
-                  aria-label={`Upload photo ${slot}`}
-                  onClick={() => fileRefs.current[i]?.click()}
+                  aria-label={src ? `Crop photo ${slot}` : `Upload photo ${slot}`}
+                  title={src ? 'Tap to crop' : 'Tap to upload'}
+                  onClick={() => slotClick(i)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      fileRefs.current[i]?.click();
+                      slotClick(i);
                     }
                   }}
                 >
@@ -204,7 +218,8 @@ export function CanEditForm({
                     style={{ display: 'none' }}
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) setCropTarget({ idx: i, file });
+                      if (file)
+                        setSlot(i, { kind: 'file', file, preview: URL.createObjectURL(file) });
                       e.currentTarget.value = '';
                     }}
                   />
@@ -327,7 +342,7 @@ export function CanEditForm({
       </form>
       {cropTarget && (
         <PhotoCrop
-          file={cropTarget.file}
+          src={cropTarget.src}
           onApply={(f) => {
             setSlot(cropTarget.idx, { kind: 'file', file: f, preview: URL.createObjectURL(f) });
             setCropTarget(null);

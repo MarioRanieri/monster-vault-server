@@ -52,7 +52,6 @@ test('un file (staged) al Save finisce in uploads sullo slot 1', async () => {
   render(<CanEditForm can={can} onSave={onSave} onCancel={() => {}} />);
   const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' });
   await userEvent.upload(screen.getByLabelText('Photo 1'), file);
-  await userEvent.click(screen.getByRole('button', { name: /skip crop/i }));
   await userEvent.click(screen.getByRole('button', { name: /save/i }));
   expect(onSave).toHaveBeenCalledWith(
     expect.any(Object),
@@ -65,12 +64,21 @@ test('un file su Photo 3 finisce sullo slot 3', async () => {
   render(<CanEditForm can={can} onSave={onSave} onCancel={() => {}} />);
   const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' });
   await userEvent.upload(screen.getByLabelText('Photo 3'), file);
-  await userEvent.click(screen.getByRole('button', { name: /skip crop/i }));
   await userEvent.click(screen.getByRole('button', { name: /save/i }));
   expect(onSave).toHaveBeenCalledWith(
     expect.any(Object),
     expect.arrayContaining([expect.objectContaining({ slot: 3, file })]),
   );
+});
+
+test('cliccando una foto caricata si apre il crop (non è forzato all’upload)', async () => {
+  render(<CanEditForm can={can} onSave={() => {}} onCancel={() => {}} />);
+  const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' });
+  await userEvent.upload(screen.getByLabelText('Photo 1'), file);
+  // nessun crop all'upload: si apre solo cliccando la foto
+  expect(screen.queryByRole('button', { name: /apply crop/i })).toBeNull();
+  await userEvent.click(screen.getByRole('button', { name: /crop photo 1/i }));
+  expect(screen.getByRole('button', { name: /apply crop/i })).toBeTruthy();
 });
 
 test('il bottone URL mette in coda un upload da URL sullo slot 1', async () => {

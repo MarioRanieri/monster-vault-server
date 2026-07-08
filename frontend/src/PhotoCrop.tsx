@@ -1,19 +1,20 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { normalizeRect } from './cropRect';
 
-// Editor di crop: l'utente trascina un rettangolo sull'immagine; Apply ritaglia
-// via canvas e ritorna un File; Skip usa l'originale. (Il ritaglio su canvas non è
-// eseguibile in jsdom → qui sono testati i pulsanti e la logica pura sta in cropRect.)
+// Editor di crop on-demand: si apre cliccando una foto (già caricata o esistente).
+// L'utente trascina un rettangolo; Apply ritaglia via canvas e ritorna un File.
+// Sorgente = una URL (objectURL per un file appena caricato, o URL Cloudinary per una
+// foto esistente: crossOrigin così il canvas non viene "tainted"). Cancel chiude senza
+// modifiche. Il ritaglio su canvas non è eseguibile in jsdom → la logica pura sta in cropRect.
 export function PhotoCrop({
-  file,
+  src,
   onApply,
   onCancel,
 }: Readonly<{
-  file: File;
-  onApply: (f: File) => void;
+  src: string;
+  onApply: (file: File) => void;
   onCancel: () => void;
 }>) {
-  const [src, setSrc] = useState('');
   const imgRef = useRef<HTMLImageElement>(null);
   const [drag, setDrag] = useState<{
     ax: number;
@@ -22,13 +23,8 @@ export function PhotoCrop({
     by: number;
   } | null>(null);
 
-  useEffect(() => {
-    const u = URL.createObjectURL(file);
-    setSrc(u);
-    return () => URL.revokeObjectURL(u);
-  }, [file]);
-
   const rect = drag ? normalizeRect(drag.ax, drag.ay, drag.bx, drag.by) : null;
+  const canApply = !!rect && rect.w >= 4 && rect.h >= 4;
 
   const rel = (e: React.PointerEvent) => {
     const b = imgRef.current!.getBoundingClientRect();
@@ -40,10 +36,7 @@ export function PhotoCrop({
 
   const apply = () => {
     const img = imgRef.current;
-    if (!img || !rect || rect.w < 4 || rect.h < 4) {
-      onApply(file); // nessuna selezione utile → originale
-      return;
-    }
+    if (!img || !rect || !canApply) return;
     const sx = img.naturalWidth / img.width;
     const sy = img.naturalHeight / img.height;
     const canvas = document.createElement('canvas');
@@ -51,33 +44,33 @@ export function PhotoCrop({
     canvas.height = Math.round(rect.h * sy);
     const ctx = canvas.getContext('2d');
     if (!ctx) {
-      onApply(file);
+      onCancel();
       return;
     }
-    ctx.drawImage(
-      img,
-      rect.x * sx,
-      rect.y * sy,
-      rect.w * sx,
-      rect.h * sy,
-      0,
-      0,
-      canvas.width,
-      canvas.height,
-    );
-    canvas.toBlob(
-      (blob) => {
-        onApply(
-          blob
-            ? new File([blob], file.name.replace(/\.\w+$/, '') + '_crop.jpg', {
-                type: 'image/jpeg',
-              })
-            : file,
-        );
-      },
-      'image/jpeg',
-      0.92,
-    );
+    try {
+      ctx.drawImage(
+        img,
+        rect.x * sx,
+        rect.y * sy,
+        rect.w * sx,
+        rect.h * sy,
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+      );
+      canvas.toBlob(
+        (blob) => {
+          if (blob) onApply(new File([blob], 'crop.jpg', { type: 'image/jpeg' }));
+          else onCancel();
+        },
+        'image/jpeg',
+        0.92,
+      );
+    } catch {
+      // canvas "tainted" (foto cross-origin senza CORS) → niente crop
+      onCancel();
+    }
   };
 
   return (
@@ -88,6 +81,7 @@ export function PhotoCrop({
           src={src}
           alt="To crop"
           draggable={false}
+          crossOrigin={/^https?:/.test(src) ? 'anonymous' : undefined}
           onPointerDown={(e) => {
             const p = rel(e);
             setDrag({ ax: p.x, ay: p.y, bx: p.x, by: p.y });
@@ -107,11 +101,8 @@ export function PhotoCrop({
         )}
       </div>
       <div className="crop-actions">
-        <button type="button" className="btn btn-primary" onClick={apply}>
-          Apply
-        </button>
-        <button type="button" className="btn btn-ghost" onClick={() => onApply(file)}>
-          Skip crop
+        <button type="button" className="btn btn-primary" onClick={apply} disabled={!canApply}>
+          Apply crop
         </button>
         <button type="button" className="btn btn-ghost" onClick={onCancel}>
           Cancel
