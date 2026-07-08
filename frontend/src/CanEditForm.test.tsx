@@ -15,7 +15,7 @@ test('precompila i campi e salva le modifiche', async () => {
   await userEvent.type(screen.getByLabelText('Name'), 'Beta');
   await userEvent.type(screen.getByLabelText('SKU'), '-2');
   await userEvent.type(screen.getByLabelText('Size'), '500ml');
-  await userEvent.type(screen.getByLabelText('Promo'), 'Zero');
+  await userEvent.click(screen.getByLabelText('Promo'));
   await userEvent.type(screen.getByLabelText('Condition'), 'ok');
   await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
@@ -25,11 +25,42 @@ test('precompila i campi e salva le modifiche', async () => {
       nome: 'Beta',
       sku: 'SKU-1-2',
       size: '500ml',
-      promo: 'Zero',
+      promo: 'Yes',
       stato: 'ok',
     }),
     expect.any(Array),
   );
+});
+
+test('Promo è una flag sì/no: precompilata se presente e togglabile', async () => {
+  const onSave = vi.fn();
+  render(
+    <CanEditForm
+      can={{ id: '1', nome: 'Alpha', promo: 'Christmas' }}
+      onSave={onSave}
+      onCancel={() => {}}
+    />,
+  );
+  const promo = screen.getByLabelText('Promo') as HTMLInputElement;
+  expect(promo.checked).toBe(true); // promo esistente → flag ON
+  await userEvent.click(promo); // toggle a OFF
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ promo: '' }), expect.any(Array));
+});
+
+test('Condition mostra i suggerimenti da inserimenti precedenti', () => {
+  render(
+    <CanEditForm
+      can={can}
+      suggestions={{ conditions: ['Mint', 'Good'] }}
+      onSave={() => {}}
+      onCancel={() => {}}
+    />,
+  );
+  const values = Array.from(document.querySelectorAll('#dl-stato option')).map((o) =>
+    o.getAttribute('value'),
+  );
+  expect(values).toEqual(['Mint', 'Good']);
 });
 
 test('Annulla chiama onCancel', async () => {

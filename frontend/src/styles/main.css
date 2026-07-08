@@ -2503,6 +2503,22 @@ button.view-save {
   object-fit: contain;
   background: var(--bg3);
 }
+.promo-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+.promo-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--green);
+  cursor: pointer;
+}
+.promo-toggle span {
+  font-size: 13px;
+  color: var(--text2);
+}
 .opening-grid {
   display: flex;
   flex-wrap: wrap;

@@ -47,7 +47,7 @@ export interface Suggestions {
   sizes?: string[];
   countries?: string[];
   tops?: string[];
-  promos?: string[];
+  conditions?: string[];
 }
 
 // Modale di modifica/creazione (classi .modal/.photo-grid/.field-grid del vecchio).
@@ -287,13 +287,15 @@ export function CanEditForm({
             </div>
             <div className="field">
               <label htmlFor="e-promo">Promo</label>
-              <input
-                id="e-promo"
-                list="dl-promo"
-                value={promo}
-                onChange={(e) => setPromo(e.target.value)}
-              />
-              {datalist('dl-promo', suggestions?.promos)}
+              <div className="promo-toggle">
+                <input
+                  id="e-promo"
+                  type="checkbox"
+                  checked={promo !== ''}
+                  onChange={(e) => setPromo(e.target.checked ? 'Yes' : '')}
+                />
+                <span>{promo !== '' ? 'Yes' : 'No'}</span>
+              </div>
             </div>
             <div className="field">
               <label htmlFor="e-valore">Est. Value (€)</label>
@@ -301,7 +303,13 @@ export function CanEditForm({
             </div>
             <div className="field">
               <label htmlFor="e-stato">Condition</label>
-              <input id="e-stato" value={stato} onChange={(e) => setStato(e.target.value)} />
+              <input
+                id="e-stato"
+                list="dl-stato"
+                value={stato}
+                onChange={(e) => setStato(e.target.value)}
+              />
+              {datalist('dl-stato', suggestions?.conditions)}
             </div>
             <div className="field field-full">
               <label>Opening</label>
