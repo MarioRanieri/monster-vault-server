@@ -12,7 +12,7 @@ interface AuthState {
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  refresh: () => Promise<void>;
+  refresh: () => Promise<boolean>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<Result>;
   generateRecoveryCode: () => Promise<string | null>;
   recover: (username: string, recoveryCode: string, newPassword: string) => Promise<Result>;
@@ -20,6 +20,8 @@ interface AuthState {
 
 const authHeader = (token: string | null): Record<string, string> =>
   token ? { Authorization: `Bearer ${token}` } : {};
+
+let refreshing: Promise<boolean> | null = null;
 
 function changePwError(status: number): string {
   if (status === 401) return 'Current password is wrong';
@@ -66,17 +68,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   // Ripristina la sessione dal cookie refresh HttpOnly: chiamato al caricamento
   // della pagina, così tornando dal Map (navigazione piena) resto loggato.
-  refresh: async () => {
-    try {
-      const res = await fetch('/api/auth/refresh', { method: 'POST' });
-      if (!res.ok) return;
-      const data = (await res.json()) as { accessToken?: string };
-      // login solo se il server ha davvero restituito un token
-      if (typeof data.accessToken === 'string')
+  // Single-flight: le richieste concorrenti (più 401 in parallelo) condividono
+  // la stessa POST /refresh — il backend ruota il token, refresh paralleli si
+  // invaliderebbero a vicenda.
+  refresh: () => {
+    refreshing ??= (async () => {
+      try {
+        const res = await fetch('/api/auth/refresh', { method: 'POST' });
+        if (!res.ok) return false;
+        const data = (await res.json()) as { accessToken?: string };
+        // login solo se il server ha davvero restituito un token
+        if (typeof data.accessToken !== 'string') return false;
         set({ accessToken: data.accessToken, isAdmin: true });
-    } catch {
-      /* offline o non loggato: resta guest */
-    }
+        return true;
+      } catch {
+        /* offline o non loggato: resta guest */
+        return false;
+      } finally {
+        refreshing = null;
+      }
+    })();
+    return refreshing;
   },
   changePassword: async (currentPassword, newPassword) => {
     const res = await fetch('/api/account/password', {
