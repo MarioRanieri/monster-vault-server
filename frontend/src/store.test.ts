@@ -138,6 +138,32 @@ test('uploadPhotoFromUrl imposta l’URL foto sullo slot (POST from-url)', async
   expect(useCansStore.getState().cans[0].p2).toBe('https://cdn/fromurl.jpg');
 });
 
+test('restoreCan chiama PUT /restore e re-inserisce lo snapshot', async () => {
+  useCansStore.setState({ cans: [{ id: '2', nome: 'B' }], loading: false, error: null });
+  const spy = vi.fn().mockResolvedValue({ ok: true });
+  vi.stubGlobal('fetch', spy);
+
+  await useCansStore.getState().restoreCan({ id: '1', nome: 'A' });
+
+  expect(spy).toHaveBeenCalledWith(
+    '/api/cans/1/restore',
+    expect.objectContaining({ method: 'PUT' }),
+  );
+  expect(useCansStore.getState().cans.map((c) => c.id)).toEqual(['2', '1']);
+});
+
+test('permanentDeleteCan chiama DELETE /permanent', async () => {
+  const spy = vi.fn().mockResolvedValue({ ok: true });
+  vi.stubGlobal('fetch', spy);
+
+  await useCansStore.getState().permanentDeleteCan('1');
+
+  expect(spy).toHaveBeenCalledWith(
+    '/api/cans/1/permanent',
+    expect.objectContaining({ method: 'DELETE' }),
+  );
+});
+
 test('importCans invia il batch e ricarica la lista', async () => {
   const merged: Can[] = [
     { id: '1', nome: 'A' },

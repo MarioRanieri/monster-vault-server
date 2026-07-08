@@ -189,6 +189,55 @@ test('admin: elimina una can dal dettaglio', async () => {
   expect(screen.queryByText('Alpha')).toBeNull();
 });
 
+test('admin: Undo dopo delete ripristina la can senza purge', async () => {
+  const spy = vi
+    .fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => [{ id: '1', nome: 'Alpha' }] }) // loadCans
+    .mockResolvedValueOnce({ ok: false }) // refresh al mount: non loggato
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) }) // login
+    .mockResolvedValueOnce({ ok: true }) // DELETE soft
+    .mockResolvedValueOnce({ ok: true }); // PUT restore
+  vi.stubGlobal('fetch', spy);
+
+  render(<App />);
+  await loginAsAdmin();
+
+  await userEvent.click(screen.getByRole('button', { name: /alpha/i }));
+  await userEvent.click(screen.getByRole('button', { name: /delete/i }));
+  expect(screen.queryByText('Alpha')).toBeNull();
+
+  await userEvent.click(await screen.findByRole('button', { name: /undo/i }));
+
+  expect(await screen.findByText('Alpha')).toBeTruthy();
+  expect(spy.mock.calls.map((c) => c[0])).not.toContain('/api/cans/1/permanent');
+});
+
+test('admin: senza Undo dopo 10s parte il purge permanente', async () => {
+  const spy = vi
+    .fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => [{ id: '1', nome: 'Alpha' }] }) // loadCans
+    .mockResolvedValueOnce({ ok: false }) // refresh al mount: non loggato
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) }) // login
+    .mockResolvedValue({ ok: true }); // DELETE soft + DELETE permanent
+  vi.stubGlobal('fetch', spy);
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
+  try {
+    render(<App />);
+    await loginAsAdmin();
+
+    await user.click(screen.getByRole('button', { name: /alpha/i }));
+    await user.click(screen.getByRole('button', { name: /delete/i }));
+    await screen.findByRole('button', { name: /undo/i });
+
+    vi.advanceTimersByTime(10000);
+
+    expect(spy.mock.calls.map((c) => c[0])).toContain('/api/cans/1/permanent');
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 test('admin: modifica una can dal dettaglio', async () => {
   vi.stubGlobal(
     'fetch',

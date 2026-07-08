@@ -10,6 +10,8 @@ interface CansState {
   loadCans: () => Promise<void>;
   saveCan: (can: Can) => Promise<Can>;
   deleteCan: (id: string) => Promise<void>;
+  restoreCan: (can: Can) => Promise<void>;
+  permanentDeleteCan: (id: string) => Promise<void>;
   createCan: (can: Can) => Promise<Can>;
   uploadPhoto: (id: string, slot: number, file: File) => Promise<void>;
   uploadPhotoFromUrl: (id: string, slot: number, url: string) => Promise<void>;
@@ -46,6 +48,18 @@ export const useCansStore = create<CansState>((set) => ({
     const res = await authFetch(`/api/cans/${id}`, { method: 'DELETE' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     set((s) => ({ cans: s.cans.filter((c) => c.id !== id) }));
+  },
+  // Annulla un soft-delete: il backend risponde 204, quindi re-inseriamo lo
+  // snapshot che avevamo prima della cancellazione.
+  restoreCan: async (can) => {
+    const res = await authFetch(`/api/cans/${can.id}/restore`, { method: 'PUT' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    set((s) => ({ cans: [...s.cans, can] }));
+  },
+  // Purge definitivo (DB + foto Cloudinary) allo scadere della finestra di undo.
+  permanentDeleteCan: async (id) => {
+    const res = await authFetch(`/api/cans/${id}/permanent`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
   },
   createCan: async (can) => {
     const res = await authFetch('/api/cans', {

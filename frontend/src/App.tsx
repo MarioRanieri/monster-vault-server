@@ -32,6 +32,8 @@ function App() {
   const loadCans = useCansStore((s) => s.loadCans);
   const saveCan = useCansStore((s) => s.saveCan);
   const deleteCan = useCansStore((s) => s.deleteCan);
+  const restoreCan = useCansStore((s) => s.restoreCan);
+  const permanentDeleteCan = useCansStore((s) => s.permanentDeleteCan);
   const createCan = useCansStore((s) => s.createCan);
   const uploadPhoto = useCansStore((s) => s.uploadPhoto);
   const uploadPhotoFromUrl = useCansStore((s) => s.uploadPhotoFromUrl);
@@ -63,7 +65,7 @@ function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [light, setLight] = useState(false);
   const [gridMode, setGridMode] = useState<'grid' | 'list' | 'wall'>('grid');
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ msg: string; onUndo?: () => void } | null>(null);
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [showCompare, setShowCompare] = useState(false);
   const [showStats, setShowStats] = useState(false);
@@ -213,7 +215,7 @@ function App() {
       currentFilters,
     );
     void navigator.clipboard?.writeText(url);
-    setToast('🔗 View link copied');
+    setToast({ msg: '🔗 View link copied' });
     setTimeout(() => setToast(null), 2000);
   };
   const toggleCompare = (id: string) => {
@@ -225,8 +227,31 @@ function App() {
     .map((id) => cans.find((c) => c.id === id))
     .filter((c): c is Can => Boolean(c));
   const showToast = (msg: string) => {
-    setToast(msg);
+    setToast({ msg });
     setTimeout(() => setToast(null), 2500);
+  };
+  // Soft-delete con finestra di undo di 10s, come la vecchia app: Undo → restore
+  // dello snapshot; scaduto il timer → purge definitivo (DB + foto Cloudinary).
+  const handleDelete = async (can: Can) => {
+    await deleteCan(can.id);
+    setEditing(false);
+    setSelectedId(null);
+    const purge = setTimeout(() => {
+      permanentDeleteCan(can.id).catch(() => {});
+      setToast(null);
+    }, 10000);
+    setToast({
+      msg: 'Can deleted',
+      onUndo: async () => {
+        clearTimeout(purge);
+        try {
+          await restoreCan(can);
+          showToast('Restored ✓');
+        } catch {
+          showToast('⚠ Restore failed');
+        }
+      },
+    });
   };
   const exportCsv = () => {
     const blob = new Blob([buildCsv(visible)], { type: 'text/csv;charset=utf-8' });
@@ -468,11 +493,7 @@ function App() {
               }
             }}
             onCancel={() => setEditing(false)}
-            onDelete={async () => {
-              await deleteCan(selected.id);
-              setEditing(false);
-              setSelectedId(null);
-            }}
+            onDelete={() => handleDelete(selected)}
           />
         ) : (
           <CanDetail
@@ -481,10 +502,7 @@ function App() {
             isAdmin={isAdmin}
             showPrice={isAdmin && showPrice}
             onEdit={() => setEditing(true)}
-            onDelete={async () => {
-              await deleteCan(selected.id);
-              setSelectedId(null);
-            }}
+            onDelete={() => handleDelete(selected)}
             inCompare={compareIds.includes(selected.id)}
             onToggleCompare={() => toggleCompare(selected.id)}
             onToast={showToast}
@@ -541,8 +559,13 @@ function App() {
         />
       )}
       {toast && (
-        <div className="toast" role="status">
-          {toast}
+        <div className={toast.onUndo ? 'toast toast-undo' : 'toast'} role="status">
+          {toast.msg}
+          {toast.onUndo && (
+            <button type="button" className="toast-undo-btn" onClick={toast.onUndo}>
+              Undo
+            </button>
+          )}
         </div>
       )}
     </main>
