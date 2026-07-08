@@ -13,7 +13,6 @@ export interface Can {
   stato?: string;
   valore?: string;
   descrizione?: string;
-  watch?: boolean;
   photoAt?: number; // timestamp ultima foto (per "recently photographed")
   updatedAt?: number;
   p1?: string; // URL foto, slot 1-4

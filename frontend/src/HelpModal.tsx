@@ -31,8 +31,8 @@ export function HelpModal({ onClose }: Readonly<{ onClose: () => void }>) {
           <div className="chart-section">
             <div className="chart-title">Admin</div>
             <p>
-              Sign in to add, edit and delete cans, upload &amp; crop photos (4 slots), watch on
-              eBay, and export/import CSV.
+              Sign in to add, edit and delete cans, upload &amp; crop photos (4 slots), and
+              export/import CSV.
             </p>
           </div>
         </div>

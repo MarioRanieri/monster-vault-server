@@ -443,67 +443,6 @@ body.public-mode .header-right .btn-ghost:not(#theme-btn):not(#btn-login):not(#b
 body.public-mode #btn-refresh {
   display: none !important;
 }
-/* eBay watch flag (admin only) */
-body.public-mode .card-watch-btn,
-body.public-mode #detail-watch-btn {
-  display: none !important;
-}
-.card-watch-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 3;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.55);
-  color: #fff;
-  opacity: 0.6;
-  transition:
-    opacity 0.15s,
-    background 0.15s;
-}
-.card-watch-btn:hover {
-  opacity: 1;
-  background: rgba(0, 0, 0, 0.82);
-}
-.card.watching .card-watch-btn {
-  background: var(--green);
-  color: #000;
-  opacity: 1;
-}
-#detail-watch-btn.active {
-  background: var(--green);
-  color: #000;
-  border-color: var(--green);
-}
-.e-watch-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  user-select: none;
-}
-.e-watch-row input {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--green);
-  cursor: pointer;
-  flex: none;
-}
-/* === FUNZIONE "WATCH" (occhio) IN PAUSA: nascosta finche' non attiviamo il confronto-foto (VLM).
-   Le flag restano salvate nel DB e nel salvataggio (il checkbox in Edit resta nel DOM e ne
-   conserva il valore: modificare una lattina non azzera il flag). PER RIATTIVARE: cancella questo blocco. === */
-.card-watch-btn,
-#detail-watch-btn,
-#e-watch-field {
-  display: none !important;
-}
 body.public-mode #cache-info {
   display: none !important;
 }
