@@ -161,6 +161,13 @@ class Store:
             {"$setOnInsert": {"added_at": datetime.now(timezone.utc)}},
             upsert=True)
 
+    def get_meta(self, key, default=None):
+        d = self.db["ebay_meta"].find_one({"_id": key})
+        return d["value"] if d else default
+
+    def set_meta(self, key, value):
+        self.db["ebay_meta"].update_one({"_id": key}, {"$set": {"value": value}}, upsert=True)
+
 
 # ─── EBAY BROWSE API ──────────────────────────────────────────────────────────
 
@@ -319,19 +326,22 @@ def _delete_one(mid):
             return False
     return False
 
-def delete_bot_messages(up_to_id):
+def delete_bot_messages(up_to_id, protected=()):
     """Cancella a ritroso i messaggi del bot prima di up_to_id (fino a DELETE_SCAN_BACK).
-    Telegram rifiuta quelli non del bot o più vecchi di 48h: contiamo solo i cancellati."""
+    Telegram rifiuta quelli non del bot o più vecchi di 48h: contiamo solo i cancellati.
+    'protected' = message_id da NON cancellare (es. il banner fissato)."""
     scan = getattr(settings, "DELETE_SCAN_BACK", 300)
     workers = getattr(settings, "DELETE_WORKERS", 12)
-    ids = range(up_to_id - 1, max(0, up_to_id - scan - 1), -1)
+    protected = set(protected)
+    ids = [i for i in range(up_to_id - 1, max(0, up_to_id - scan - 1), -1) if i not in protected]
     with ThreadPoolExecutor(max_workers=workers) as ex:
         return sum(ex.map(_delete_one, ids))
 
 def _handle_command(store, cmd, arg, msg_id):
     """Esegue un comando. Ritorna True se gestito (per il log)."""
     if cmd == "delete":
-        n = delete_bot_messages(msg_id)
+        banner = store.get_meta("banner_msg_id")           # non cancellare il banner fissato
+        n = delete_bot_messages(msg_id, protected={banner} if banner else ())
         _delete_one(msg_id)   # cancella anche il comando stesso
         print(f"  [/delete] cancellati {n} messaggi del bot")
         return True
@@ -357,6 +367,34 @@ def _handle_command(store, cmd, arg, msg_id):
         return True
     return False
 
+BANNER_TEXT = (
+    "ℹ️ Come funziona questo bot\n\n"
+    "I comandi /add /list /delete NON sono istantanei: il radar gira in cloud ~ogni 2h e li "
+    "esegue al giro successivo (attesa fino a ~2h). Scrivi pure il comando e aspetta il prossimo "
+    "giro per la risposta/effetto — non è rotto, è in coda.\n"
+    "È il costo dell'esecuzione gratuita: nessun processo sempre acceso in ascolto."
+)
+
+def ensure_banner(store):
+    """Assicura che ci sia un messaggio fissato che spiega la latenza. Creato una volta e
+    salvato su Mongo (message_id): non lo rifà a ogni giro e il /delete lo preserva."""
+    if store.get_meta("banner_msg_id"):
+        return
+    try:
+        r = requests.post(f"{_tg_url()}/sendMessage",
+                          data={"chat_id": _chat_id(), "text": BANNER_TEXT,
+                                "disable_notification": True}, timeout=15)
+        mid = (r.json().get("result") or {}).get("message_id")
+        if mid:
+            requests.post(f"{_tg_url()}/pinChatMessage",
+                          data={"chat_id": _chat_id(), "message_id": mid,
+                                "disable_notification": True}, timeout=15)
+            store.set_meta("banner_msg_id", mid)
+            print(f"  [banner] creato e fissato (msg {mid})")
+    except Exception as exc:
+        print(f"  [banner] non creato: {exc}")
+
+
 def drain_commands(store):
     """Legge i comandi pendenti, li esegue, poi li conferma (offset) così al giro dopo
     Telegram non li rimanda. Solo dalla chat autorizzata."""
@@ -377,6 +415,11 @@ def drain_commands(store):
             requests.post(f"{url}/setMyCommands", json=payload, timeout=15)
         except Exception:
             pass
+    try:   # descrizione bot (schermata iniziale / profilo): spiega la latenza
+        requests.post(f"{url}/setMyDescription", json={"description": BANNER_TEXT}, timeout=15)
+    except Exception:
+        pass
+    ensure_banner(store)   # banner fissato in cima alla chat
     try:
         ups = requests.get(f"{url}/getUpdates", params={"timeout": 0}, timeout=25).json().get("result", [])
     except Exception as exc:
