@@ -16,6 +16,7 @@ export function PhotoCrop({
   onCancel: () => void;
 }>) {
   const imgRef = useRef<HTMLImageElement>(null);
+  const drawing = useRef(false);
   const [drag, setDrag] = useState<{
     ax: number;
     ay: number;
@@ -90,13 +91,22 @@ export function PhotoCrop({
           }}
           onPointerDown={(e) => {
             const p = rel(e);
+            drawing.current = true;
             setDrag({ ax: p.x, ay: p.y, bx: p.x, by: p.y });
             e.currentTarget.setPointerCapture(e.pointerId);
           }}
+          // ridimensiona solo col pointer premuto: al rilascio il riquadro resta
+          // fermo (senza il flag, l'hover continuerebbe a deformarlo)
           onPointerMove={(e) => {
-            if (!drag) return;
+            if (!drawing.current) return;
             const p = rel(e);
             setDrag((d) => (d ? { ...d, bx: p.x, by: p.y } : d));
+          }}
+          onPointerUp={() => {
+            drawing.current = false;
+          }}
+          onLostPointerCapture={() => {
+            drawing.current = false;
           }}
         />
         {rect && rect.w > 2 && rect.h > 2 && (
