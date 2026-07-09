@@ -19,7 +19,8 @@ import { CompareBar } from './CompareBar';
 import { ComparePanel } from './ComparePanel';
 import { StatsModal } from './StatsModal';
 import { ValueCalc } from './ValueCalc';
-import { buildCsv, parseCsv } from './csv';
+import { parseCsv } from './csv';
+import { buildXlsx, parseXlsx } from './excel';
 import { HelpModal } from './HelpModal';
 import { Lightbox } from './Lightbox';
 import { AccountPanel } from './AccountPanel';
@@ -275,18 +276,24 @@ function App() {
     showToast(`Filter: ${value}`);
     globalThis.scrollTo?.({ top: 0, behavior: 'smooth' });
   };
-  const exportCsv = () => {
-    const blob = new Blob([buildCsv(visible)], { type: 'text/csv;charset=utf-8' });
+  const exportExcel = async () => {
+    const buf = await buildXlsx(visible);
+    const blob = new Blob([buf], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'monster_vault.csv';
+    a.download = 'monster_vault_export.xlsx';
     a.click();
     URL.revokeObjectURL(url);
-    showToast('📄 CSV exported');
+    showToast('📄 Excel exported');
   };
-  const importCsv = async (file: File) => {
-    const parsed = parseCsv(await file.text());
+  // Import per estensione: .xlsx/.xls (anche i backup della vecchia app) o .csv.
+  const importFile = async (file: File) => {
+    const parsed = file.name.toLowerCase().endsWith('.csv')
+      ? parseCsv(await file.text())
+      : await parseXlsx(await file.arrayBuffer());
     await importCans(parsed);
     showToast(`📥 Imported ${parsed.length} cans`);
   };
@@ -325,8 +332,8 @@ function App() {
         onLogin={() => setShowLogin(true)}
         onToggleTheme={() => setLight((v) => !v)}
         onGuide={() => setShowGuide(true)}
-        onExport={exportCsv}
-        onImport={importCsv}
+        onExport={exportExcel}
+        onImport={importFile}
         onAccount={() => setShowAccount(true)}
       />
       <Hero

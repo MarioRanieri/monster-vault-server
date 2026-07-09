@@ -1,7 +1,8 @@
 import type { Can } from './types';
 
-// Colonne del CSV (etichetta ↔ campo), come l'export del vecchio.
-const COLUMNS: {
+// Colonne di export/import (etichetta ↔ campo), come l'export del vecchio.
+// Riusate anche da excel.ts.
+export const COLUMNS: {
   h: string;
   get: (c: Can) => string;
   set: (c: Can, v: string) => void;

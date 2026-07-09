@@ -32,7 +32,7 @@ export function HelpModal({ onClose }: Readonly<{ onClose: () => void }>) {
             <div className="chart-title">Admin</div>
             <p>
               Sign in to add, edit and delete cans, upload &amp; crop photos (4 slots), and
-              export/import CSV.
+              export/import Excel or CSV.
             </p>
           </div>
         </div>

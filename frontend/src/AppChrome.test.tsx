@@ -92,7 +92,7 @@ test('admin: apre il pannello Account e il Value calc', async () => {
   expect(await screen.findByText(/value calculator/i)).toBeTruthy();
 });
 
-test('admin: Export CSV mostra la conferma', async () => {
+test('admin: Export Excel mostra la conferma', async () => {
   vi.stubGlobal(
     'fetch',
     vi
@@ -112,5 +112,5 @@ test('admin: Export CSV mostra la conferma', async () => {
   await screen.findByRole('button', { name: /sign out/i });
 
   await userEvent.click(screen.getByRole('button', { name: /^export$/i }));
-  expect(await screen.findByText(/csv exported/i)).toBeTruthy();
+  expect(await screen.findByText(/excel exported/i)).toBeTruthy();
 });

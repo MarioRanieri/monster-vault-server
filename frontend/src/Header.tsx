@@ -112,9 +112,9 @@ export function Header({
                 <span className="btn-label">Import</span>
                 <input
                   type="file"
-                  accept=".csv,text/csv"
+                  accept=".xlsx,.xls,.csv"
                   style={{ display: 'none' }}
-                  aria-label="Import CSV"
+                  aria-label="Import Excel or CSV"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
                     if (f) onImport(f);
