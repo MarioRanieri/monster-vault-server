@@ -1,44 +1,43 @@
 #!/usr/bin/env python3
 """
-Monster Energy eBay Monitor — radar multi-mercato su Telegram.
+Monster Energy eBay Monitor — radar multi-mercato su Telegram (cloud, un giro per esecuzione).
 
-MODALITÀ ATTIVA (A) — ricerca per NOME:
-  Per ogni query in config.SEARCH_QUERIES, su ogni mercato (config.EBAY_MARKETPLACES),
-  notifica via Telegram i NUOVI annunci ("appena listati"). Niente confronto foto:
-  immediato e gratis, ma più rumoroso (lo scremi tu).
+Gira su GitHub Actions (schedule ogni 2h + trigger manuale). Ogni esecuzione:
+  1. si connette a MongoDB (stato anti-duplicati + blacklist dinamica); se è giù, salta il giro
+  2. drena i comandi Telegram arrivati dall'ultimo giro (/add, /list, /delete)
+  3. per ogni query × mercato cerca gli annunci "appena listati" e notifica i NUOVI su Telegram
 
-MODALITÀ VLM (B) — DISATTIVA (idea nel cassetto):
-  Se config.USE_VLM = True, prima di notificare confronta la foto dell'annuncio con le
-  tue lattine di riferimento (watch=true sul sito + rare_cans/) usando un modello
-  multimodale Anthropic e notifica solo i match. Per attivarla: vedi config.py (B).
+Ricerca per NOME (config.SEARCH_QUERIES): niente confronto foto (il VLM non distingue le
+lattine, rimosso). Il rumore lo scremi curando la blacklist con /add dalla chat.
 
 Avvio:
-  py ebay_monitor.py                            # monitoraggio continuo (notifica solo i NUOVI)
-  py ebay_monitor.py --send-now                 # one-shot: manda subito gli annunci attuali (TEST)
-  py ebay_monitor.py --send-now 10              # ...max 10 per ricerca
-  py ebay_monitor.py --send-now 5 --hours 168   # ...per i TEST: ignora la finestra (qui ultimi 7 gg)
+  py ebay_monitor.py                 # un giro: notifica solo i NUOVI
+  py ebay_monitor.py --send-now      # TEST: manda subito gli annunci attuali (ignora "già visti")
+  py ebay_monitor.py --send-now 5    # ...max 5 per ricerca
+  py ebay_monitor.py --send-now 5 --hours 168   # ...ignora la finestra (qui ultimi 7 gg)
+
+Segreti da variabili d'ambiente (GitHub Secrets):
+  EBAY_CLIENT_ID · EBAY_CLIENT_SECRET · TELEGRAM_BOT_TOKEN · TELEGRAM_CHAT_ID · MONGODB_URI
 """
+import os
 import sys
 import time
 import base64
-import sqlite3
 import requests
 import threading
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-import config
+import settings
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
     pass
 
-DB_FILE        = Path(__file__).parent / "seen_listings.db"
-RARE_CANS_DIR  = Path(__file__).parent / "rare_cans"
-IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
-HTTP_HEADERS   = {"User-Agent": "Mozilla/5.0 (MonsterVaultMonitor)"}
+BASE_DIR       = Path(__file__).parent
+BLACKLIST_FILE = BASE_DIR / "blacklist.txt"
 
 EBAY_OAUTH_URL = {
     "production": "https://api.ebay.com/identity/v1/oauth2/token",
@@ -48,19 +47,127 @@ EBAY_SEARCH_URL = {
     "production": "https://api.ebay.com/buy/browse/v1/item_summary/search",
     "sandbox":    "https://api.sandbox.ebay.com/buy/browse/v1/item_summary/search",
 }
-EBAY_ITEM_URL = {
-    "production": "https://api.ebay.com/buy/browse/v1/item/",
-    "sandbox":    "https://api.sandbox.ebay.com/buy/browse/v1/item/",
-}
+
+
+# ─── SEGRETI (da env) ─────────────────────────────────────────────────────────
+
+def _env(name):
+    v = os.environ.get(name, "")
+    if not v:
+        raise RuntimeError(f"Manca la variabile d'ambiente {name} (GitHub Secret / config locale).")
+    return v
+
+
+# ─── LOGICA PURA (testabile senza rete/Mongo) ─────────────────────────────────
+
+def load_base_blacklist(path=BLACKLIST_FILE):
+    """Legge blacklist.txt: una voce per riga; salta righe vuote e commenti (#).
+    Preserva gli spazi iniziali/finali significativi (' hat', 'atv ')."""
+    words = []
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            raw = line.rstrip("\n").rstrip("\r")
+            if not raw.strip() or raw.lstrip().startswith("#"):
+                continue
+            words.append(raw)
+    return words
+
+
+def merge_blacklist(base, additions):
+    """Base statica (file) + aggiunte dinamiche (Mongo), senza duplicati (case-insensitive)."""
+    seen = {w.lower() for w in base}
+    out = list(base)
+    for w in additions:
+        if w and w.lower() not in seen:
+            out.append(w)
+            seen.add(w.lower())
+    return out
+
+
+def title_passes(title, require_words, exclude_words):
+    """True se l'annuncio va notificato: contiene TUTTE le require_words e NESSUNA
+    exclude_word (confronto case-insensitive)."""
+    t = (title or "").lower()
+    if not all(w.lower() in t for w in require_words):
+        return False
+    if any(w.lower() in t for w in exclude_words):
+        return False
+    return True
+
+
+def parse_command(text):
+    """'/add camicia rossa' -> ('add', 'camicia rossa'). Non-comando -> (None, '')."""
+    text = (text or "").strip()
+    if not text.startswith("/"):
+        return None, ""
+    parts = text.split(maxsplit=1)
+    cmd = parts[0][1:].split("@")[0].lower()   # toglie '/' e l'eventuale @NomeBot
+    arg = parts[1].strip() if len(parts) > 1 else ""
+    return cmd, arg
+
+
+def validate_add_word(word, require_words):
+    """Guardia /add: rifiuta vuoto, <2 char e parole obbligatorie (accecherebbero il radar).
+    Ritorna (ok, motivo). La parola valida è normalizzata lowercase dal chiamante."""
+    w = (word or "").strip().lower()
+    if not w:
+        return False, "vuoto"
+    if len(w) < 2:
+        return False, "troppo corto (min 2 caratteri)"
+    if w in {r.lower() for r in require_words}:
+        return False, f"'{w}' è obbligatoria: escluderla accecherebbe il radar"
+    return True, ""
+
+
+# ─── MONGODB (stato: anti-duplicati + blacklist dinamica) ─────────────────────
+
+class Store:
+    """Stato persistente del monitor su MongoDB Atlas (stesso cluster del sito, collection
+    dedicate — NON tocca mai 'cans'). Fallisce subito se il DB è irraggiungibile."""
+
+    def __init__(self, uri):
+        from pymongo import MongoClient   # import pigro: la logica pura resta testabile senza pymongo
+        self.client = MongoClient(uri, serverSelectionTimeoutMS=15000)
+        self.db = self.client.get_default_database()   # il nome DB è nell'URI (…/monstervault)
+        self.db.command("ping")                        # fail-fast: verifica la connessione
+        self.seen = self.db["ebay_seen"]
+        self.blacklist = self.db["ebay_blacklist"]
+
+    def seen_count(self):
+        return self.seen.estimated_document_count()
+
+    def already_seen(self, item_id):
+        return self.seen.find_one({"_id": item_id}, {"_id": 1}) is not None
+
+    def mark_seen(self, item_id, title, price, currency, url, site, query):
+        try:
+            price_val = float(price or 0)
+        except (TypeError, ValueError):
+            price_val = 0.0   # prezzo malformato da eBay: non deve bloccare il mark (rinotifica infinita)
+        self.seen.update_one(
+            {"_id": item_id},
+            {"$setOnInsert": {"title": title, "price": price_val, "currency": currency,
+                              "url": url, "site": site, "query": query,
+                              "seen_at": datetime.now(timezone.utc)}},
+            upsert=True)
+
+    def blacklist_additions(self):
+        return [d["_id"] for d in self.blacklist.find({}, {"_id": 1})]
+
+    def add_blacklist_word(self, word):
+        """Upsert idempotente (word = _id): riprocessare lo stesso /add non crea doppioni."""
+        self.blacklist.update_one(
+            {"_id": word},
+            {"$setOnInsert": {"added_at": datetime.now(timezone.utc)}},
+            upsert=True)
 
 
 # ─── EBAY BROWSE API ──────────────────────────────────────────────────────────
 
 _token_cache = {"token": None, "exp": 0.0}
 
-# Fallimenti ricerche del giro corrente. Senza questo contatore il radar può "diventare
-# cieco" in silenzio (es. token revocato → tutte le ricerche tornano vuote per sempre):
-# a fine giro, se troppi fallimenti, lo segnaliamo a video e su Telegram.
+# Fallimenti ricerche del giro: senza questo il radar può "diventare cieco" in silenzio
+# (es. token revocato → tutte le ricerche vuote). A fine giro, se troppi, lo segnaliamo.
 _search_stats = {"fail": 0, "last": None}
 _stats_lock = threading.Lock()
 
@@ -70,18 +177,17 @@ def _note_search_failure(exc):
         _search_stats["last"] = exc
 
 def get_ebay_token():
-    """Token applicativo OAuth (client_credentials), cache finché valido.
-    Riprova sugli errori di rete/DNS (tipici all'avvio del PC, quando la rete non è
-    ancora pronta); distingue 'rete giù' da 'credenziali sbagliate'."""
+    """Token applicativo OAuth (client_credentials), cache finché valido. Riprova sugli
+    errori di rete; distingue 'rete giù' da 'credenziali sbagliate'."""
     now = time.time()
     if _token_cache["token"] and now < _token_cache["exp"] - 60:
         return _token_cache["token"]
-    basic = base64.b64encode(f"{config.EBAY_CLIENT_ID}:{config.EBAY_CLIENT_SECRET}".encode()).decode()
+    basic = base64.b64encode(f"{_env('EBAY_CLIENT_ID')}:{_env('EBAY_CLIENT_SECRET')}".encode()).decode()
     attempts = 3
     for i in range(1, attempts + 1):
         try:
             r = requests.post(
-                EBAY_OAUTH_URL[config.EBAY_ENV],
+                EBAY_OAUTH_URL[settings.EBAY_ENV],
                 headers={"Authorization": f"Basic {basic}",
                          "Content-Type": "application/x-www-form-urlencoded"},
                 data={"grant_type": "client_credentials",
@@ -92,21 +198,17 @@ def get_ebay_token():
             _token_cache["exp"] = time.time() + int(j.get("expires_in", 7200))
             return _token_cache["token"]
         except requests.exceptions.HTTPError as exc:
-            # 400/401 = credenziali o scope errati: ritentare non aiuta
             code = exc.response.status_code if exc.response is not None else "?"
             print(f"  [ERRORE] eBay ha rifiutato le credenziali (HTTP {code}): controlla "
-                  f"EBAY_CLIENT_ID / EBAY_CLIENT_SECRET / EBAY_ENV in config.py.")
+                  f"i Secret EBAY_CLIENT_ID / EBAY_CLIENT_SECRET.")
             return None
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as exc:
-            # rete/DNS non pronta (es. subito dopo il boot): riprova
             if i < attempts:
-                print(f"  [RETE] api.ebay.com non raggiungibile (tentativo {i}/{attempts}); "
-                      f"riprovo tra 5s… ({type(exc).__name__})")
+                print(f"  [RETE] api.ebay.com non raggiungibile (tentativo {i}/{attempts}); riprovo tra 5s…")
                 time.sleep(5)
             else:
                 print(f"  [ERRORE] api.ebay.com non raggiungibile dopo {attempts} tentativi: "
-                      f"problema di RETE/DNS, NON delle credenziali. Controlla la connessione "
-                      f"internet e riprova. ({type(exc).__name__})")
+                      f"problema di RETE/DNS, non delle credenziali. ({type(exc).__name__})")
                 return None
         except Exception as exc:
             print(f"  [ERRORE] OAuth eBay fallito (imprevisto): {exc}")
@@ -115,28 +217,27 @@ def get_ebay_token():
 
 
 def search_ebay(marketplace, query, token):
-    """Cerca su UN mercato con UNA query (ordine: appena listati). Nessun filtro spedizione.
-    Con config.MAX_LISTING_AGE_HOURS filtra lato eBay (itemStartDate) i SOLI annunci
-    listati nelle ultime N ore → ricevi solo roba fresca."""
+    """Cerca su UN mercato con UNA query (ordine: appena listati). Con
+    settings.MAX_LISTING_AGE_HOURS filtra lato eBay i soli annunci freschi."""
     params = {"q": query, "limit": "50", "sort": "newlyListed"}
     filters = []
-    max_age = getattr(config, "MAX_LISTING_AGE_HOURS", None)
+    max_age = getattr(settings, "MAX_LISTING_AGE_HOURS", None)
     if max_age:
         since = datetime.now(timezone.utc) - timedelta(hours=max_age)
         filters.append(f"itemStartDate:[{since.strftime('%Y-%m-%dT%H:%M:%S.000Z')}..]")
-    if config.MAX_PRICE_EUR is not None:
-        filters.append(f"price:[..{config.MAX_PRICE_EUR}],priceCurrency:EUR")
+    if settings.MAX_PRICE_EUR is not None:
+        filters.append(f"price:[..{settings.MAX_PRICE_EUR}],priceCurrency:EUR")
     if filters:
         params["filter"] = ",".join(filters)
     headers = {"Authorization": f"Bearer {token}",
                "X-EBAY-C-MARKETPLACE-ID": marketplace,
                "Content-Type": "application/json"}
     try:
-        r = requests.get(EBAY_SEARCH_URL[config.EBAY_ENV], params=params, headers=headers, timeout=25)
-        if r.status_code == 429:   # rate limit eBay: pausa e UN retry
+        r = requests.get(EBAY_SEARCH_URL[settings.EBAY_ENV], params=params, headers=headers, timeout=25)
+        if r.status_code == 429:   # rate limit: pausa e UN retry
             print(f"\n  [WARN] eBay 429 (rate limit) su {marketplace} '{query}' — riprovo tra 30s")
             time.sleep(30)
-            r = requests.get(EBAY_SEARCH_URL[config.EBAY_ENV], params=params, headers=headers, timeout=25)
+            r = requests.get(EBAY_SEARCH_URL[settings.EBAY_ENV], params=params, headers=headers, timeout=25)
         r.raise_for_status()
         return r.json().get("itemSummaries", []) or []
     except Exception as exc:
@@ -160,50 +261,35 @@ def parse_summary(item):
     return item_id, title, price, currency, url, image
 
 
-# ─── DATABASE (anti-duplicati) ────────────────────────────────────────────────
-
-def init_db():
-    conn = sqlite3.connect(DB_FILE)
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS seen (
-            item_id TEXT PRIMARY KEY, title TEXT, price REAL, currency TEXT,
-            url TEXT, site TEXT, query TEXT, seen_at TEXT DEFAULT (datetime('now'))
-        )""")
-    conn.commit()
-    return conn
-
-def already_seen(conn, item_id):
-    return conn.execute("SELECT 1 FROM seen WHERE item_id=?", (item_id,)).fetchone() is not None
-
-def mark_seen(conn, item_id, title, price, currency, url, site, query):
-    try:
-        price_val = float(price or 0)
-    except (TypeError, ValueError):
-        price_val = 0.0   # prezzo malformato da eBay: non deve bloccare il mark_seen (rinotifica infinita)
-    conn.execute(
-        "INSERT OR IGNORE INTO seen (item_id,title,price,currency,url,site,query)"
-        " VALUES (?,?,?,?,?,?,?)",
-        (item_id, title, price_val, currency, url, site, query))
-    conn.commit()
-
-
 # ─── TELEGRAM ─────────────────────────────────────────────────────────────────
+
+def _tg_token(): return os.environ.get("TELEGRAM_BOT_TOKEN", "")
+def _chat_id():  return os.environ.get("TELEGRAM_CHAT_ID", "")
+def _tg_url():   return f"https://api.telegram.org/bot{_tg_token()}"
+
+def _tg_text(text):
+    """Messaggio di servizio (testo semplice) nella chat."""
+    try:
+        requests.post(f"{_tg_url()}/sendMessage",
+                      data={"chat_id": _chat_id(), "text": text}, timeout=15)
+    except Exception:
+        pass
 
 def send_telegram(title, price, currency, url, image_url, site, reason):
     caption = f"⚡ <b>{title}</b>\n💰 {price} {currency}\n🌍 {site}  |  {reason}\n{url}"
-    api = f"https://api.telegram.org/bot{config.TELEGRAM_BOT_TOKEN}"
+    api = _tg_url()
     try:
         if image_url:
             r = requests.post(f"{api}/sendPhoto",
-                              data={"chat_id": config.TELEGRAM_CHAT_ID, "photo": image_url,
+                              data={"chat_id": _chat_id(), "photo": image_url,
                                     "caption": caption, "parse_mode": "HTML"}, timeout=25)
             if not (r.ok and r.json().get("ok")):
                 r = requests.post(f"{api}/sendMessage",
-                                  data={"chat_id": config.TELEGRAM_CHAT_ID, "text": caption,
+                                  data={"chat_id": _chat_id(), "text": caption,
                                         "parse_mode": "HTML"}, timeout=25)
         else:
             r = requests.post(f"{api}/sendMessage",
-                              data={"chat_id": config.TELEGRAM_CHAT_ID, "text": caption,
+                              data={"chat_id": _chat_id(), "text": caption,
                                     "parse_mode": "HTML"}, timeout=25)
         ok = r.ok and r.json().get("ok")
         print(("  ✅ " if ok else "  ❌ ") + f"{title[:50]}" + ("" if ok else f"  Telegram: {r.text[:120]}"))
@@ -212,35 +298,18 @@ def send_telegram(title, price, currency, url, image_url, site, reason):
         print(f"  ❌ Errore Telegram: {exc}")
         return False
 
-def notify(title, price, currency, url, image_url, site, reason):
-    methods = [m.strip().lower() for m in (getattr(config, "NOTIFY_VIA", "telegram") or "").split(",")]
-    if "telegram" in methods:
-        send_telegram(title, price, currency, url, image_url, site, reason)
 
-
-# ─── TELEGRAM: comando /delete (listener in un thread) ─────────────────────────
-# Mentre il monitor gira, un thread ascolta i comandi in chat. Con /delete il bot
-# cancella i propri messaggi recenti. ⚠️ Telegram permette a un bot di eliminare SOLO
-# i propri messaggi e SOLO se inviati da meno di 48 ore.
-
-def _tg_url():
-    return f"https://api.telegram.org/bot{config.TELEGRAM_BOT_TOKEN}"
-
-def _tg_text(text):
-    """Manda un messaggio di servizio (semplice testo) nella chat."""
-    try:
-        requests.post(f"{_tg_url()}/sendMessage",
-                      data={"chat_id": config.TELEGRAM_CHAT_ID, "text": text}, timeout=15)
-    except Exception:
-        pass
+# ─── TELEGRAM: drain comandi (una volta per giro) ─────────────────────────────
+# Il cron non tiene un processo vivo: a inizio giro leggiamo i comandi arrivati dall'ultimo
+# giro, li eseguiamo, e li confermiamo (Telegram li scarta). Latenza fino a ~2h, accettata.
+# Tutti i comandi sono IDEMPOTENTI, così un'eventuale riprocessazione non fa danni.
 
 def _delete_one(mid):
-    """True se il messaggio è stato cancellato. Un solo retry sul 429 (rate limit)
-    rispettando retry_after, così la concorrenza non lascia messaggi indietro."""
+    """True se il messaggio è stato cancellato. Un retry sul 429 rispettando retry_after."""
     for attempt in (1, 2):
         try:
             r = requests.post(f"{_tg_url()}/deleteMessage",
-                              data={"chat_id": config.TELEGRAM_CHAT_ID, "message_id": mid}, timeout=15)
+                              data={"chat_id": _chat_id(), "message_id": mid}, timeout=15)
             if r.status_code == 429 and attempt == 1:
                 retry_after = (r.json().get("parameters") or {}).get("retry_after", 1)
                 time.sleep(min(retry_after, 30) + 0.1)
@@ -252,179 +321,77 @@ def _delete_one(mid):
 
 def delete_bot_messages(up_to_id):
     """Cancella a ritroso i messaggi del bot prima di up_to_id (fino a DELETE_SCAN_BACK).
-    Telegram rifiuta quelli non del bot o più vecchi di 48h: contiamo solo i cancellati.
-    Le cancellazioni vanno in parallelo (DELETE_WORKERS) così la conferma in chat arriva
-    in pochi secondi invece che dopo DELETE_SCAN_BACK round-trip in serie."""
-    scan = getattr(config, "DELETE_SCAN_BACK", 300)
-    workers = getattr(config, "DELETE_WORKERS", 12)
+    Telegram rifiuta quelli non del bot o più vecchi di 48h: contiamo solo i cancellati."""
+    scan = getattr(settings, "DELETE_SCAN_BACK", 300)
+    workers = getattr(settings, "DELETE_WORKERS", 12)
     ids = range(up_to_id - 1, max(0, up_to_id - scan - 1), -1)
     with ThreadPoolExecutor(max_workers=workers) as ex:
         return sum(ex.map(_delete_one, ids))
 
-def telegram_command_listener():
-    """[Thread daemon] Long-polling getUpdates: gestisce /delete dalla chat autorizzata."""
-    url = _tg_url()
-    try:   # mostra /delete nel menu comandi del bot (UX)
-        requests.post(f"{url}/setMyCommands",
-                      json={"commands": [{"command": "delete",
-                                          "description": "Cancella i messaggi inviati dal bot"}]}, timeout=15)
-    except Exception:
-        pass
-    def _drain():
-        """Salta gli update arretrati: ritorna l'offset successivo all'ultimo (0 = coda vuota),
-        None se il drenaggio fallisce — in quel caso NON va processato nulla (si riprova)."""
-        try:
-            ups0 = requests.get(f"{url}/getUpdates", params={"timeout": 0}, timeout=20).json().get("result", [])
-            return (ups0[-1]["update_id"] + 1) if ups0 else 0
-        except Exception:
-            return None
-
-    # drena gli update arretrati: MAI eseguire comandi inviati PRIMA dell'avvio
-    offset = _drain()
-    while True:
-        try:
-            if offset is None:        # drenaggio fallito: riprova prima di processare qualsiasi cosa
-                time.sleep(10)
-                offset = _drain()
-                continue
-            params = {"timeout": 50}
-            if offset:                # 0 = coda vuota al boot: nessun offset da passare
-                params["offset"] = offset
-            ups = requests.get(f"{url}/getUpdates", params=params, timeout=60).json().get("result", [])
-            for u in ups:
-                offset = u["update_id"] + 1
-                msg = u.get("message") or {}
-                text = (msg.get("text") or "").strip().lower()
-                chat_id = str((msg.get("chat") or {}).get("id", ""))
-                if chat_id != str(config.TELEGRAM_CHAT_ID) or not text.startswith("/delete"):
-                    continue
-                cmd_id = msg.get("message_id", 0)
-                delete_bot_messages(cmd_id)
-                try:   # cancella anche il comando /delete stesso (unico feedback: sparisce)
-                    requests.post(f"{url}/deleteMessage",
-                                  data={"chat_id": config.TELEGRAM_CHAT_ID, "message_id": cmd_id}, timeout=15)
-                except Exception:
-                    pass
-        except Exception:
-            time.sleep(5)
-
-
-# ─── (B) VERIFICA VLM — DISATTIVA (attivala da config.USE_VLM) ────────────────
-# Confronta la foto dell'annuncio con le lattine di riferimento e ritorna True solo
-# se il modello multimodale conferma che è la stessa lattina. Richiede `pip install
-# anthropic` + config.ANTHROPIC_API_KEY. È uno scheletro: la prompt va rifinita
-# quando si attiva B.
-
-def _fetch_bytes(url):
-    try:
-        r = requests.get(url, timeout=15, headers=HTTP_HEADERS); r.raise_for_status()
-        return r.content
-    except Exception:
-        return None
-
-def load_reference_images():
-    """[B] Lattine di riferimento: watch=true sul sito (1 foto l'una) + rare_cans/."""
-    refs = []
-    try:
-        for c in requests.get(config.SITE_API_URL, timeout=30, headers=HTTP_HEADERS).json():
-            if not c.get("watch"):
-                continue
-            nome = c.get("nome") or c.get("sku") or c.get("id") or "?"
-            for slot in ("p1", "p2", "p3", "p4"):
-                if c.get(slot):
-                    b = _fetch_bytes(c[slot])
-                    if b:
-                        refs.append((nome, b)); break
-    except Exception as exc:
-        print(f"  [WARN] referenze dal sito: {exc}")
-    for p in sorted(RARE_CANS_DIR.rglob("*")):
-        if p.is_file() and p.suffix.lower() in IMAGE_SUFFIXES:
-            try:
-                refs.append((p.parent.name if p.parent != RARE_CANS_DIR else p.stem, p.read_bytes()))
-            except Exception:
-                pass
-    return refs
-
-def _img_media_type(b):
-    """Media type dai magic bytes (jpeg/png/webp/gif) — l'API rifiuta il tipo sbagliato."""
-    if b[:3] == b"\xff\xd8\xff":                 return "image/jpeg"
-    if b[:8] == b"\x89PNG\r\n\x1a\n":            return "image/png"
-    if b[:4] == b"RIFF" and b[8:12] == b"WEBP":  return "image/webp"
-    if b[:4] == b"GIF8":                         return "image/gif"
-    return "image/jpeg"
-
-def vlm_match(listing_image_url, references):
-    """[B] True se il VLM conferma che l'annuncio mostra UNA delle lattine di riferimento:
-    confronta la foto dell'annuncio con OGNI referenza e si ferma al primo match.
-    Scheletro: prompt da rifinire al primo utilizzo reale."""
-    if not references or not listing_image_url:
-        return False
-    import anthropic  # pip install anthropic
-    client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
-    img = _fetch_bytes(listing_image_url)
-    if not img:
-        return False
-    def b64(b): return base64.standard_b64encode(b).decode()
-    listing_block = {"type": "image",
-                     "source": {"type": "base64", "media_type": _img_media_type(img), "data": b64(img)}}
-    for ref_label, ref_bytes in references:
-        try:
-            resp = client.messages.create(
-                model=config.VLM_MODEL, max_tokens=50,
-                messages=[{"role": "user", "content": [
-                    {"type": "text", "text": f"Prima foto = lattina di riferimento ('{ref_label}'). "
-                                             "Seconda = annuncio eBay. È la STESSA identica lattina "
-                                             "(stesso design/variante)? Rispondi solo SI o NO."},
-                    {"type": "image", "source": {"type": "base64",
-                                                 "media_type": _img_media_type(ref_bytes),
-                                                 "data": b64(ref_bytes)}},
-                    listing_block,
-                ]}])
-            ans = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text").strip().upper()
-            if ans.startswith("SI") or ans.startswith("YES"):
-                return True
-        except Exception as exc:
-            print(f"  [WARN] VLM ({ref_label}): {exc}")
+def _handle_command(store, cmd, arg, msg_id):
+    """Esegue un comando. Ritorna True se gestito (per il log)."""
+    if cmd == "delete":
+        n = delete_bot_messages(msg_id)
+        _delete_one(msg_id)   # cancella anche il comando stesso
+        print(f"  [/delete] cancellati {n} messaggi del bot")
+        return True
+    if cmd == "add":
+        word = arg.strip().lower()
+        ok, reason = validate_add_word(word, settings.REQUIRE_WORDS)
+        if ok:
+            store.add_blacklist_word(word)
+            tot = len(store.blacklist_additions())
+            _tg_text(f"✅ aggiunto '{word}' alla blacklist (ora {tot} parole dinamiche)")
+            print(f"  [/add] '{word}' aggiunto ({tot} dinamiche)")
+        else:
+            _tg_text(f"⚠️ '{arg.strip()}' ignorato: {reason}")
+            print(f"  [/add] rifiutato '{arg.strip()}': {reason}")
+        return True
+    if cmd == "list":
+        words = sorted(store.blacklist_additions())
+        if words:
+            _tg_text("🗒️ Parole dinamiche (aggiunte via /add):\n" + "\n".join(words))
+        else:
+            _tg_text("🗒️ Nessuna parola dinamica: la blacklist è solo quella di base (blacklist.txt).")
+        print(f"  [/list] {len(words)} parole dinamiche")
+        return True
     return False
 
+def drain_commands(store):
+    """Legge i comandi pendenti, li esegue, poi li conferma (offset) così al giro dopo
+    Telegram non li rimanda. Solo dalla chat autorizzata."""
+    url = _tg_url()
+    try:   # mostra i comandi nel menu ☰ del bot (UX)
+        requests.post(f"{url}/setMyCommands", json={"commands": [
+            {"command": "add",    "description": "Aggiungi una parola alla blacklist"},
+            {"command": "list",   "description": "Mostra le parole aggiunte con /add"},
+            {"command": "delete", "description": "Cancella i messaggi inviati dal bot"},
+        ]}, timeout=15)
+    except Exception:
+        pass
+    try:
+        ups = requests.get(f"{url}/getUpdates", params={"timeout": 0}, timeout=25).json().get("result", [])
+    except Exception as exc:
+        print(f"  [WARN] getUpdates fallito, comandi saltati: {exc}")
+        return
+    last = None
+    for u in ups:
+        last = u["update_id"]
+        msg = u.get("message") or {}
+        chat_id = str((msg.get("chat") or {}).get("id", ""))
+        if chat_id != str(_chat_id()):
+            continue
+        cmd, arg = parse_command(msg.get("text") or "")
+        if cmd in ("add", "list", "delete"):
+            _handle_command(store, cmd, arg, msg.get("message_id", 0))
+    if last is not None:   # conferma: Telegram scarta gli update <= last
+        try:
+            requests.get(f"{url}/getUpdates", params={"offset": last + 1, "timeout": 0}, timeout=25)
+        except Exception:
+            pass   # non confermati: verranno riprocessati (idempotente, nessun danno)
 
-# ─── MAIN ─────────────────────────────────────────────────────────────────────
 
-def iter_listings(token, label=""):
-    """Itera (mercato, query, annuncio) su tutti i mercati × ricerche, mostrando
-    l'avanzamento IN-PLACE (così vedi che sta lavorando, mercato per mercato)."""
-    nq = len(config.SEARCH_QUERIES)
-    pfx = f"{label} " if label else ""
-    for mk in config.EBAY_MARKETPLACES:
-        for idx, q in enumerate(config.SEARCH_QUERIES, 1):
-            print(f"\r  {pfx}{mk:<8} [{idx:>2}/{nq}] {q[:30]:<30}", end="", flush=True)
-            for it in search_ebay(mk, q, token):
-                yield mk, q, it
-        print(f"\r  {pfx}{mk:<8} [{nq:>2}/{nq}] completato ✓{' ' * 24}")
-
-
-def fetch_all(token, label=""):
-    """[Opzione B] Esegue TUTTE le ricerche (mercati × query) IN PARALLELO →
-    un giro completo in ~15-25s invece di ~3,5 min. Ritorna lista (mercato, query, item)."""
-    tasks = [(mk, q) for mk in config.EBAY_MARKETPLACES for q in config.SEARCH_QUERIES]
-    total = len(tasks)
-    workers = max(1, getattr(config, "PARALLEL_WORKERS", 8))
-    pfx = f"{label} " if label else ""
-    results, done = [], 0
-    with ThreadPoolExecutor(max_workers=workers) as ex:
-        futures = {ex.submit(search_ebay, mk, q, token): (mk, q) for mk, q in tasks}
-        for fut in as_completed(futures):
-            done += 1
-            print(f"\r  {pfx}ricerche {done:>3}/{total} (parallele x{workers})   ", end="", flush=True)
-            try:
-                mk, q = futures[fut]
-                for it in fut.result():
-                    results.append((mk, q, it))
-            except Exception as exc:
-                _note_search_failure(exc)
-    print(f"\r  {pfx}ricerche {total}/{total} completate ✓{' ' * 18}")
-    return results
-
+# ─── RICERCHE + STATS ─────────────────────────────────────────────────────────
 
 def _reset_search_stats():
     with _stats_lock:
@@ -432,9 +399,9 @@ def _reset_search_stats():
         _search_stats["last"] = None
 
 def _report_search_stats():
-    """A fine giro: se ci sono stati fallimenti li stampa; se è fallita PIÙ DELLA METÀ
-    delle ricerche manda anche un allarme Telegram (radar quasi/completamente cieco)."""
-    total = len(config.EBAY_MARKETPLACES) * len(config.SEARCH_QUERIES)
+    """A fine giro: se è fallita PIÙ DELLA METÀ delle ricerche, allarme Telegram
+    (radar quasi/completamente cieco)."""
+    total = len(settings.EBAY_MARKETPLACES) * len(settings.SEARCH_QUERIES)
     with _stats_lock:
         fail, last = _search_stats["fail"], _search_stats["last"]
     if not fail:
@@ -444,146 +411,119 @@ def _report_search_stats():
         _tg_text(f"⚠️ eBay Monitor: {fail}/{total} ricerche FALLITE in questo giro — "
                  f"il radar è quasi cieco. Controlla chiavi/quota eBay. Ultimo errore: {last}")
 
-def gather_listings(token, label=""):
-    """Annunci di tutti i mercati × ricerche: in PARALLELO (opzione B) o sequenziale,
-    secondo config.PARALLEL_SEARCH. A fine giro segnala gli eventuali fallimenti."""
+def gather_listings(token):
+    """Tutte le ricerche (mercati × query) IN PARALLELO → lista (mercato, query, item).
+    A fine giro segnala i fallimenti."""
     _reset_search_stats()
-    if getattr(config, "PARALLEL_SEARCH", True):
-        res = fetch_all(token, label)
-        _report_search_stats()
-        return res
-    def _seq():
-        for tup in iter_listings(token, label):
-            yield tup
-        _report_search_stats()
-    return _seq()
+    tasks = [(mk, q) for mk in settings.EBAY_MARKETPLACES for q in settings.SEARCH_QUERIES]
+    total = len(tasks)
+    workers = max(1, getattr(settings, "PARALLEL_WORKERS", 8))
+    results, done = [], 0
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        futures = {ex.submit(search_ebay, mk, q, token): (mk, q) for mk, q in tasks}
+        for fut in as_completed(futures):
+            done += 1
+            print(f"\r  ricerche {done:>3}/{total} (parallele x{workers})   ", end="", flush=True)
+            try:
+                mk, q = futures[fut]
+                for it in fut.result():
+                    results.append((mk, q, it))
+            except Exception as exc:
+                _note_search_failure(exc)
+    print(f"\r  ricerche {total}/{total} completate ✓{' ' * 18}")
+    _report_search_stats()
+    return results
 
-def process(conn, token, notify_all, cap_per_query=None):
-    """notify_all=False → notifica solo i NUOVI. notify_all=True → manda anche gli
-    annunci già esistenti (test 'send-now'). cap_per_query limita gli invii per ricerca."""
-    refs = load_reference_images() if config.USE_VLM else []
-    if config.USE_VLM:
-        print(f"  [B] VLM attivo ({config.VLM_MODEL}): {len(refs)} referenze.")
+
+# ─── PROCESSO PRINCIPALE ──────────────────────────────────────────────────────
+
+def process(store, token, exclude_words, notify_all=False, cap_per_query=None):
+    """notify_all=False → notifica solo i NUOVI. notify_all=True → manda anche i già visti
+    (test --send-now). cap_per_query limita gli invii per ricerca (test)."""
     sent_ids, per_query = set(), {}
     examined = sent = 0
     for mk, q, item in gather_listings(token):
         item_id, title, price, currency, url, image = parse_summary(item)
         if not item_id or item_id in sent_ids:
             continue
-        # Filtri sul titolo: PRETENDI le parole obbligatorie (REQUIRE_WORDS, di default
-        # "monster"+"energy" — eBay non fa un AND stretto) e scarta il rumore (EXCLUDE_WORDS).
-        title_l = (title or "").lower()
-        if not all(w.lower() in title_l for w in getattr(config, "REQUIRE_WORDS", ())) \
-           or any(w.lower() in title_l for w in getattr(config, "EXCLUDE_WORDS", ())):
+        if not title_passes(title, settings.REQUIRE_WORDS, exclude_words):
             if not notify_all:
-                mark_seen(conn, item_id, title, price, currency, url, mk, q)
+                store.mark_seen(item_id, title, price, currency, url, mk, q)
             continue
-        if not notify_all and already_seen(conn, item_id):
+        if not notify_all and store.already_seen(item_id):
             continue
         if cap_per_query is not None and per_query.get(q, 0) >= cap_per_query:
-            mark_seen(conn, item_id, title, price, currency, url, mk, q)
+            store.mark_seen(item_id, title, price, currency, url, mk, q)
             continue
         examined += 1
-        if config.USE_VLM and not vlm_match(image, refs):
-            mark_seen(conn, item_id, title, price, currency, url, mk, q)
-            continue
-        reason = f"VLM match · {q}" if config.USE_VLM else f"ricerca: {q}"
         print()  # a capo: stacca la notifica dalla riga di avanzamento
-        notify(title, price, currency, url, image, mk, reason)
-        mark_seen(conn, item_id, title, price, currency, url, mk, q)
+        send_telegram(title, price, currency, url, image, mk, f"ricerca: {q}")
+        store.mark_seen(item_id, title, price, currency, url, mk, q)
         sent_ids.add(item_id); sent += 1
         per_query[q] = per_query.get(q, 0) + 1
         time.sleep(0.4)
     return examined, sent
 
-def establish_baseline(conn, token):
+
+def establish_baseline(store, token):
     total = 0
-    for mk, q, item in gather_listings(token, label="Baseline"):
+    for mk, q, item in gather_listings(token):
         item_id, title, price, currency, url, _ = parse_summary(item)
-        if item_id and not already_seen(conn, item_id):
-            mark_seen(conn, item_id, title, price, currency, url, mk, q); total += 1
+        if item_id and not store.already_seen(item_id):
+            store.mark_seen(item_id, title, price, currency, url, mk, q)
+            total += 1
     print(f"  Baseline: {total} annunci esistenti segnati come visti (non notificati).")
 
-def _prevent_sleep(enable=True):
-    """[Windows] Impedisce lo standby AUTOMATICO (per inattività) mentre il monitor gira.
-    NON blocca la sospensione MANUALE / chiusura coperchio. No-op su altri OS."""
-    try:
-        import ctypes
-        ES_CONTINUOUS, ES_SYSTEM_REQUIRED = 0x80000000, 0x00000001
-        ctypes.windll.kernel32.SetThreadExecutionState(
-            ES_CONTINUOUS | (ES_SYSTEM_REQUIRED if enable else 0))
-    except Exception:
-        pass
 
-
-def _countdown(seconds):
-    """Attesa col TIMER visibile. Basato sulla deadline: se il PC va in standby, al
-    risveglio si accorge che il tempo è passato e riparte subito."""
-    deadline = time.time() + seconds
-    try:
-        while True:
-            rem = int(round(deadline - time.time()))
-            if rem <= 0:
-                break
-            mm, ss = divmod(rem, 60)
-            print(f"\r  ⏳ prossimo giro tra {mm:02d}:{ss:02d}   (Ctrl+C per fermare)   ", end="", flush=True)
-            time.sleep(1)
-    finally:
-        print("\r" + " " * 52 + "\r", end="", flush=True)
-
-
-def run():
-    nq, nm = len(config.SEARCH_QUERIES), len(config.EBAY_MARKETPLACES)
+def run_once(send_now=False, cap_per_query=None):
+    nq, nm = len(settings.SEARCH_QUERIES), len(settings.EBAY_MARKETPLACES)
     print("=" * 60)
-    print(f"  Monster eBay Monitor — {nm} mercati × {nq} ricerche")
-    mode = "VLM (B)" if config.USE_VLM else "ricerca per nome (A)"
-    par = f"parallelo x{getattr(config, 'PARALLEL_WORKERS', 8)}" if getattr(config, "PARALLEL_SEARCH", True) else "sequenziale"
-    print(f"  Modalità: {mode}  |  {par}  |  polling {config.POLL_INTERVAL_SECONDS // 60} min")
+    print(f"  Monster eBay Monitor — {nm} mercati × {nq} ricerche  |  finestra {settings.MAX_LISTING_AGE_HOURS}h")
     print("=" * 60)
-    _prevent_sleep(True)   # evita lo standby AUTOMATICO mentre gira (non la sospensione manuale)
-    threading.Thread(target=telegram_command_listener, daemon=True).start()
-    print("  Comando Telegram /delete attivo (cancella i messaggi del bot < 48h).")
-    conn = init_db()
-    if not get_ebay_token():
-        print("⚠️  Niente token eBay — vedi il motivo nel messaggio [ERRORE]/[RETE] qui sopra."); return
-    if conn.execute("SELECT COUNT(*) FROM seen").fetchone()[0] == 0:
-        print("Primo avvio: baseline (gli annunci già online non vengono notificati).")
-        establish_baseline(conn, get_ebay_token())
-    while True:
-        ts = datetime.now().strftime("%H:%M:%S")
-        print(f"\n[{ts}] Controllo...")
-        token = get_ebay_token()
-        if token:
-            examined, sent = process(conn, token, notify_all=False)
-            print(f"  → {examined} nuovi, {sent} notificati.")
-        _countdown(config.POLL_INTERVAL_SECONDS)
 
-def send_now(cap_per_query=10):
-    print(f"Invio one-shot (TEST): max {cap_per_query} annunci/ricerca su {len(config.EBAY_MARKETPLACES)} mercati...\n")
-    conn = init_db()
+    uri = os.environ.get("MONGODB_URI", "")
+    if not uri:
+        print("⚠️  Manca MONGODB_URI (Secret). Giro annullato."); return
+    try:
+        store = Store(uri)
+    except Exception as exc:
+        # Mongo giù: NON processare (rischieresti di rifare la baseline o spammare). Avvisa e esci.
+        print(f"⚠️  MongoDB irraggiungibile: giro saltato. {exc}")
+        _tg_text(f"⚠️ eBay Monitor: MongoDB irraggiungibile, giro saltato. {type(exc).__name__}")
+        return
+
+    drain_commands(store)
+
     token = get_ebay_token()
     if not token:
-        print("⚠️  Niente token eBay."); return
-    examined, sent = process(conn, token, notify_all=True, cap_per_query=cap_per_query)
-    print(f"\n→ Inviati {sent} annunci su Telegram (esaminati {examined}).")
+        print("⚠️  Niente token eBay — vedi il messaggio [ERRORE]/[RETE] sopra."); return
+
+    exclude_words = merge_blacklist(load_base_blacklist(), store.blacklist_additions())
+
+    if not send_now and store.seen_count() == 0:
+        print("Primo avvio: baseline (gli annunci già online non vengono notificati).")
+        establish_baseline(store, token)
+        return
+
+    examined, sent = process(store, token, exclude_words,
+                             notify_all=send_now, cap_per_query=cap_per_query)
+    print(f"  → {examined} candidati, {sent} notificati.")
 
 
 if __name__ == "__main__":
+    args = sys.argv[1:]
     try:
-        args = sys.argv[1:]
         if "--send-now" in args:
-            # --hours N: solo per i TEST, sovrascrive la finestra temporale (es. ultimi 7 giorni)
-            if "--hours" in args:
+            if "--hours" in args:   # solo TEST: sovrascrive la finestra temporale
                 j = args.index("--hours")
                 try:
-                    config.MAX_LISTING_AGE_HOURS = float(args[j + 1])
+                    settings.MAX_LISTING_AGE_HOURS = float(args[j + 1])
                 except (IndexError, ValueError):
-                    print("⚠️  --hours richiede un numero (es. --hours 72). Opzione ignorata.")
-            # cap = numero subito dopo --send-now (default 10)
+                    print("⚠️  --hours richiede un numero (es. --hours 72). Ignorato.")
             i = args.index("--send-now")
             cap = int(args[i + 1]) if i + 1 < len(args) and args[i + 1].isdigit() else 10
-            send_now(cap_per_query=cap)
+            run_once(send_now=True, cap_per_query=cap)
         else:
-            run()
+            run_once()
     except KeyboardInterrupt:
         print("\nMonitor fermato.")

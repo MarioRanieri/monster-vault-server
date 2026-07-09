@@ -2,10 +2,23 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-07-09 (rev 44 — regression pass vecchia-vs-nuova app + refresh token persistiti)  
+**Updated:** 2026-07-09 (rev 45 — eBay monitor in cloud su GitHub Actions + Mongo)  
 **Branch:** main (lavoro su `feat/react-migration`, mergiato a `main`)  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
+
+> **2026-07-09 — eBay monitor spostato in cloud (gratis).** Il radar `ebay-monitor/` non gira
+> più sul PC: ora è su **GitHub Actions** (`.github/workflows/ebay-monitor.yml`, cron ogni 2h, un
+> giro per esecuzione), con lo stato su **MongoDB Atlas** (collection dedicate `ebay_seen`/
+> `ebay_blacklist`, non toccano `cans`), tutto **a costo zero**. Segreti nelle **GitHub Secrets**
+> (`EBAY_CLIENT_ID/SECRET`, `TELEGRAM_BOT_TOKEN/CHAT_ID`, `MONGODB_URI`). Rimossi loop/countdown/
+> anti-standby/SQLite; **cancellati** lo scheletro VLM e gli esperimenti CLIP/DINOv2/OCR (il
+> riconoscimento immagine non distingue le varianti → la curatela manuale della blacklist È la
+> strategia). Finestra allargata 2,5h→3,5h per i ritardi del cron. Comandi Telegram drenati una
+> volta per giro: `/delete` + nuovi **`/add parola`** (blacklist dinamica su Mongo, con guardia) e
+> **`/list`**. Blacklist di base estratta in `blacklist.txt` versionato (210 voci). Se Mongo è giù,
+> il giro viene saltato con avviso. Test logica pura: `ebay-monitor/test_ebay_monitor.py` (15).
+> ⚠️ La password dell'utente Atlas del monitor va **ruotata** (è stata condivisa in chiaro durante il setup).
 
 > **2026-07-09 — Regression pass old-vs-new + sessioni persistenti (in produzione).** Audit
 > completo del vecchio commit `4eff004` (app vanilla) contro la nuova app React: tutte le

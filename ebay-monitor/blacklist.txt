@@ -1,0 +1,236 @@
+# ============================================================
+#  Monster Energy eBay Monitor — BLACKLIST (base statica, versionata)
+#  Un titolo eBay viene SCARTATO se contiene una di queste voci (case-insensitive).
+#  Formato: una parola/frase per riga. Righe vuote e righe che iniziano con # = ignorate.
+#  ⚠️ Voci con SPAZIO iniziale (es. " hat") evitano falsi positivi dentro altre parole
+#     ("that" contiene "hat", "steel" contiene "tee").
+#  Le aggiunte fatte da Telegram con /add vivono su MongoDB e si uniscono a questa a runtime.
+#  Per versionarle qui, usa /list e incollale a mano in fondo.
+# ============================================================
+
+# ── altri brand "Monster" / carte / giochi ──
+monster high
+monster jam
+monster truck
+monster hunter
+monster cable
+hdmi
+pokemon
+pokémon
+yu-gi-oh
+yugioh
+tcg
+trading card
+labubu
+pop mart
+ps4
+ps5
+game
+
+# ── fumetti / anime / cartoon ──
+doujinshi
+evangelion
+neon genesis
+disney
+pixar
+big into energy
+
+# ── moto: MODELLI (i ricambi citano sempre il modello, le lattine mai;
+#    niente "kawasaki" secco → salva eventuali lattine collab Kawasaki) ──
+kawasaki kx
+kawasaki klx
+kawasaki kfx
+kfx
+kx 65
+kx65
+kx 85
+kx85
+kx 125
+kx125
+kx 250
+kx250
+kx 450
+kx450
+klx 140
+klx140
+yamaha yz
+yamaha wr
+yz 85
+yz85
+yz 125
+yz125
+yz 250
+yz250
+yz 450
+yz450
+yzf
+wr450
+honda crf
+crf250
+crf450
+suzuki rm
+rmz
+rm-z
+husqvarna
+ktm 
+motocross
+enduro
+pit bike
+dirt bike
+quad 
+atv 
+
+# ── moto: ricambi / officina ──
+oil filter
+filtro olio
+hiflo
+spark plug
+brake pad
+fuel pump
+carburetor
+carburatore
+clutch
+frizione
+leva freno
+caliper
+bearing
+swingarm
+kickstart
+throttle
+piston
+thrust washer
+washer
+bolt
+gear lever
+brake lever
+lever
+exhaust
+marmitta
+sprocket
+pignone
+chain kit
+drive chain
+handlebar
+manubrio
+fender
+parafango
+mudguard
+fork
+forcella
+radiator
+radiatore
+plastiche
+plastic kit
+snap-on
+tappetino
+wrench
+wheel
+tyre8
+helmet
+casco
+arai
+agv
+shoei
+ogio
+dcor
+graphic
+athena
+koyo
+o'neal
+pit board
+fits kawasaki
+for kawasaki
+per kawasaki
+fits yamaha
+for yamaha
+supercross
+
+# ── modellini & motorsport ──
+1:24
+1:32
+1:64
+1:18
+1:43
+1:6
+1/24
+1/32
+1/64
+1/18
+1/43
+diecast
+die-cast
+slot car
+matchbox
+traxxas
+quadcopter
+drone
+nascar
+dragster
+sprintcar
+sprint car
+top fuel
+panini
+prizm
+autograph
+autografo
+autografato
+ signed
+
+# ── abbigliamento / accessori ──
+felpa
+felpe
+maglietta
+magliette
+maglia
+canotta
+camicia
+occhiali
+goggle
+gloves
+guanti
+boots
+stivali
+jacket
+giacca
+jersey
+softshell
+pullover
+sweatshirt
+hoodie
+zip
+tank top
+pants
+ tee
+t-shirt
+tshirt
+shirt
+polo
+ hat
+snapback
+beanie
+trucker
+cappello
+cappellino
+
+# ── bundle / multipack / casse (le lattine SINGOLE passano) ──
+pack
+case of
+ x 500
+ x 330
+ x 355
+ x 250
+ x 16oz
+ x 12oz
+lattine da 500
+lattine da 250
+lattine da 355
+lattine da 330
+
+# ── collezionismo / merch varie (aggiunte live) ──
+autocollant
+blasko
+chitarra
+guitar
+toy
+vinile
+vinyl

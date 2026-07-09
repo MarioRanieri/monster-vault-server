@@ -1,0 +1,42 @@
+name: eBay Monitor
+
+# Radar Monster Energy: un giro ogni 2h (schedule) + trigger manuale per i test.
+# I cron di GitHub non partono all'orario esatto (possono slittare): la finestra lato
+# codice è 3.5h per assorbire i ritardi. Segreti in Settings → Secrets → Actions.
+on:
+  schedule:
+    - cron: '0 */2 * * *'   # ogni 2 ore
+  workflow_dispatch:
+    inputs:
+      send_now:
+        description: 'TEST: manda subito gli annunci attuali (ignora i già-visti)'
+        type: boolean
+        default: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install deps
+        run: pip install -r ebay-monitor/requirements.txt
+
+      - name: Run monitor
+        working-directory: ebay-monitor
+        env:
+          EBAY_CLIENT_ID:     ${{ secrets.EBAY_CLIENT_ID }}
+          EBAY_CLIENT_SECRET: ${{ secrets.EBAY_CLIENT_SECRET }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          MONGODB_URI:        ${{ secrets.MONGODB_URI }}
+        run: |
+          if [ "${{ inputs.send_now }}" = "true" ]; then
+            python ebay_monitor.py --send-now 10
+          else
+            python ebay_monitor.py
+          fi
