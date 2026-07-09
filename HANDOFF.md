@@ -2,10 +2,24 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-07-09 (rev 45 — eBay monitor in cloud su GitHub Actions + Mongo)  
+**Updated:** 2026-07-10 (rev 46 — audit esperienza guest: font, sort, copy, accent, contrasto)  
 **Branch:** main (lavoro su `feat/react-migration`, mergiato a `main`)  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
+
+> **2026-07-10 — Audit esperienza guest (prime 5 voci).** Analisi del sito live in modalità
+> guest + `docs/AUDIT.md` (shortlist prioritizzata di 11 voci). Implementate le 5 a più alto
+> impatto: **(#1)** i webfont non caricavano in produzione — la CSP (`font-src 'self'`) bloccava
+> l'`@import` di Google Fonts, quindi Bebas Neue/DM Sans/Space Mono cadevano sui font di sistema;
+> ora **self-hostati** (woff2 latin in `frontend/public/fonts`, `@font-face`), same-origin → CSP
+> invariata, PWA offline-ready, e DM Sans variabile ripristina anche il peso 700. **(#2)** il sort
+> di default apriva su un muro di placeholder perché ordinava per `photoAt` (0 su molti scatti
+> vecchi); ora la presenza di foto (`p1`) è la chiave primaria → le lattine fotografate vengono
+> prima, senza nascondere nulla (TDD). **(#3)** tagline di contesto sulla landing (chi + cosa fa il
+> sito). **(#4)** l'accent "Full" (`#00b4ff` ripetuto in 6 punti) tokenizzato in `--full` (cyan più
+> vivo). **(#7)** `--text3` schiarito verso WCAG AA. Restano #5 (filtri mobile), #6 (refactor stato
+> filtri), #8 (rumore console — il 401 refresh richiede un tocco backend), #9 (virtualizzazione),
+> #10 (landing, in parte già risolta da #1), #11 (SEO/OG).
 
 > **2026-07-09 — eBay monitor spostato in cloud (gratis).** Il radar `ebay-monitor/` non gira
 > più sul PC: ora è su **GitHub Actions** (`.github/workflows/ebay-monitor.yml`, cron ogni 2h, un
