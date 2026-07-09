@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Excel export/import** — the collection exports to `.xlsx` (SheetJS, lazy-loaded as a separate chunk) and imports both `.xlsx/.xls` and the legacy CSV, with header aliases for the old Google-Sheet columns and deterministic ids so re-imports merge instead of duplicating.
+- **Interactive stats** — the Stats modal gained click-to-filter breakdowns, a condition section, an admin-only Top-10-by-value list (click opens the can) and a 12-month timeline switchable between can count and € value.
+- **Lightbox zoom/pan** — wheel and double-click zoom to the cursor, pinch-zoom and drag pan on touch; swipe still changes photo when not zoomed.
+- **Photo slot reorder** — drag & drop between slots on desktop, ⇄ tap-swap for touch; works on staged uploads before saving.
+- **Offline cache & cold-start UX** — cans are cached in localStorage and shown instantly (stale-while-revalidate) with an "Updated …" timestamp; 5xx responses retry 3× with a "Server warming up…" message; the landing shows placeholders instead of zeros while loading.
+
+### Fixed
+- **Sessions survive backend restarts** — refresh tokens moved from an in-memory map to a Mongo-persisted store (keyed by SHA-256 hash, TTL index on expiry), so Render cold starts no longer force a re-login on every reload.
+- **Silent token refresh** — a 401 now refreshes the access token (single-flight) and retries the request once. Also restored from the old app: the 10s undo window on can delete, PWA registration (manifest tags + service worker), filters persisting across reloads, and the green/yellow/red condition badge colors.
+- **Edit form polish** — crop preselects the whole image and freezes on pointer release; slot previews show the full photo (contain); Promo is a Yes/No select that preserves historical values; Name + SKU are validated; header buttons regained their icons and the green admin avatar is back (mobile header is a single icon-only row again).
+
+### Removed
+- **eBay watch flag & photo rotate** — deliberately dropped in the React migration (leftover watch types, help text and CSS cleaned up); rotate saw no use.
+
+### Added
 - **Frontend rewritten in React** — the seven vanilla-TypeScript modules (`core/ui/tools/photos/share/pwa/types`) were replaced by a **React 19 + Vite + TypeScript (strict)** single-page app with **Zustand** state, one component per feature (grid/list/wall views, can detail, edit modal, stats, compare, value calculator, saved views, share). The old dark-theme look and all features were preserved; the build still embeds into the backend's static resources (same-origin). Tested with **Vitest + React Testing Library** (158 tests) instead of the legacy Jest suite; Playwright smoke tests kept in CI.
 - **Admin password management (no email)** — the admin credential moved from `application.properties` into MongoDB (`admin_credentials`, seeded from config on first run, only hashes stored). New endpoints: `PUT /api/account/password` (change password — authenticated, verifies the current one, revokes all sessions), `POST /api/account/recovery-code` (generate a one-time backup code, shown once), `POST /api/auth/recover` (reset the password with that code — rate-limited, single-use). The recovery code is never handed to whoever requests it; it must be entered, like GitHub/Google backup codes.
 - **SonarCloud quality gate** — wired into CI on the new-code period; currently **green** (0 bugs, 0 vulnerabilities, new-code coverage ≥ 80%).

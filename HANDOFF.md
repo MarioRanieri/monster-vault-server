@@ -2,10 +2,24 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-07-08 (rev 43 — React migration + password management)  
+**Updated:** 2026-07-09 (rev 44 — regression pass vecchia-vs-nuova app + refresh token persistiti)  
 **Branch:** main (lavoro su `feat/react-migration`, mergiato a `main`)  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
+
+> **2026-07-09 — Regression pass old-vs-new + sessioni persistenti (in produzione).** Audit
+> completo del vecchio commit `4eff004` (app vanilla) contro la nuova app React: tutte le
+> regressioni volute sono state ripristinate e deployate. Frontend: export/import **Excel**
+> (SheetJS lazy, alias colonne del vecchio Sheet, id deterministici), **Stats modal interattiva**
+> (click-to-filter, condition, Top-10 valore admin, timeline 12 mesi count/€), **zoom/pan lightbox**
+> (wheel/dblclick/pinch/drag), **riordino foto** (drag&drop + tap-swap ⇄), **cache offline** con
+> stale-while-revalidate + retry 5xx "Server warming up…", filtri persistenti, undo 10s sulla
+> cancellazione, PWA ripristinata, badge condition colorati, crop pre-selezionato che si blocca al
+> rilascio, anteprime slot intere, Promo select Yes/No, validazione Name+SKU, icone header + avatar
+> admin (mobile a riga singola icon-only). Backend: **refresh token persistiti in MongoDB**
+> (hash SHA-256, TTL index) → le sessioni sopravvivono ai cold start di Render, niente re-login a
+> ogni reload. Decisioni: **watch eBay e rotate foto eliminati**, fallback immagini rotte e Scan
+> Photos non ripristinati. Test frontend: **218** Vitest/RTL.
 
 > **2026-07-08 — Frontend riscritto in React + gestione password.** I 7 moduli TS
 > (`core/ui/tools/photos/share/pwa`) sostituiti da un'app **React 19 + Vite + TS strict** con stato
@@ -31,7 +45,7 @@
 
 ## Summary
 
-Monorepo: **`backend/`** Spring Boot 3.3 (Java 17), REST API stateless con JWT; **`frontend/`** app **React 19 + Vite + TypeScript strict** con stato **Zustand** (build embeddata nelle static del backend a build-time → stesso origin, no CORS). Auth con **access token (15 min, in memoria) + refresh token (7 gg, cookie HttpOnly, rotazione + revoca)**; gestione password admin (cambio + codice di recupero) con credenziale in Mongo. Deploy su Render con **Dockerfile 3-stage** (Node/Vite → Maven → JRE). SEO/AEO (robots/sitemap/llms.txt/JSON-LD/`/share/{id}`). Qualità: **SonarCloud gate verde** in CI. Test: **~105 unit/integrazione backend + 58 E2E Selenium (skip in CI senza Chrome) + 158 test frontend Vitest/RTL + smoke test Playwright (in CI)**.
+Monorepo: **`backend/`** Spring Boot 3.3 (Java 17), REST API stateless con JWT; **`frontend/`** app **React 19 + Vite + TypeScript strict** con stato **Zustand** (build embeddata nelle static del backend a build-time → stesso origin, no CORS). Auth con **access token (15 min, in memoria) + refresh token (7 gg, cookie HttpOnly, rotazione + revoca, hash persistiti in Mongo con TTL)**; gestione password admin (cambio + codice di recupero) con credenziale in Mongo. Deploy su Render con **Dockerfile 3-stage** (Node/Vite → Maven → JRE). SEO/AEO (robots/sitemap/llms.txt/JSON-LD/`/share/{id}`). Qualità: **SonarCloud gate verde** in CI. Test: **~105 unit/integrazione backend + 58 E2E Selenium (skip in CI senza Chrome) + 218 test frontend Vitest/RTL + smoke test Playwright (in CI)**.
 
 ---
 

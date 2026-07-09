@@ -20,7 +20,8 @@
 - 🗺️ **Interactive world map** — every country you own a can from lights up; pick a flavour (OG, Khaos, Assault, Rehab, Ripper…) to see where it's collected, with a grouped list and a "missing countries" overview.
 - 🧮 **Value calculator** — fully combinable filters (country, flavour, size, full/promo, photo, SKU, year…) that only ever offer *possible* values; results grouped by a field of your choice with per‑group subtotals and a grand‑total €.
 - 🖼️ **Three gallery views** — responsive grid, dense list, and a photo "wall"; full‑screen lightbox with pinch‑zoom and keyboard navigation.
-- 📊 **Stats & insights** — collection breakdowns, Top 10 most valuable, and a value‑over‑time timeline.
+- 📊 **Stats & insights** — clickable collection breakdowns (tap a slice to filter), Top 10 most valuable, and a value‑over‑time timeline.
+- 📥 **Excel / CSV import & export** — the whole collection round‑trips through `.xlsx` (SheetJS, lazy‑loaded) or CSV, with header aliases for the legacy Google‑Sheet columns and deterministic ids so re‑imports merge instead of duplicating.
 - 📱 **Installable PWA** — offline‑ready service worker, add‑to‑home‑screen, mobile‑tuned UI.
 - 🔍 **eBay rarity monitor** *(companion tool)* — a Python service that watches eBay across multiple marketplaces (Browse API + OAuth2) and pings Telegram when rare cans appear, with configurable saved searches and keyword filters.
 - 🔒 **Admin & guest modes** — JWT‑authenticated editing; public, read‑only share links.
@@ -89,12 +90,13 @@ Service            ← business logic
   │                       change-password + one-time recovery code (AccountService)
   ├── CanService        → in-memory cache + delegates to repository
   └── CloudinaryService → uploads photos to Cloudinary
-  + RefreshTokenStore   → in-memory store of active refresh tokens (SHA-256 hashed)
+  + RefreshTokenStore   → active refresh tokens, SHA-256 hashed, persisted in MongoDB (TTL index)
 
      │
      ▼
 Repository         ← data persistence
-  └── MongoCanRepository → reads/writes to MongoDB Atlas
+  ├── MongoCanRepository          → reads/writes cans to MongoDB Atlas
+  └── MongoRefreshTokenRepository → active refresh-token hashes (TTL index)
 ```
 
 Every layer depends on **interfaces**, not on concrete classes (SOLID Dependency Inversion Principle).
@@ -220,7 +222,7 @@ X-Confirm-Delete: all
 8. Logout → POST /api/auth/logout revokes the refresh token + clears the cookie.
 ```
 
-The server is **stateless** for access (signature-verified JWT); the only server-side state is the in-memory set of active refresh-token hashes (rotation/revocation), which resets on restart — acceptable for a single-admin app.
+The server is **stateless** for access (signature-verified JWT); the set of active refresh-token hashes (rotation/revocation) is persisted in MongoDB with a TTL index, so sessions survive restarts — essential on Render's free tier, where the container sleeps constantly.
 
 ---
 
@@ -261,9 +263,9 @@ Monorepo with two top-level apps. The frontend is built and copied into the back
 │       │   ├── TokenValidator / TokenGenerator   # interfaces (access + refresh aware)
 │       │   ├── JwtUtil.java              # HMAC-SHA256; access/refresh tokens, `type` claim
 │       │   ├── JwtFilter.java            # accepts only access tokens
-│       │   ├── RefreshTokenStore.java    # in-memory active refresh tokens (SHA-256 hashed)
+│       │   ├── RefreshTokenStore.java    # active refresh tokens (SHA-256 hashed, Mongo-persisted)
 │       │   └── LoginRateLimitInterceptor.java
-│       ├── repository/                   # CanRepository + MongoCanRepository
+│       ├── repository/                   # CanRepository + RefreshTokenRepository (+ Mongo adapters)
 │       ├── service/
 │       │   ├── AuthService / AdminAuthService     # login → AuthResponse, refresh+rotation, logout
 │       │   ├── AuthResponse.java         # record(accessToken, refreshToken)
@@ -281,7 +283,7 @@ Monorepo with two top-level apps. The frontend is built and copied into the back
     │   ├── CanDetail · CanEditForm · PhotoCrop   # detail, edit modal, on-demand crop
     │   ├── LoginForm · AccountPanel      # login + password/recovery UI
     │   ├── StatsModal · ValueCalc · ComparePanel · SavedViews · Lightbox · Header · FilterBar · Hero
-    │   ├── filterCans · computeStats · csv · shareView · cloudinary · flags   # pure helpers (unit-tested)
+    │   ├── filterCans · computeStats · csv · excel · zoomPan · shareView · cloudinary · flags   # pure helpers (unit-tested)
     │   ├── *.test.tsx / *.test.ts        # co-located Vitest + RTL tests
     │   └── styles/main.css
     ├── public/                           # sw.js, map.html, manifest.json, robots.txt, sitemap.xml, llms.txt, images
@@ -369,9 +371,9 @@ Controller tests use `@WebMvcTest` with `@Import({SecurityConfig.class, JwtUtil.
 
 **E2E (Selenium, headless Chrome)** — `AdminFlowE2ETest`, `GuestFlowE2ETest`, `ResponsiveE2ETest` = 58 tests. The base class mocks the repository/storage; admin tests inject the access token into memory and force admin UI via the window-exposed functions (the new in-memory auth flow). **These need a local Chrome and are skipped on the CI runner** — run them locally with `mvn test`.
 
-### Frontend — 158 Vitest + RTL · Playwright smoke (CI)
+### Frontend — 218 Vitest + RTL · Playwright smoke (CI)
 
-- **Vitest + React Testing Library** (`frontend/src/**/*.test.{ts,tsx}`, jsdom, runs in CI): 158 tests co-located with the components. They cover the pure helpers (`filterCans`, `computeStats`, `csv`, `shareView`, `cloudinary`, `flags`, `cropRect`, `colorizeTab`), the Zustand stores (`store`, `authStore` — login / refresh / change-password / recovery), and the components (grid/list/wall, can detail, edit modal + photo staging, stats, value calculator, compare, saved views, login + recovery, and App-level flows). New-code coverage is gated at >=80% by SonarCloud.
+- **Vitest + React Testing Library** (`frontend/src/**/*.test.{ts,tsx}`, jsdom, runs in CI): 218 tests co-located with the components. They cover the pure helpers (`filterCans`, `computeStats`, `csv`, `shareView`, `cloudinary`, `flags`, `cropRect`, `colorizeTab`), the Zustand stores (`store`, `authStore` — login / refresh / change-password / recovery), and the components (grid/list/wall, can detail, edit modal + photo staging, stats, value calculator, compare, saved views, login + recovery, and App-level flows). New-code coverage is gated at >=80% by SonarCloud.
   ```bash
   cd frontend && npm ci && npx vitest run
   ```
@@ -437,7 +439,7 @@ Deploys are automatic: pushing to `main` triggers a Render build from the root `
 
 ## Key Design Decisions
 
-**Access token + refresh token (rotation)** — a short-lived access token (15 min) is kept in memory and sent as `Authorization: Bearer` (XSS-resilient — not in localStorage); a long-lived refresh token (7 days) lives in an HttpOnly/Secure/SameSite=Strict cookie. Each refresh rotates the token (single-use) and is revoked on logout. Access stays stateless (signature-verified); only the small set of active refresh-token hashes is held in memory.
+**Access token + refresh token (rotation)** — a short-lived access token (15 min) is kept in memory and sent as `Authorization: Bearer` (XSS-resilient — not in localStorage); a long-lived refresh token (7 days) lives in an HttpOnly/Secure/SameSite=Strict cookie. Each refresh rotates the token (single-use) and is revoked on logout. Access stays stateless (signature-verified); the small set of active refresh-token hashes is persisted in MongoDB (SHA-256, TTL index) so sessions survive the free-tier container sleeping.
 
 **Interface-based architecture (SOLID DIP)** — `CanService` depends on `CanRepository`, not on `MongoCanRepository`. Switching persistence layer means writing one new class, not modifying existing ones — exactly how this project migrated from Firestore to MongoDB Atlas: one new adapter, zero changes to the service or controllers.
 
