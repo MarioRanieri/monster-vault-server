@@ -333,6 +333,7 @@ test('admin: crea una nuova can', async () => {
 
   await userEvent.click(screen.getByRole('button', { name: /add/i }));
   await userEvent.type(screen.getByLabelText('Name'), 'Nuova Lattina');
+  await userEvent.type(screen.getByLabelText('SKU'), '0101'); // Name+SKU obbligatori
   await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
   expect(await screen.findByText('Nuova Lattina')).toBeTruthy();
@@ -440,7 +441,7 @@ test('admin: carica una foto durante la modifica', async () => {
     'fetch',
     vi
       .fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: '1', nome: 'Alpha' }] }) // loadCans
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: '1', nome: 'Alpha', sku: 'S' }] }) // loadCans
       .mockResolvedValueOnce({ ok: false }) // refresh al mount: non loggato
       .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) }) // login
       .mockResolvedValueOnce({ ok: true, json: async () => ({ id: '1', nome: 'Alpha' }) }) // saveCan

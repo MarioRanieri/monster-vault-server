@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CanEditForm } from './CanEditForm';
 import type { Can } from './types';
@@ -36,7 +36,7 @@ test('Promo è una flag sì/no: precompilata se presente e togglabile', async ()
   const onSave = vi.fn();
   render(
     <CanEditForm
-      can={{ id: '1', nome: 'Alpha', promo: 'Christmas' }}
+      can={{ id: '1', nome: 'Alpha', sku: 'SKU-1', promo: 'Christmas' }}
       onSave={onSave}
       onCancel={() => {}}
     />,
@@ -123,6 +123,78 @@ test('mentre onSave è in corso, Save è disabilitato e mostra "Saving…"', asy
   expect(screen.getByRole('button', { name: /cancel/i })).toBeDisabled();
 
   finish();
+});
+
+const canWithPhotos: Can = { id: '1', nome: 'Alpha', sku: 'S', p1: 'a.jpg', p2: 'b.jpg' };
+
+test('⇄: seleziona uno slot, tap su un altro → foto scambiate anche al Save', async () => {
+  const onSave = vi.fn();
+  render(<CanEditForm can={canWithPhotos} onSave={onSave} onCancel={() => {}} />);
+
+  await userEvent.click(screen.getByRole('button', { name: /^move photo 1$/i }));
+  await userEvent.click(document.getElementById('slot-2')!);
+
+  expect((screen.getByAltText('Photo 1') as HTMLImageElement).src).toContain('b.jpg');
+  expect((screen.getByAltText('Photo 2') as HTMLImageElement).src).toContain('a.jpg');
+
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  expect(onSave).toHaveBeenCalledWith(
+    expect.objectContaining({ p1: 'b.jpg', p2: 'a.jpg' }),
+    expect.any(Array),
+  );
+});
+
+test('drag&drop tra due slot scambia le foto', () => {
+  render(<CanEditForm can={canWithPhotos} onSave={() => {}} onCancel={() => {}} />);
+  const dt = {
+    data: {} as Record<string, string>,
+    setData(k: string, v: string) {
+      this.data[k] = v;
+    },
+    getData(k: string) {
+      return this.data[k];
+    },
+  };
+  fireEvent.dragStart(document.getElementById('slot-1')!, { dataTransfer: dt });
+  fireEvent.dragOver(document.getElementById('slot-2')!, { dataTransfer: dt });
+  fireEvent.drop(document.getElementById('slot-2')!, { dataTransfer: dt });
+
+  expect((screen.getByAltText('Photo 1') as HTMLImageElement).src).toContain('b.jpg');
+  expect((screen.getByAltText('Photo 2') as HTMLImageElement).src).toContain('a.jpg');
+});
+
+test('Save bloccato senza Name/SKU, con messaggio; sbloccato compilandoli', async () => {
+  const onSave = vi.fn();
+  render(<CanEditForm can={{ id: '1', nome: '' }} onSave={onSave} onCancel={() => {}} />);
+
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  expect(onSave).not.toHaveBeenCalled();
+  expect(screen.getByText(/name and sku are required/i)).toBeTruthy();
+
+  await userEvent.type(screen.getByLabelText('Name'), 'X');
+  await userEvent.type(screen.getByLabelText('SKU'), '1');
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  expect(onSave).toHaveBeenCalled();
+});
+
+test('anteprima colore Top/Tab mentre scrivi', async () => {
+  render(<CanEditForm can={can} onSave={() => {}} onCancel={() => {}} />);
+  expect(document.querySelector('.top-preview')).toBeNull();
+  await userEvent.type(screen.getByLabelText('Top / Tab'), 'gold');
+  const prev = document.querySelector('.top-preview') as HTMLElement;
+  expect(prev).toBeTruthy();
+  expect(prev.style.background).toBeTruthy();
+});
+
+test('click su uno slot pieno riapre il file picker (sostituzione)', async () => {
+  const clickSpy = vi.spyOn(HTMLInputElement.prototype, 'click');
+  render(<CanEditForm can={canWithPhotos} onSave={() => {}} onCancel={() => {}} />);
+
+  await userEvent.click(document.getElementById('slot-1')!);
+
+  expect(clickSpy).toHaveBeenCalled();
+  expect(screen.queryByRole('dialog', { name: /crop photo/i })).toBeNull();
+  clickSpy.mockRestore();
 });
 
 test('il bottone URL mette in coda un upload da URL sullo slot 1', async () => {

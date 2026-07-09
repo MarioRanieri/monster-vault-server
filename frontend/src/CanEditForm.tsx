@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import type { Can } from './types';
 import { PhotoCrop } from './PhotoCrop';
 import { cloudinaryThumb } from './cloudinary';
+import { colorizeTab } from './colorizeTab';
 
 // Le scelte di "Opening" (gruppo di pill mutuamente esclusive, come il vecchio).
 const OPENING = [
@@ -84,13 +85,28 @@ export function CanEditForm({
   );
   const [cropTarget, setCropTarget] = useState<{ idx: number; src: string } | null>(null);
   const [saving, setSaving] = useState(false);
+  // Riordino: sorgente del tap-swap (⇄) e feedback visivo del drag&drop.
+  const [swapFrom, setSwapFrom] = useState<number | null>(null);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [overIdx, setOverIdx] = useState<number | null>(null);
+  const [invalid, setInvalid] = useState(false);
   const fileRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const setSlot = (i: number, s: Slot) => setPending((p) => p.map((x, j) => (j === i ? s : x)));
-  // Slot con foto → apri il crop; slot vuoto → apri il file picker (upload).
+  // Scambio di due slot: solo staging, nessun upload coinvolto.
+  const swap = (i: number, j: number) => {
+    if (i !== j)
+      setPending((p) => {
+        const q = [...p];
+        [q[i], q[j]] = [q[j], q[i]];
+        return q;
+      });
+    setSwapFrom(null);
+  };
+  // Click sullo slot: destinazione dello swap se ⇄ è attivo, altrimenti file
+  // picker (su slot pieno = sostituzione, come il vecchio; il crop è su ✏️).
   const slotClick = (i: number) => {
-    const s = pending[i];
-    if (s) setCropTarget({ idx: i, src: cropSource(s) });
+    if (swapFrom != null) swap(swapFrom, i);
     else fileRefs.current[i]?.click();
   };
 
@@ -98,6 +114,10 @@ export function CanEditForm({
   // mobile) Save/Cancel sono disabilitati — niente UI congelata né doppio invio.
   const save = async () => {
     if (saving) return;
+    if (!nome.trim() || !sku.trim()) {
+      setInvalid(true);
+      return;
+    }
     const canData: Can = {
       ...can,
       nome,
@@ -166,11 +186,34 @@ export function CanEditForm({
                 <div
                   key={slot}
                   id={`slot-${slot}`}
-                  className="photo-slot"
+                  className={`photo-slot${dragIdx === i ? ' dragging-slot' : ''}${
+                    overIdx === i || swapFrom === i ? ' drag-over-slot' : ''
+                  }`}
                   role="button"
                   tabIndex={0}
-                  aria-label={src ? `Crop photo ${slot}` : `Upload photo ${slot}`}
-                  title={src ? 'Tap to crop' : 'Tap to upload'}
+                  aria-label={src ? `Replace photo ${slot}` : `Upload photo ${slot}`}
+                  title={src ? 'Tap to replace · drag to reorder' : 'Tap to upload'}
+                  draggable={Boolean(src)}
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('text/plain', String(i));
+                    setDragIdx(i);
+                  }}
+                  onDragEnd={() => {
+                    setDragIdx(null);
+                    setOverIdx(null);
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setOverIdx(i);
+                  }}
+                  onDragLeave={() => setOverIdx((o) => (o === i ? null : o))}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const from = Number.parseInt(e.dataTransfer.getData('text/plain'), 10);
+                    if (!Number.isNaN(from)) swap(from, i);
+                    setDragIdx(null);
+                    setOverIdx(null);
+                  }}
                   onClick={() => slotClick(i)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
@@ -202,6 +245,36 @@ export function CanEditForm({
                       }}
                     >
                       ✕
+                    </button>
+                  )}
+                  {src && (
+                    <button
+                      type="button"
+                      className="photo-slot-edit"
+                      title="Crop photo"
+                      aria-label={`Crop photo ${slot}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const s = pending[i];
+                        if (s) setCropTarget({ idx: i, src: cropSource(s) });
+                      }}
+                    >
+                      ✏️
+                    </button>
+                  )}
+                  {src && (
+                    <button
+                      type="button"
+                      className="photo-slot-move"
+                      title="Move: tap here, then tap the destination slot"
+                      aria-label={`Move photo ${slot}`}
+                      aria-pressed={swapFrom === i}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSwapFrom((f) => (f === i ? null : i));
+                      }}
+                    >
+                      ⇄
                     </button>
                   )}
                   <button
@@ -239,17 +312,30 @@ export function CanEditForm({
           <div className="field-grid">
             <div className="field field-full">
               <label htmlFor="e-nome">Name</label>
-              <input id="e-nome" value={nome} onChange={(e) => setNome(e.target.value)} />
+              <input
+                id="e-nome"
+                placeholder="e.g. OG Original 2020"
+                className={invalid && !nome.trim() ? 'field-invalid' : undefined}
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+              />
             </div>
             <div className="field">
               <label htmlFor="e-sku">SKU</label>
-              <input id="e-sku" value={sku} onChange={(e) => setSku(e.target.value)} />
+              <input
+                id="e-sku"
+                placeholder="e.g. 1112"
+                className={invalid && !sku.trim() ? 'field-invalid' : undefined}
+                value={sku}
+                onChange={(e) => setSku(e.target.value)}
+              />
             </div>
             <div className="field">
               <label htmlFor="e-produttore">Manufacturer</label>
               <input
                 id="e-produttore"
                 list="dl-produttore"
+                placeholder="e.g. BALL"
                 value={produttore}
                 onChange={(e) => setProduttore(e.target.value)}
               />
@@ -260,6 +346,7 @@ export function CanEditForm({
               <input
                 id="e-size"
                 list="dl-size"
+                placeholder="e.g. 500ML"
                 value={size}
                 onChange={(e) => setSize(e.target.value)}
               />
@@ -270,6 +357,7 @@ export function CanEditForm({
               <input
                 id="e-lingua"
                 list="dl-lingua"
+                placeholder="e.g. ITALY"
                 value={lingua}
                 onChange={(e) => setLingua(e.target.value)}
               />
@@ -280,10 +368,28 @@ export function CanEditForm({
               <input
                 id="e-top"
                 list="dl-top"
+                placeholder="e.g. Gold"
                 value={top}
                 onChange={(e) => setTop(e.target.value)}
               />
               {datalist('dl-top', suggestions?.tops)}
+              {top.trim() !== '' &&
+                (() => {
+                  const tab = colorizeTab(top);
+                  return (
+                    <div
+                      className="top-preview"
+                      style={tab.style ?? { background: 'var(--bg3)', color: 'var(--text)' }}
+                    >
+                      {tab.parts.map((p, j) => (
+                        <span key={`${j}-${p.text}`}>
+                          {j > 0 && '/'}
+                          <span style={p.color ? { color: p.color } : undefined}>{p.text}</span>
+                        </span>
+                      ))}
+                    </div>
+                  );
+                })()}
             </div>
             <div className="field">
               <label htmlFor="e-promo">Promo</label>
@@ -299,7 +405,14 @@ export function CanEditForm({
             </div>
             <div className="field">
               <label htmlFor="e-valore">Est. Value (€)</label>
-              <input id="e-valore" value={valore} onChange={(e) => setValore(e.target.value)} />
+              <input
+                id="e-valore"
+                type="number"
+                min="0"
+                placeholder="0"
+                value={valore}
+                onChange={(e) => setValore(e.target.value)}
+              />
             </div>
             <div className="field">
               <label htmlFor="e-stato">Condition</label>
@@ -339,6 +452,11 @@ export function CanEditForm({
           </div>
         </div>
         <div className="modal-footer">
+          {invalid && (!nome.trim() || !sku.trim()) && (
+            <span className="form-error" role="alert">
+              Name and SKU are required
+            </span>
+          )}
           {onDelete && (
             <button
               type="button"

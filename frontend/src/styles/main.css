@@ -2595,6 +2595,48 @@ button.view-save {
   background: var(--green);
   color: #000;
 }
+/* Bottone ⇄ riordino (tap-swap, funziona anche su touch) */
+.photo-slot-move {
+  position: absolute;
+  bottom: 6px;
+  right: 66px;
+  background: rgba(0, 0, 0, 0.65);
+  border: none;
+  color: var(--text2);
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.photo-slot-move:hover,
+.photo-slot-move[aria-pressed='true'] {
+  background: var(--green);
+  color: #000;
+}
+/* Anteprima live del colore Top/Tab nel form */
+.top-preview {
+  margin-top: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+/* Validazione form: campo mancante + messaggio nel footer */
+input.field-invalid {
+  border-color: #ff5555 !important;
+}
+.form-error {
+  color: #ff5555;
+  font-size: 12px;
+  margin-right: auto;
+  align-self: center;
+}
 #pe-canvas {
   max-width: 100%;
   border-radius: 8px;
