@@ -185,7 +185,11 @@ test('loadCans riprova sui 5xx (cold start) segnalando warming', async () => {
       vi
         .fn()
         .mockResolvedValueOnce({ ok: false, status: 500 })
-        .mockResolvedValueOnce({ ok: true, status: 200, json: async () => [{ id: '1', nome: 'A' }] }),
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => [{ id: '1', nome: 'A' }],
+        }),
     );
 
     const p = useCansStore.getState().loadCans();
