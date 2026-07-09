@@ -24,6 +24,41 @@ test('admin: Add e Sign out chiamano le callback', async () => {
   expect(onSignOut).toHaveBeenCalled();
 });
 
+test('i bottoni testuali hanno icona + label collassabile (mobile icon-only)', () => {
+  render(
+    <Header
+      isAdmin
+      onSignOut={noop}
+      onAdd={noop}
+      onLogin={noop}
+      onToggleTheme={noop}
+      onGuide={noop}
+      onExport={noop}
+      onImport={noop}
+      onAccount={noop}
+    />,
+  );
+  for (const name of [/guide/i, /export/i, /account/i, /sign out/i]) {
+    const btn = screen.getByRole('button', { name });
+    expect(btn.querySelector('svg'), `${name} svg`).toBeTruthy();
+    expect(btn.querySelector('.btn-label'), `${name} label`).toBeTruthy();
+  }
+});
+
+test('admin: mostra avatar accanto al nome', () => {
+  render(<Header isAdmin onSignOut={noop} onAdd={noop} onLogin={noop} onToggleTheme={noop} />);
+  expect(document.querySelector('.header-user .header-avatar')).toBeTruthy();
+});
+
+test('guest: Admin access ha icona + label collassabile', () => {
+  render(
+    <Header isAdmin={false} onSignOut={noop} onAdd={noop} onLogin={noop} onToggleTheme={noop} />,
+  );
+  const btn = screen.getByRole('button', { name: /admin access/i });
+  expect(btn.querySelector('svg')).toBeTruthy();
+  expect(btn.querySelector('.btn-label')).toBeTruthy();
+});
+
 test('il toggle tema chiama onToggleTheme', async () => {
   const onToggleTheme = vi.fn();
   render(

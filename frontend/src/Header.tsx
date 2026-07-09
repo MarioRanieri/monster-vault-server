@@ -1,7 +1,25 @@
 // Header della collection (classi .header/.logo/.header-right/.btn del vecchio):
-// logo + toggle tema + Map; guest → "Admin access", admin → Add + utente + Sign out.
-// I bottoni feature-only del vecchio (Export/Import/Scan/Guide/Value) arriveranno
-// con le rispettive funzioni.
+// logo + toggle tema + Map + Guide; guest → "Admin access", admin → Add/Export/
+// Import/Account + avatar + Sign out. Ogni bottone testuale ha icona + .btn-label:
+// su mobile la label sparisce (main.css `.btn:has(svg) .btn-label`) → riga icon-only.
+
+// Icona stroke 14px riusata dai bottoni (stessi path SVG del vecchio index.html).
+function Ic({ children, size = 14 }: Readonly<{ children: React.ReactNode; size?: number }>) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden="true"
+    >
+      {children}
+    </svg>
+  );
+}
+
 export function Header({
   isAdmin,
   onSignOut,
@@ -64,7 +82,7 @@ export function Header({
             <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
           </svg>
         </button>
-        <a className="btn btn-ghost" href="/map.html">
+        <a className="btn btn-ghost" href="/map.html" title="View interactive map">
           <svg
             width="14"
             height="14"
@@ -82,6 +100,11 @@ export function Header({
         </a>
         {onGuide && (
           <button type="button" className="btn btn-ghost" onClick={onGuide}>
+            <Ic>
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </Ic>
             <span className="btn-label">Guide</span>
           </button>
         )}
@@ -104,11 +127,21 @@ export function Header({
             </button>
             {onExport && (
               <button type="button" className="btn btn-ghost" onClick={onExport}>
+                <Ic>
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </Ic>
                 <span className="btn-label">Export</span>
               </button>
             )}
             {onImport && (
               <label className="btn btn-ghost" style={{ cursor: 'pointer' }}>
+                <Ic>
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </Ic>
                 <span className="btn-label">Import</span>
                 <input
                   type="file"
@@ -125,19 +158,47 @@ export function Header({
             )}
             {onAccount && (
               <button type="button" className="btn btn-ghost" onClick={onAccount}>
+                <Ic>
+                  <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </Ic>
                 <span className="btn-label">Account</span>
               </button>
             )}
             <div className="header-user">
+              <span className="header-avatar" aria-hidden="true">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#000"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                >
+                  <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </span>
               <span className="header-user-name">Admin</span>
               <button type="button" className="logout-btn" onClick={onSignOut} title="Sign out">
+                <Ic size={12}>
+                  <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </Ic>
                 <span className="btn-label">Sign out</span>
               </button>
             </div>
           </>
         ) : (
           <button type="button" className="btn btn-ghost" onClick={onLogin}>
-            Admin access
+            <Ic>
+              <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4" />
+              <polyline points="10 17 15 12 10 7" />
+              <line x1="15" y1="12" x2="3" y2="12" />
+            </Ic>
+            <span className="btn-label">Admin access</span>
           </button>
         )}
       </div>

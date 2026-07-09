@@ -378,11 +378,16 @@ body {
   font-size: 13px;
   color: var(--text2);
 }
-.header-user img {
+.header-avatar {
   width: 26px;
   height: 26px;
   border-radius: 50%;
   border: 1px solid var(--border2);
+  background: var(--green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 .header-user-name {
   max-width: 120px;
