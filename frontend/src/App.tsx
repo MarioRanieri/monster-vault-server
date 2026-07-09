@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useCansStore } from './store';
 import { CanGrid } from './CanGrid';
 import { CanList } from './CanList';
@@ -89,8 +89,18 @@ function App() {
   }, [light]);
 
   // Deep-link condiviso: al mount rilegge i filtri dalla URL e salta la landing.
+  // Senza parametri condivisi, ripristina gli ultimi filtri usati (mv_filters).
   useEffect(() => {
-    const f = parseShareUrl(globalThis.location.search);
+    const shared = parseShareUrl(globalThis.location.search);
+    const fromUrl = Object.keys(shared).length > 0;
+    let f = shared;
+    if (!fromUrl) {
+      try {
+        f = (JSON.parse(localStorage.getItem('mv_filters') || 'null') as ShareFilters) ?? {};
+      } catch {
+        f = {};
+      }
+    }
     if (Object.keys(f).length === 0) return;
     if (f.query != null) setQuery(f.query);
     if (f.lingua != null) setFlLingua(f.lingua);
@@ -106,7 +116,7 @@ function App() {
     if (f.ymin != null) setYmin(f.ymin);
     if (f.ymax != null) setYmax(f.ymax);
     if (f.sort != null) setSort(f.sort as SortKey);
-    setView('collection');
+    if (fromUrl) setView('collection');
   }, []);
 
   const options = filterOptions(cans);
@@ -200,6 +210,14 @@ function App() {
     ymax,
     sort,
   };
+  // Persistenza filtri come il vecchio saveFilters (chiave mv_filters): scritti
+  // a ogni cambio, saltando il primo render (non sovrascrivere prima del restore).
+  const filtersJson = JSON.stringify(currentFilters);
+  const persistReady = useRef(false);
+  useEffect(() => {
+    if (persistReady.current) localStorage.setItem('mv_filters', filtersJson);
+    else persistReady.current = true;
+  }, [filtersJson]);
   const applyShareFilters = (f: Partial<ShareFilters>) => {
     setQuery(f.query ?? '');
     setFlLingua(f.lingua ?? '');

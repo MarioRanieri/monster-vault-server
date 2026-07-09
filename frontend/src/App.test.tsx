@@ -357,6 +357,41 @@ test('admin: Annulla la creazione chiude il form', async () => {
   expect(screen.queryByLabelText('Name')).toBeNull();
 });
 
+test('filtri persistenti: mv_filters viene riapplicato al mount', async () => {
+  localStorage.setItem('mv_filters', JSON.stringify({ query: 'alph' }));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [
+        { id: '1', nome: 'Alpha' },
+        { id: '2', nome: 'Beta' },
+      ],
+    }),
+  );
+
+  render(<App />);
+  await enterCollection();
+
+  expect(await screen.findByText('Alpha')).toBeTruthy();
+  expect(screen.queryByText('Beta')).toBeNull(); // query 'alph' ripristinata
+});
+
+test('filtri persistenti: i cambi finiscono in mv_filters', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({ ok: true, json: async () => [{ id: '1', nome: 'Alpha' }] }),
+  );
+
+  render(<App />);
+  await enterCollection();
+  await screen.findByText('Alpha');
+
+  await userEvent.type(screen.getByRole('searchbox'), 'alp');
+
+  expect(JSON.parse(localStorage.getItem('mv_filters')!).query).toBe('alp');
+});
+
 test('stats: click su un paese filtra la griglia e chiude il modal', async () => {
   vi.stubGlobal(
     'fetch',
