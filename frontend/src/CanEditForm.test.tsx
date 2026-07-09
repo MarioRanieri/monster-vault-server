@@ -15,7 +15,7 @@ test('precompila i campi e salva le modifiche', async () => {
   await userEvent.type(screen.getByLabelText('Name'), 'Beta');
   await userEvent.type(screen.getByLabelText('SKU'), '-2');
   await userEvent.type(screen.getByLabelText('Size'), '500ml');
-  await userEvent.click(screen.getByLabelText('Promo'));
+  await userEvent.selectOptions(screen.getByLabelText('Promo'), 'Yes');
   await userEvent.type(screen.getByLabelText('Condition'), 'ok');
   await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
@@ -32,7 +32,7 @@ test('precompila i campi e salva le modifiche', async () => {
   );
 });
 
-test('Promo è una flag sì/no: precompilata se presente e togglabile', async () => {
+test('Promo è un select Yes/No: precompilato se presente, No lo azzera', async () => {
   const onSave = vi.fn();
   render(
     <CanEditForm
@@ -41,11 +41,27 @@ test('Promo è una flag sì/no: precompilata se presente e togglabile', async ()
       onCancel={() => {}}
     />,
   );
-  const promo = screen.getByLabelText('Promo') as HTMLInputElement;
-  expect(promo.checked).toBe(true); // promo esistente → flag ON
-  await userEvent.click(promo); // toggle a OFF
+  const promo = screen.getByLabelText('Promo') as HTMLSelectElement;
+  expect(promo.value).toBe('Yes'); // promo esistente → Yes
+  await userEvent.selectOptions(promo, 'No');
   await userEvent.click(screen.getByRole('button', { name: /save/i }));
   expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ promo: '' }), expect.any(Array));
+});
+
+test('Promo non toccata non riscrive il valore storico', async () => {
+  const onSave = vi.fn();
+  render(
+    <CanEditForm
+      can={{ id: '1', nome: 'Alpha', sku: 'SKU-1', promo: 'Christmas' }}
+      onSave={onSave}
+      onCancel={() => {}}
+    />,
+  );
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  expect(onSave).toHaveBeenCalledWith(
+    expect.objectContaining({ promo: 'Christmas' }),
+    expect.any(Array),
+  );
 });
 
 test('Condition mostra i suggerimenti da inserimenti precedenti', () => {

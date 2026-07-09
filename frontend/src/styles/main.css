@@ -2505,7 +2505,9 @@ button.view-save {
 .photo-slot img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  /* contain, non cover: le foto non quadrate si vedono intere, non ritagliate */
+  object-fit: contain;
+  background: var(--bg3);
 }
 .photo-slot-ph {
   display: flex;

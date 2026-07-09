@@ -393,15 +393,15 @@ export function CanEditForm({
             </div>
             <div className="field">
               <label htmlFor="e-promo">Promo</label>
-              <div className="promo-toggle">
-                <input
-                  id="e-promo"
-                  type="checkbox"
-                  checked={promo !== ''}
-                  onChange={(e) => setPromo(e.target.checked ? 'Yes' : '')}
-                />
-                <span>{promo !== '' ? 'Yes' : 'No'}</span>
-              </div>
+              {/* value derivato: se non lo tocchi, il testo storico (es. "Christmas") resta */}
+              <select
+                id="e-promo"
+                value={promo !== '' ? 'Yes' : 'No'}
+                onChange={(e) => setPromo(e.target.value === 'Yes' ? 'Yes' : '')}
+              >
+                <option value="No">No</option>
+                <option value="Yes">Yes</option>
+              </select>
             </div>
             <div className="field">
               <label htmlFor="e-valore">Est. Value (€)</label>

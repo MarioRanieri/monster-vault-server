@@ -82,6 +82,12 @@ export function PhotoCrop({
           alt="To crop"
           draggable={false}
           crossOrigin={/^https?:/.test(src) ? 'anonymous' : undefined}
+          // crop pre-selezionato a tutta l'immagine: Apply è subito premibile,
+          // il trascinamento serve solo per restringere
+          onLoad={(e) => {
+            const b = e.currentTarget;
+            setDrag({ ax: 0, ay: 0, bx: b.width, by: b.height });
+          }}
           onPointerDown={(e) => {
             const p = rel(e);
             setDrag({ ax: p.x, ay: p.y, bx: p.x, by: p.y });
