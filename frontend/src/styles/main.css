@@ -39,9 +39,13 @@
   --border2: rgba(255, 255, 255, 0.12);
   --text: #f0f0f0;
   --text2: #888;
-  --text3: #555;
+  --text3: #7a7a7a; /* WCAG AA ~4.5:1 su --bg; era #555 (~2.6:1) */
   --green: #a8ff00;
   --green-dim: rgba(168, 255, 0, 0.08);
+  /* Accent "Full" (lattine sigillate): cyan elettrico, secondario intenzionale
+     accanto al lime. --full-rgb per comporre le rgba con alpha variabile. */
+  --full-rgb: 43, 212, 255;
+  --full: rgb(var(--full-rgb));
 }
 body.light {
   --bg: #f1f5f9;
@@ -52,9 +56,12 @@ body.light {
   --border2: rgba(15, 23, 42, 0.15);
   --text: #0f172a;
   --text2: #475569;
-  --text3: #94a3b8;
+  --text3: #64748b; /* più scuro: ~3.8:1 su fondo chiaro; era #94a3b8 (~2.4:1) */
   --green: #16a34a;
   --green-dim: rgba(22, 163, 74, 0.09);
+  /* "Full" cyan scurito per contrasto su fondo chiaro */
+  --full-rgb: 2, 132, 199;
+  --full: rgb(var(--full-rgb));
 }
 body.light .header {
   background: rgba(255, 255, 255, 0.97);
@@ -1305,20 +1312,20 @@ body.light .filter-select option {
   background: rgba(255, 107, 0, 0.2);
 }
 .filter-chip-full {
-  border-color: rgba(0, 180, 255, 0.4);
-  color: #00b4ff;
+  border-color: rgba(var(--full-rgb), 0.4);
+  color: var(--full);
 }
 .filter-chip-full:hover {
-  border-color: #00b4ff;
-  color: #00b4ff;
+  border-color: var(--full);
+  color: var(--full);
 }
 .filter-chip-full.active {
-  background: rgba(0, 180, 255, 0.15);
-  border-color: #00b4ff;
-  color: #00b4ff;
+  background: rgba(var(--full-rgb), 0.15);
+  border-color: var(--full);
+  color: var(--full);
 }
 .filter-chip-full.active .chip-count {
-  background: rgba(0, 180, 255, 0.2);
+  background: rgba(var(--full-rgb), 0.2);
 }
 .filter-chip-withphoto {
   border-color: rgba(168, 85, 247, 0.4);
@@ -1933,9 +1940,9 @@ button.view-save {
 }
 .badge-full {
   display: inline-block;
-  background: rgba(0, 180, 255, 0.25);
-  color: #00b4ff;
-  border: 1px solid rgba(0, 180, 255, 0.4);
+  background: rgba(var(--full-rgb), 0.25);
+  color: var(--full);
+  border: 1px solid rgba(var(--full-rgb), 0.4);
   border-radius: 3px;
   font-size: 9px;
   font-weight: 700;
@@ -3160,6 +3167,16 @@ input.field-invalid {
   text-transform: uppercase;
   color: #cfcfcf;
   margin-top: 0.7rem;
+}
+/* One-line context so a first-time visitor knows whose collection this is
+   and what the site does, before entering. */
+.land-tagline {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text2);
+  max-width: 30rem;
+  margin: 1.3rem auto 0;
 }
 
 /* flavor-spectrum bar — the color signature */

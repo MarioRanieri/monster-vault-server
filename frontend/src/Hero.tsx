@@ -35,7 +35,7 @@ export function Hero({
           <span className="stat-lbl">With Photo</span>
         </div>
         <div className="stat-item">
-          <span className="stat-val" style={{ color: '#00b4ff' }}>
+          <span className="stat-val" style={{ color: 'var(--full)' }}>
             {stats.full}
           </span>
           <span className="stat-lbl">Full</span>
