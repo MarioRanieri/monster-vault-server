@@ -68,7 +68,12 @@ export function sortCans(cans: Can[], sort: SortKey): Can[] {
   const arr = [...cans];
   switch (sort) {
     case 'added-desc':
+      // Le lattine fotografate vengono sempre prima (p1 presente): senza questa
+      // chiave i tanti scatti con photoAt=0 si mescolano alle no-foto e il guest
+      // apre su un muro di placeholder. Poi: più recenti prima (photoAt, updatedAt).
       return arr.sort((a, b) => {
+        const p = (b.p1 ? 1 : 0) - (a.p1 ? 1 : 0);
+        if (p !== 0) return p;
         const d = (b.photoAt ?? 0) - (a.photoAt ?? 0);
         return d !== 0 ? d : (b.updatedAt ?? 0) - (a.updatedAt ?? 0);
       });

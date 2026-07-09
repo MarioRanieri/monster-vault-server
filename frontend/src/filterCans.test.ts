@@ -98,6 +98,16 @@ test('sortCans added-desc = recently photographed (photoAt desc)', () => {
   expect(sortCans(list, 'added-desc').map((c) => c.nome)).toEqual(['New', 'Old', 'None']);
 });
 
+test('sortCans added-desc leads with photographed cans even without photoAt', () => {
+  // Molte lattine fotografate hanno photoAt=0 (import vecchi): la presenza di p1
+  // deve comunque farle precedere le lattine senza foto (prima impressione guest).
+  const list: Can[] = [
+    { id: '1', nome: 'NoPhoto' },
+    { id: '2', nome: 'Photographed', p1: 'x.jpg' },
+  ];
+  expect(sortCans(list, 'added-desc').map((c) => c.nome)).toEqual(['Photographed', 'NoPhoto']);
+});
+
 test('sortCans ordina per nome, lingua e valore senza mutare', () => {
   const list: Can[] = [
     { id: '1', nome: 'Beta', lingua: 'Zed', valore: '10' },
