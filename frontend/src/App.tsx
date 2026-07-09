@@ -58,6 +58,7 @@ function App() {
   const [flSize, setFlSize] = useState('');
   const [flProduttore, setFlProduttore] = useState('');
   const [flTop, setFlTop] = useState('');
+  const [flStato, setFlStato] = useState(''); // senza dropdown: si attiva solo dalle stats
   const [vmin, setVmin] = useState('');
   const [vmax, setVmax] = useState('');
   const [ymin, setYmin] = useState('');
@@ -138,6 +139,7 @@ function App() {
       size: flSize,
       produttore: flProduttore,
       top: flTop,
+      stato: flStato,
       vmin: numOrUndef(vmin),
       vmax: numOrUndef(vmax),
       ymin: numOrUndef(ymin),
@@ -155,6 +157,7 @@ function App() {
     flSize ||
     flProduttore ||
     flTop ||
+    flStato ||
     vmin ||
     vmax ||
     ymin ||
@@ -170,6 +173,7 @@ function App() {
     setFlSize('');
     setFlProduttore('');
     setFlTop('');
+    setFlStato('');
     setVmin('');
     setVmax('');
     setYmin('');
@@ -254,6 +258,22 @@ function App() {
         }
       },
     });
+  };
+  // Click su una voce delle stats: chiude il modal, azzera i filtri e applica
+  // solo quello scelto (come il vecchio statsFilter), con toast e scroll su.
+  const statsFilter = (field: string, value: string) => {
+    resetFilters();
+    if (field === 'lingua') setFlLingua(value);
+    else if (field === 'size') setFlSize(value);
+    else if (field === 'produttore') setFlProduttore(value);
+    else if (field === 'stato') setFlStato(value);
+    else if (field === 'promo') setPromo(true);
+    else if (field === 'full') setFull(true);
+    else if (field === 'withPhoto') setWithPhoto(true);
+    else if (field === 'noPhoto') setNoPhoto(true);
+    setShowStats(false);
+    showToast(`Filter: ${value}`);
+    globalThis.scrollTo?.({ top: 0, behavior: 'smooth' });
   };
   const exportCsv = () => {
     const blob = new Blob([buildCsv(visible)], { type: 'text/csv;charset=utf-8' });
@@ -572,7 +592,20 @@ function App() {
       {showCompare && compareCans.length >= 2 && (
         <ComparePanel cans={compareCans} isAdmin={isAdmin} onClose={() => setShowCompare(false)} />
       )}
-      {showStats && <StatsModal cans={cans} stats={stats} onClose={() => setShowStats(false)} />}
+      {showStats && (
+        <StatsModal
+          cans={cans}
+          stats={stats}
+          onClose={() => setShowStats(false)}
+          isAdmin={isAdmin}
+          onFilter={statsFilter}
+          onSelect={(can) => {
+            setShowStats(false);
+            setSelectedId(can.id);
+            setEditing(false);
+          }}
+        />
+      )}
       {showValue && <ValueCalc cans={visible} onClose={() => setShowValue(false)} />}
       {showGuide && <HelpModal onClose={() => setShowGuide(false)} />}
       {showAccount && <AccountPanel onClose={() => setShowAccount(false)} />}

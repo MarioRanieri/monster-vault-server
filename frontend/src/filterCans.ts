@@ -10,6 +10,8 @@ export interface CanFilters {
   size?: string;
   produttore?: string;
   top?: string;
+  stato?: string; // match esatto; si attiva solo dal click nelle stats
+
   vmin?: number;
   vmax?: number;
   ymin?: number;
@@ -46,6 +48,7 @@ export function filterCans(cans: Can[], filters: CanFilters): Can[] {
     if (filters.size && can.size !== filters.size) return false;
     if (filters.produttore && can.produttore !== filters.produttore) return false;
     if (filters.top && can.top !== filters.top) return false;
+    if (filters.stato && can.stato !== filters.stato) return false;
     if (filters.vmin != null && num(can.valore) < filters.vmin) return false;
     if (filters.vmax != null && num(can.valore) > filters.vmax) return false;
     if (filters.ymin != null || filters.ymax != null) {

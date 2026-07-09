@@ -1,4 +1,11 @@
-import { computeStats, statsBreakdown, sumValue } from './computeStats';
+import {
+  computeStats,
+  statsBreakdown,
+  sumValue,
+  buildTimelineData,
+  buildYearlyData,
+  buildTopValue,
+} from './computeStats';
 import type { Can } from './types';
 
 test('sumValue somma i valori, ignorando quelli vuoti/non numerici', () => {
@@ -39,6 +46,49 @@ test('conta totale, con foto, promo, countries e full', () => {
     countries: 2, // USA, Italy (distinti)
     full: 1,
   });
+});
+
+test('buildTimelineData: 12 mesi, conteggio e valore per mese di updatedAt', () => {
+  const now = Date.now();
+  const key = new Date(now).toISOString().slice(0, 7);
+  const data = buildTimelineData([
+    { id: '1', nome: 'A', updatedAt: now, valore: '10' },
+    { id: '2', nome: 'B', updatedAt: now, valore: '5.5' },
+    { id: '3', nome: 'C' }, // senza data: ignorata
+  ]);
+  expect(data).toHaveLength(12);
+  const cur = data.find((d) => d.k === key)!;
+  expect(cur.n).toBe(2);
+  expect(cur.v).toBe(15.5);
+});
+
+test('buildYearlyData: aggrega per anno, ordinato', () => {
+  const y2020 = new Date('2020-06-01').getTime();
+  const y2024 = new Date('2024-06-01').getTime();
+  expect(
+    buildYearlyData([
+      { id: '1', nome: 'A', updatedAt: y2024, valore: '10' },
+      { id: '2', nome: 'B', updatedAt: y2020 },
+      { id: '3', nome: 'C', updatedAt: y2024 },
+      { id: '4', nome: 'D' },
+    ]),
+  ).toEqual([
+    { k: '2020', n: 1, v: 0 },
+    { k: '2024', n: 2, v: 10 },
+  ]);
+});
+
+test('buildTopValue: solo valore > 0, ordinate desc, troncate a n', () => {
+  const rows = buildTopValue(
+    [
+      { id: '1', nome: 'A', valore: '5' },
+      { id: '2', nome: 'B', valore: '50' },
+      { id: '3', nome: 'C' },
+      { id: '4', nome: 'D', valore: '20' },
+    ],
+    2,
+  );
+  expect(rows.map((c) => c.nome)).toEqual(['B', 'D']);
 });
 
 test('su lista vuota è tutto zero', () => {

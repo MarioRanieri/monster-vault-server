@@ -357,6 +357,31 @@ test('admin: Annulla la creazione chiude il form', async () => {
   expect(screen.queryByLabelText('Name')).toBeNull();
 });
 
+test('stats: click su un paese filtra la griglia e chiude il modal', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [
+        { id: '1', nome: 'Alpha', lingua: 'USA' },
+        { id: '2', nome: 'Beta', lingua: 'Italy' },
+      ],
+    }),
+  );
+
+  render(<App />);
+  await enterCollection();
+  await screen.findByText('Alpha');
+
+  await userEvent.click(screen.getByRole('button', { name: /stats/i }));
+  const modal = screen.getByRole('dialog', { name: /statistics/i });
+  await userEvent.click(within(modal).getAllByRole('button', { name: /USA/ })[0]);
+
+  expect(screen.queryByRole('dialog', { name: /statistics/i })).toBeNull(); // modal chiuso
+  expect(screen.queryByText('Beta')).toBeNull(); // filtrato su USA
+  expect(screen.getByText('Alpha')).toBeTruthy();
+});
+
 test('Share view mostra la conferma "link copied"', async () => {
   vi.stubGlobal(
     'fetch',

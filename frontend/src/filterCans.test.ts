@@ -121,3 +121,13 @@ test('filterOptions estrae i valori distinti ordinati', () => {
   expect(opts.manufacturers).toEqual(['X', 'Y']);
   expect(opts.tops).toEqual(['gold']);
 });
+
+test('filtra per stato (match esatto, dalle stats)', () => {
+  const cans = [
+    { id: '1', nome: 'A', stato: 'Damaged' },
+    { id: '2', nome: 'B', stato: 'OK' },
+    { id: '3', nome: 'C' },
+  ];
+  expect(filterCans(cans, { stato: 'Damaged' }).map((c) => c.id)).toEqual(['1']);
+  expect(filterCans(cans, {}).map((c) => c.id)).toEqual(['1', '2', '3']);
+});
