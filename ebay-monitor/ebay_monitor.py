@@ -361,14 +361,22 @@ def drain_commands(store):
     """Legge i comandi pendenti, li esegue, poi li conferma (offset) così al giro dopo
     Telegram non li rimanda. Solo dalla chat autorizzata."""
     url = _tg_url()
-    try:   # mostra i comandi nel menu ☰ del bot (UX)
-        requests.post(f"{url}/setMyCommands", json={"commands": [
-            {"command": "add",    "description": "Aggiungi una parola alla blacklist"},
-            {"command": "list",   "description": "Mostra le parole aggiunte con /add"},
-            {"command": "delete", "description": "Cancella i messaggi inviati dal bot"},
-        ]}, timeout=15)
-    except Exception:
-        pass
+    # Menu comandi (tastino ☰ e autocompletamento "/"). Lo registriamo sia sullo scope
+    # 'default' sia su 'all_private_chats': quest'ultimo è PIÙ SPECIFICO e vince nelle chat
+    # private — se resta indietro, il client mostra solo i comandi vecchi.
+    _cmds = [
+        {"command": "add",    "description": "Aggiungi una parola alla blacklist"},
+        {"command": "list",   "description": "Mostra le parole aggiunte con /add"},
+        {"command": "delete", "description": "Cancella i messaggi inviati dal bot"},
+    ]
+    for scope in (None, {"type": "all_private_chats"}):
+        try:
+            payload = {"commands": _cmds}
+            if scope:
+                payload["scope"] = scope
+            requests.post(f"{url}/setMyCommands", json=payload, timeout=15)
+        except Exception:
+            pass
     try:
         ups = requests.get(f"{url}/getUpdates", params={"timeout": 0}, timeout=25).json().get("result", [])
     except Exception as exc:
