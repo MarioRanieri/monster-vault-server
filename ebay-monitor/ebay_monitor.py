@@ -106,6 +106,14 @@ def parse_command(text):
     return cmd, arg
 
 
+def sweep_due(last_sweep_at, now, interval, send_now=False):
+    """True se è ora di fare la ricerca eBay: mai visto prima, test send_now, o è passato
+    almeno 'interval' dall'ultimo sweep. Altrimenti il giro drena solo i comandi."""
+    if send_now or last_sweep_at is None:
+        return True
+    return (now - last_sweep_at) >= interval
+
+
 def validate_add_word(word, require_words):
     """Guardia /add: rifiuta vuoto, <2 char e parole obbligatorie (accecherebbero il radar).
     Ritorna (ok, motivo). La parola valida è normalizzata lowercase dal chiamante."""
@@ -395,9 +403,9 @@ def ensure_banner(store):
         print(f"  [banner] non creato: {exc}")
 
 
-def drain_commands(store):
-    """Legge i comandi pendenti, li esegue, poi li conferma (offset) così al giro dopo
-    Telegram non li rimanda. Solo dalla chat autorizzata."""
+def register_bot_ui(store):
+    """Housekeeping UI del bot: menu comandi, descrizione, banner fissato. Cambia di rado →
+    lo chiamiamo solo negli sweep (ogni ~2h), non a ogni drain da 5 min."""
     url = _tg_url()
     # Menu comandi (tastino ☰ e autocompletamento "/"). Lo registriamo sia sullo scope
     # 'default' sia su 'all_private_chats': quest'ultimo è PIÙ SPECIFICO e vince nelle chat
@@ -420,6 +428,12 @@ def drain_commands(store):
     except Exception:
         pass
     ensure_banner(store)   # banner fissato in cima alla chat
+
+
+def drain_commands(store):
+    """Legge i comandi pendenti, li esegue, poi li conferma (offset) così al giro dopo
+    Telegram non li rimanda. Solo dalla chat autorizzata. Chiamato a OGNI giro (5 min)."""
+    url = _tg_url()
     try:
         ups = requests.get(f"{url}/getUpdates", params={"timeout": 0}, timeout=25).json().get("result", [])
     except Exception as exc:
@@ -543,8 +557,17 @@ def run_once(send_now=False, cap_per_query=None):
         _tg_text(f"⚠️ eBay Monitor: MongoDB irraggiungibile, giro saltato. {type(exc).__name__}")
         return
 
-    drain_commands(store)
+    drain_commands(store)   # OGNI giro (5 min): la parte reattiva
 
+    # Ricerca eBay: solo se sono passati ≥ SWEEP_INTERVAL_SECONDS dall'ultimo sweep (o test).
+    now = time.time()
+    last = store.get_meta("last_sweep_at")
+    if not sweep_due(last, now, settings.SWEEP_INTERVAL_SECONDS, send_now):
+        wait = int((settings.SWEEP_INTERVAL_SECONDS - (now - last)) / 60)
+        print(f"  Comandi drenati. Prossima ricerca eBay tra ~{wait} min.")
+        return
+
+    register_bot_ui(store)   # housekeeping UI: solo negli sweep, non ogni 5 min
     token = get_ebay_token()
     if not token:
         print("⚠️  Niente token eBay — vedi il messaggio [ERRORE]/[RETE] sopra."); return
@@ -554,10 +577,13 @@ def run_once(send_now=False, cap_per_query=None):
     if not send_now and store.seen_count() == 0:
         print("Primo avvio: baseline (gli annunci già online non vengono notificati).")
         establish_baseline(store, token)
+        store.set_meta("last_sweep_at", now)
         return
 
     examined, sent = process(store, token, exclude_words,
                              notify_all=send_now, cap_per_query=cap_per_query)
+    if not send_now:                                # il test --send-now non altera la cadenza reale
+        store.set_meta("last_sweep_at", now)
     print(f"  → {examined} candidati, {sent} notificati.")
 
 

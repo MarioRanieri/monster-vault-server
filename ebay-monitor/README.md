@@ -1,8 +1,9 @@
 # Monster Energy — eBay Monitor 🥤📡
 
 Radar che avvisa su **Telegram** quando spunta un **nuovo annuncio eBay** di una lattina
-Monster che ti interessa, su **più mercati**. Gira **in cloud, gratis** su GitHub Actions
-(un giro ogni 2h), con lo stato su **MongoDB Atlas** — nessun PC da tenere acceso.
+Monster che ti interessa, su **più mercati**. Gira **in cloud, gratis** su GitHub Actions,
+con lo stato su **MongoDB Atlas** — nessun PC da tenere acceso. Il workflow parte **ogni 5 min**
+(per eseguire in fretta i comandi Telegram), ma la **ricerca eBay** è limitata a **~ogni 2h**.
 
 Vive in `ebay-monitor/` dentro il repo del sito, ma è un tool **separato**: non fa parte
 dell'app Java deployata su Render. Il suo workflow è `.github/workflows/ebay-monitor.yml`.
@@ -11,13 +12,19 @@ dell'app Java deployata su Render. Il suo workflow è `.github/workflows/ebay-mo
 
 ## Come funziona
 
-Ogni 2h il workflow lancia `ebay_monitor.py`, che fa **un giro solo** ed esce:
+Ogni 5 min il workflow lancia `ebay_monitor.py`, che fa **un giro solo** ed esce:
 
 1. **Connette MongoDB** (stato anti-duplicati + blacklist dinamica). Se il DB è irraggiungibile,
    **salta il giro** e avvisa su Telegram (non processa nulla, per non rifare la baseline).
-2. **Drena i comandi Telegram** arrivati dall'ultimo giro (`/add`, `/list`, `/delete`).
-3. Per ogni voce in `SEARCH_QUERIES` × ogni mercato in `EBAY_MARKETPLACES` cerca gli annunci
-   **appena listati** e notifica i **nuovi** su Telegram.
+2. **Drena i comandi Telegram** (`/add`, `/list`, `/delete`) — **a ogni giro** (ogni ~5 min),
+   così i comandi rispondono in fretta.
+3. **Solo se** sono passate ~2h dall'ultima ricerca (`SWEEP_INTERVAL_SECONDS`, timestamp su Mongo):
+   per ogni `SEARCH_QUERIES` × `EBAY_MARKETPLACES` cerca gli annunci **appena listati** e notifica i
+   **nuovi** su Telegram. Altrimenti il giro fa solo il punto 2 ed esce (niente chiamate eBay).
+
+Perché così: i comandi devono rispondere in fretta (5 min), ma la ricerca eBay va tenuta a ~2h per
+non sforare il budget chiamate. Il repo è **pubblico** → i minuti GitHub Actions sono gratis, quindi
+girare ogni 5 min non costa nulla.
 
 Ricerca **per NOME**: ogni query è `monster energy <keyword>` (eBay matcha tutte le parole in
 qualsiasi ordine, non la frase esatta) → esce solo Monster Energy, non Pokémon / Monster High.
@@ -26,8 +33,8 @@ Niente confronto foto: il riconoscimento immagine (CLIP/DINOv2/OCR **e** VLM) è
 
 ## ⏱️ Finestra temporale
 
-`MAX_LISTING_AGE_HOURS = 3.5` → eBay manda solo gli annunci listati nelle ultime ~3,5h. Il cron
-gira ogni 2h, quindi c'è ~1,5h di margine: serve perché **i cron di GitHub Actions non partono
+`MAX_LISTING_AGE_HOURS = 3.5` → eBay manda solo gli annunci listati nelle ultime ~3,5h. La ricerca
+gira ~ogni 2h, quindi c'è ~1,5h di margine: serve perché **i cron di GitHub Actions non partono
 all'orario esatto** (slittano di minuti, a volte saltano un giro). Il margine assorbe i ritardi;
 gli eventuali duplicati sono già filtrati dallo stato su Mongo.
 
@@ -47,8 +54,9 @@ contiene entrambe (eBay non fa un AND stretto).
 
 ## 🤖 Comandi Telegram
 
-Vengono eseguiti al **giro successivo** (latenza fino a ~2h: il cron non tiene un processo vivo).
-Sono idempotenti.
+Vengono eseguiti al **giro successivo** (~5–15 min: i cron di GitHub slittano, non c'è un processo
+sempre acceso). Un **messaggio fissato** in cima alla chat lo ricorda; è protetto dal `/delete` e si
+rigenera da solo se sparisce. I comandi sono idempotenti.
 
 - **`/add parola`** — aggiunge `parola` alla blacklist dinamica (Mongo). Guardia: rifiuta vuoto,
   parole <2 caratteri e le parole obbligatorie (`monster`/`energy`, che accecherebbero il radar).
@@ -75,14 +83,15 @@ Il monitor gira su GitHub Actions e legge i segreti dalle **Secrets del repo**
 |--------|-------|
 | `EBAY_CLIENT_ID` / `EBAY_CLIENT_SECRET` | Keyset **Production** della Browse API eBay |
 | `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | Bot Telegram (token da @BotFather + chat id) |
-| `MONGODB_URI` | URI di MongoDB Atlas (stesso cluster del sito; il monitor usa collection dedicate `ebay_seen`/`ebay_blacklist`, **non** tocca `cans`) |
+| `MONGODB_URI` | URI di MongoDB Atlas (stesso cluster del sito; il monitor usa collection dedicate `ebay_seen`/`ebay_blacklist`/`ebay_meta`, **non** tocca `cans`) |
 
-Nessun altro setup: il workflow installa le dipendenze e parte da solo ogni 2h.
+Nessun altro setup: il workflow installa le dipendenze e parte da solo ogni 5 min.
 
 ## Uso
 
-- **Automatico**: ogni 2h via `schedule`. Al **primo giro** con Mongo vuoto fa la **baseline**
-  (segna gli annunci già online come "visti", senza notificarli) → poi notifica solo i nuovi.
+- **Automatico**: ogni 5 min via `schedule` (drain comandi); la ricerca eBay scatta ~ogni 2h. Al
+  **primo giro** con Mongo vuoto fa la **baseline** (segna gli annunci già online come "visti", senza
+  notificarli) → poi notifica solo i nuovi.
 - **Test on-demand**: *Actions → eBay Monitor → Run workflow*. Spunta **`send_now`** per farti
   mandare subito gli annunci attuali (ignora i già-visti), altrimenti fa un giro normale.
 

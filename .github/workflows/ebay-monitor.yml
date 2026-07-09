@@ -1,17 +1,24 @@
 name: eBay Monitor
 
-# Radar Monster Energy: un giro ogni 2h (schedule) + trigger manuale per i test.
-# I cron di GitHub non partono all'orario esatto (possono slittare): la finestra lato
-# codice è 3.5h per assorbire i ritardi. Segreti in Settings → Secrets → Actions.
+# Radar Monster Energy: gira ogni 5 min per drenare in fretta i COMANDI Telegram
+# (/add /list /delete). La RICERCA eBay resta ogni ~2h (gated via timestamp su Mongo:
+# SWEEP_INTERVAL_SECONDS) per non sforare il limite chiamate. Repo pubblica → minuti
+# Actions gratis. I cron GitHub slittano: la finestra lato codice è 3.5h per assorbire.
+# Segreti in Settings → Secrets → Actions.
 on:
   schedule:
-    - cron: '0 */2 * * *'   # ogni 2 ore
+    - cron: '*/5 * * * *'   # ogni 5 minuti (drain comandi; sweep eBay gated a 2h)
   workflow_dispatch:
     inputs:
       send_now:
         description: 'TEST: manda subito gli annunci attuali (ignora i già-visti)'
         type: boolean
         default: false
+
+# Un solo giro alla volta: evita che due run sovrapposti facciano doppio sweep/notifiche.
+concurrency:
+  group: ebay-monitor
+  cancel-in-progress: false
 
 jobs:
   monitor:

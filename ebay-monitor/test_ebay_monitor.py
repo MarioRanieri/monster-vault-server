@@ -82,6 +82,23 @@ def test_add_accepts_normal_word():
     assert ok and reason == ""
 
 
+# ─── sweep_due (gate ricerca eBay ogni 2h, comandi ogni 5 min) ────────────────
+
+INT = 7200  # 2h
+
+def test_sweep_due_first_time():
+    assert m.sweep_due(None, 1000, INT) is True          # mai fatto → sweep
+
+def test_sweep_due_send_now_forces():
+    assert m.sweep_due(999, 1000, INT, send_now=True) is True   # test ignora il gate
+
+def test_sweep_due_too_soon():
+    assert m.sweep_due(1000, 1000 + 600, INT) is False   # 10 min dopo → solo drain
+
+def test_sweep_due_elapsed():
+    assert m.sweep_due(1000, 1000 + INT, INT) is True     # passate 2h → sweep
+
+
 if __name__ == "__main__":
     import traceback
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]

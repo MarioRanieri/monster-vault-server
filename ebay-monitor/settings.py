@@ -34,6 +34,12 @@ MAX_LISTING_AGE_HOURS = 3.5
 # Parole OBBLIGATORIE nel titolo (tutte, in qualsiasi ordine): eBay non fa un AND stretto.
 REQUIRE_WORDS = ["monster", "energy"]
 
+# Il workflow gira ogni 5 min per drenare i COMANDI Telegram in fretta, ma la RICERCA eBay
+# resta ogni ~2h (altrimenti sfori il limite ~5.000 chiamate/giorno): ogni giro fa lo sweep
+# solo se sono passati almeno SWEEP_INTERVAL_SECONDS dall'ultimo (timestamp su Mongo).
+# Deve restare < MAX_LISTING_AGE_HOURS (finestra), o perdi annunci tra uno sweep e l'altro.
+SWEEP_INTERVAL_SECONDS = 7200   # 2 ore
+
 # Richieste eBay simultanee (le ricerche mercati×query partono in parallelo).
 PARALLEL_WORKERS = 8
 
