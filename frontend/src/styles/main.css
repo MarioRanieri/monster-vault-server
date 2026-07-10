@@ -3547,6 +3547,11 @@ input.field-invalid {
     grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
     gap: 10px;
   }
+  /* Wall: 3 colonne fisse su mobile per un vero mosaico (di default columns:130px
+     ne lascia solo 2 su schermi stretti). */
+  .wall-grid {
+    columns: 3;
+  }
   /* Hero / stats */
   .hero {
     padding: 1rem 0.75rem;
