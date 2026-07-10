@@ -69,7 +69,6 @@ function App() {
   const loading = useCansStore((s) => s.loading);
   const error = useCansStore((s) => s.error);
   const warming = useCansStore((s) => s.warming);
-  const updatedAt = useCansStore((s) => s.updatedAt);
   const loadCans = useCansStore((s) => s.loadCans);
   const saveCan = useCansStore((s) => s.saveCan);
   const deleteCan = useCansStore((s) => s.deleteCan);
@@ -357,6 +356,24 @@ function App() {
         onStats={() => setShowStats(true)}
         onValue={isAdmin ? () => setShowValue(true) : undefined}
       />
+      {/* Azioni di vista subito sotto le stat dell'hero (prima erano in fondo,
+          nella riga grid-info ora rimossa). */}
+      <div className="collection-actions">
+        {isAdmin && (
+          <button
+            type="button"
+            className="share-view-btn"
+            aria-pressed={showPrice}
+            onClick={() => setShowPrice((v) => !v)}
+          >
+            € {showPrice ? 'Hide prices' : 'Show prices'}
+          </button>
+        )}
+        <SavedViews current={currentFilters} onApply={applyShareFilters} />
+        <button type="button" className="share-view-btn" onClick={shareCurrentView}>
+          🔗 Share view
+        </button>
+      </div>
       <FilterBar
         query={filters.query}
         onQuery={(v) => setFilter('query', v)}
@@ -477,38 +494,6 @@ function App() {
         </p>
       )}
       {error && <p role="alert">Error: {error}</p>}
-      <div className="grid-info">
-        <span>
-          {visible.length === cans.length
-            ? `${cans.length} cans`
-            : `${visible.length} of ${cans.length} cans`}
-          {updatedAt != null && (
-            <span style={{ fontSize: 11, color: 'var(--text3)', marginLeft: 6 }}>
-              · Updated {new Date(updatedAt).toLocaleDateString('en-US')}{' '}
-              {new Date(updatedAt).toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </span>
-          )}
-        </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {isAdmin && (
-            <button
-              type="button"
-              className="share-view-btn"
-              aria-pressed={showPrice}
-              onClick={() => setShowPrice((v) => !v)}
-            >
-              € {showPrice ? 'Hide prices' : 'Show prices'}
-            </button>
-          )}
-          <SavedViews current={currentFilters} onApply={applyShareFilters} />
-          <button type="button" className="share-view-btn" onClick={shareCurrentView}>
-            🔗 Share view
-          </button>
-        </div>
-      </div>
       {gridMode === 'grid' ? (
         <CanGrid
           cans={shownCans}
