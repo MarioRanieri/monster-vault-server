@@ -1365,6 +1365,15 @@ body.light .filter-select option {
   align-items: center;
   gap: 8px;
 }
+/* Toggle "Filters": nascosto su desktop; su mobile mostra/collassa i filtri
+   avanzati. Il wrapper è display:contents su desktop → nessun impatto sul
+   layout esistente (i figli restano flex-item diretti di .filter-bar). */
+.filter-toggle {
+  display: none;
+}
+.filter-advanced {
+  display: contents;
+}
 .view-toggle {
   display: flex;
   border: 1px solid var(--border2);
@@ -3482,7 +3491,43 @@ input.field-invalid {
   .search-wrap {
     max-width: 100%;
     min-width: 0;
+    flex: 1 1 auto; /* condivide la riga col bottone Filters invece di prenderla tutta */
+  }
+  /* Filtri avanzati collassati dietro il toggle: la ricerca resta sopra la
+     piega, le lattine salgono. Aperti → colonna a tutta larghezza. */
+  .filter-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .filter-toggle[aria-expanded='true'] {
+    border-color: var(--green);
+    color: var(--green);
+  }
+  .filter-advanced {
+    display: none;
     flex: 1 1 100%;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+  .filter-advanced.open {
+    display: flex;
+  }
+  .filter-advanced .filter-tools {
+    margin-left: 0;
+    flex: 1 1 100%;
+    flex-wrap: wrap;
   }
   .filter-select {
     font-size: 10px;

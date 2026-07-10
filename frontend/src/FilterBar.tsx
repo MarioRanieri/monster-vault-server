@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 export interface Chip {
   key: string;
   label: string;
@@ -58,6 +60,14 @@ export function FilterBar({
   onReset?: () => void;
   view?: ViewToggle;
 }>) {
+  // Su mobile i filtri avanzati sono collassati dietro il bottone "Filters"
+  // (solo la ricerca resta sempre visibile), così le lattine salgono sopra la
+  // piega. Su desktop .filter-advanced è display:contents → layout invariato.
+  const [showFilters, setShowFilters] = useState(false);
+  const activeCount =
+    selects.filter((s) => s.value).length +
+    chips.filter((c) => c.active).length +
+    ranges.filter((r) => r.min || r.max).length;
   return (
     <div className="filter-bar">
       <div className="search-wrap">
@@ -81,7 +91,36 @@ export function FilterBar({
           onChange={(e) => onQuery(e.target.value)}
         />
       </div>
-      {selects.map((s) => (
+      <button
+        type="button"
+        className="filter-toggle"
+        aria-expanded={showFilters}
+        onClick={() => setShowFilters((v) => !v)}
+      >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          aria-hidden="true"
+        >
+          <line x1="4" y1="21" x2="4" y2="14" />
+          <line x1="4" y1="10" x2="4" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="12" />
+          <line x1="12" y1="8" x2="12" y2="3" />
+          <line x1="20" y1="21" x2="20" y2="16" />
+          <line x1="20" y1="12" x2="20" y2="3" />
+          <line x1="1" y1="14" x2="7" y2="14" />
+          <line x1="9" y1="8" x2="15" y2="8" />
+          <line x1="17" y1="16" x2="23" y2="16" />
+        </svg>
+        Filters
+        {activeCount > 0 && <span className="chip-count">{activeCount}</span>}
+      </button>
+      <div className={`filter-advanced${showFilters ? ' open' : ''}`}>
+        {selects.map((s) => (
         <select
           key={s.key}
           className="filter-select"
@@ -222,6 +261,7 @@ export function FilterBar({
             ))}
           </select>
         )}
+      </div>
       </div>
     </div>
   );
