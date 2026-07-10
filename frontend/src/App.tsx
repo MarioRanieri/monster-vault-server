@@ -26,6 +26,42 @@ import { Lightbox } from './Lightbox';
 import { AccountPanel } from './AccountPanel';
 import type { Can } from './types';
 
+// Tutti i criteri di filtro in un unico oggetto: prima erano 14 useState
+// duplicati in 5 punti (dichiarazione, restore, filtro, reset, share). `stato`
+// non è condiviso (niente in ShareFilters) e si attiva solo dalle stats.
+interface Filters {
+  query: string;
+  lingua: string;
+  size: string;
+  produttore: string;
+  top: string;
+  stato: string;
+  promo: boolean;
+  full: boolean;
+  withPhoto: boolean;
+  noPhoto: boolean;
+  vmin: string;
+  vmax: string;
+  ymin: string;
+  ymax: string;
+}
+const NO_FILTERS: Filters = {
+  query: '',
+  lingua: '',
+  size: '',
+  produttore: '',
+  top: '',
+  stato: '',
+  promo: false,
+  full: false,
+  withPhoto: false,
+  noPhoto: false,
+  vmin: '',
+  vmax: '',
+  ymin: '',
+  ymax: '',
+};
+
 function App() {
   const cans = useCansStore((s) => s.cans);
   const loading = useCansStore((s) => s.loading);
@@ -47,23 +83,12 @@ function App() {
   const logout = useAuthStore((s) => s.logout);
   const refresh = useAuthStore((s) => s.refresh);
   const recover = useAuthStore((s) => s.recover);
-  const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [creating, setCreating] = useState<Can | null>(null);
-  const [withPhoto, setWithPhoto] = useState(false);
-  const [noPhoto, setNoPhoto] = useState(false);
-  const [promo, setPromo] = useState(false);
-  const [full, setFull] = useState(false);
-  const [flLingua, setFlLingua] = useState('');
-  const [flSize, setFlSize] = useState('');
-  const [flProduttore, setFlProduttore] = useState('');
-  const [flTop, setFlTop] = useState('');
-  const [flStato, setFlStato] = useState(''); // senza dropdown: si attiva solo dalle stats
-  const [vmin, setVmin] = useState('');
-  const [vmax, setVmax] = useState('');
-  const [ymin, setYmin] = useState('');
-  const [ymax, setYmax] = useState('');
+  const [filters, setFilters] = useState<Filters>(NO_FILTERS);
+  const setFilter = <K extends keyof Filters>(k: K, v: Filters[K]) =>
+    setFilters((f) => ({ ...f, [k]: v }));
   const [sort, setSort] = useState<SortKey>('added-desc');
   const [view, setView] = useState<'landing' | 'collection'>('landing');
   const [showLogin, setShowLogin] = useState(false);
@@ -104,20 +129,9 @@ function App() {
       }
     }
     if (Object.keys(f).length === 0) return;
-    if (f.query != null) setQuery(f.query);
-    if (f.lingua != null) setFlLingua(f.lingua);
-    if (f.size != null) setFlSize(f.size);
-    if (f.produttore != null) setFlProduttore(f.produttore);
-    if (f.top != null) setFlTop(f.top);
-    if (f.promo) setPromo(true);
-    if (f.full) setFull(true);
-    if (f.withPhoto) setWithPhoto(true);
-    if (f.noPhoto) setNoPhoto(true);
-    if (f.vmin != null) setVmin(f.vmin);
-    if (f.vmax != null) setVmax(f.vmax);
-    if (f.ymin != null) setYmin(f.ymin);
-    if (f.ymax != null) setYmax(f.ymax);
-    if (f.sort != null) setSort(f.sort as SortKey);
+    const { sort: s, ...rest } = f;
+    setFilters((prev) => ({ ...prev, ...rest }));
+    if (s != null) setSort(s as SortKey);
     if (fromUrl) setView('collection');
   }, []);
 
@@ -143,73 +157,35 @@ function App() {
   const numOrUndef = (s: string) => (s === '' ? undefined : Number(s));
   const visible = sortCans(
     filterCans(cans, {
-      query,
-      withPhoto,
-      noPhoto,
-      promo,
-      full,
-      lingua: flLingua,
-      size: flSize,
-      produttore: flProduttore,
-      top: flTop,
-      stato: flStato,
-      vmin: numOrUndef(vmin),
-      vmax: numOrUndef(vmax),
-      ymin: numOrUndef(ymin),
-      ymax: numOrUndef(ymax),
+      ...filters,
+      vmin: numOrUndef(filters.vmin),
+      vmax: numOrUndef(filters.vmax),
+      ymin: numOrUndef(filters.ymin),
+      ymax: numOrUndef(filters.ymax),
     }),
     sort,
   );
-  const hasFilters = Boolean(
-    query ||
-    withPhoto ||
-    noPhoto ||
-    promo ||
-    full ||
-    flLingua ||
-    flSize ||
-    flProduttore ||
-    flTop ||
-    flStato ||
-    vmin ||
-    vmax ||
-    ymin ||
-    ymax,
-  );
-  const resetFilters = () => {
-    setQuery('');
-    setWithPhoto(false);
-    setNoPhoto(false);
-    setPromo(false);
-    setFull(false);
-    setFlLingua('');
-    setFlSize('');
-    setFlProduttore('');
-    setFlTop('');
-    setFlStato('');
-    setVmin('');
-    setVmax('');
-    setYmin('');
-    setYmax('');
-  };
+  const hasFilters = Object.values(filters).some(Boolean);
+  const resetFilters = () => setFilters(NO_FILTERS);
   const selectCan = (can: Can) => {
     setSelectedId(can.id);
     setEditing(false);
   };
+  // ShareFilters non include `stato` (si attiva solo dalle stats, non si condivide).
   const currentFilters: ShareFilters = {
-    query,
-    lingua: flLingua,
-    size: flSize,
-    produttore: flProduttore,
-    top: flTop,
-    promo,
-    full,
-    withPhoto,
-    noPhoto,
-    vmin,
-    vmax,
-    ymin,
-    ymax,
+    query: filters.query,
+    lingua: filters.lingua,
+    size: filters.size,
+    produttore: filters.produttore,
+    top: filters.top,
+    promo: filters.promo,
+    full: filters.full,
+    withPhoto: filters.withPhoto,
+    noPhoto: filters.noPhoto,
+    vmin: filters.vmin,
+    vmax: filters.vmax,
+    ymin: filters.ymin,
+    ymax: filters.ymax,
     sort,
   };
   // Persistenza filtri come il vecchio saveFilters (chiave mv_filters): scritti
@@ -221,20 +197,9 @@ function App() {
     else persistReady.current = true;
   }, [filtersJson]);
   const applyShareFilters = (f: Partial<ShareFilters>) => {
-    setQuery(f.query ?? '');
-    setFlLingua(f.lingua ?? '');
-    setFlSize(f.size ?? '');
-    setFlProduttore(f.produttore ?? '');
-    setFlTop(f.top ?? '');
-    setPromo(f.promo ?? false);
-    setFull(f.full ?? false);
-    setWithPhoto(f.withPhoto ?? false);
-    setNoPhoto(f.noPhoto ?? false);
-    setVmin(f.vmin ?? '');
-    setVmax(f.vmax ?? '');
-    setYmin(f.ymin ?? '');
-    setYmax(f.ymax ?? '');
-    if (f.sort) setSort(f.sort as SortKey);
+    const { sort: s, ...rest } = f;
+    setFilters({ ...NO_FILTERS, ...rest });
+    if (s) setSort(s as SortKey);
   };
   const shareCurrentView = () => {
     const url = buildShareUrl(
@@ -283,15 +248,9 @@ function App() {
   // Click su una voce delle stats: chiude il modal, azzera i filtri e applica
   // solo quello scelto (come il vecchio statsFilter), con toast e scroll su.
   const statsFilter = (field: string, value: string) => {
-    resetFilters();
-    if (field === 'lingua') setFlLingua(value);
-    else if (field === 'size') setFlSize(value);
-    else if (field === 'produttore') setFlProduttore(value);
-    else if (field === 'stato') setFlStato(value);
-    else if (field === 'promo') setPromo(true);
-    else if (field === 'full') setFull(true);
-    else if (field === 'withPhoto') setWithPhoto(true);
-    else if (field === 'noPhoto') setNoPhoto(true);
+    const boolField =
+      field === 'promo' || field === 'full' || field === 'withPhoto' || field === 'noPhoto';
+    setFilters({ ...NO_FILTERS, [field]: boolField ? true : value } as Filters);
     setShowStats(false);
     showToast(`Filter: ${value}`);
     globalThis.scrollTo?.({ top: 0, behavior: 'smooth' });
@@ -363,36 +322,36 @@ function App() {
         onValue={isAdmin ? () => setShowValue(true) : undefined}
       />
       <FilterBar
-        query={query}
-        onQuery={setQuery}
+        query={filters.query}
+        onQuery={(v) => setFilter('query', v)}
         selects={[
           {
             key: 'lingua',
             allLabel: 'ALL COUNTRIES',
-            value: flLingua,
+            value: filters.lingua,
             options: options.countries,
-            onChange: setFlLingua,
+            onChange: (v) => setFilter('lingua', v),
           },
           {
             key: 'size',
             allLabel: 'ALL SIZES',
-            value: flSize,
+            value: filters.size,
             options: options.sizes,
-            onChange: setFlSize,
+            onChange: (v) => setFilter('size', v),
           },
           {
             key: 'produttore',
             allLabel: 'ALL MANUFACTURERS',
-            value: flProduttore,
+            value: filters.produttore,
             options: options.manufacturers,
-            onChange: setFlProduttore,
+            onChange: (v) => setFilter('produttore', v),
           },
           {
             key: 'top',
             allLabel: 'ALL TOPS/TABS',
-            value: flTop,
+            value: filters.top,
             options: options.tops,
-            onChange: setFlTop,
+            onChange: (v) => setFilter('top', v),
           },
         ]}
         chips={[
@@ -400,39 +359,34 @@ function App() {
             key: 'promo',
             label: 'Promo',
             cls: 'filter-chip-promo',
-            active: promo,
+            active: filters.promo,
             count: stats.promo,
-            onToggle: () => setPromo((v) => !v),
+            onToggle: () => setFilter('promo', !filters.promo),
           },
           {
             key: 'full',
             label: 'FULL',
             cls: 'filter-chip-full',
-            active: full,
+            active: filters.full,
             count: stats.full,
-            onToggle: () => setFull((v) => !v),
+            onToggle: () => setFilter('full', !filters.full),
           },
           {
             key: 'withPhoto',
             label: 'With photo',
             cls: 'filter-chip-withphoto',
-            active: withPhoto,
+            active: filters.withPhoto,
             count: stats.withPhoto,
-            onToggle: () => {
-              setWithPhoto((v) => !v);
-              setNoPhoto(false);
-            },
+            // withPhoto e noPhoto sono mutuamente esclusivi.
+            onToggle: () => setFilters((f) => ({ ...f, withPhoto: !f.withPhoto, noPhoto: false })),
           },
           {
             key: 'noPhoto',
             label: 'No photo',
             cls: 'filter-chip-nophotos',
-            active: noPhoto,
+            active: filters.noPhoto,
             count: stats.total - stats.withPhoto,
-            onToggle: () => {
-              setNoPhoto((v) => !v);
-              setWithPhoto(false);
-            },
+            onToggle: () => setFilters((f) => ({ ...f, noPhoto: !f.noPhoto, withPhoto: false })),
           },
         ]}
         sort={{
@@ -450,18 +404,18 @@ function App() {
           {
             key: 'price',
             sep: '€',
-            min: vmin,
-            max: vmax,
-            onMin: setVmin,
-            onMax: setVmax,
+            min: filters.vmin,
+            max: filters.vmax,
+            onMin: (v) => setFilter('vmin', v),
+            onMax: (v) => setFilter('vmax', v),
           },
           {
             key: 'year',
             sep: '📅',
-            min: ymin,
-            max: ymax,
-            onMin: setYmin,
-            onMax: setYmax,
+            min: filters.ymin,
+            max: filters.ymax,
+            onMin: (v) => setFilter('ymin', v),
+            onMax: (v) => setFilter('ymax', v),
             minPlaceholder: 'from',
             maxPlaceholder: 'to',
           },
