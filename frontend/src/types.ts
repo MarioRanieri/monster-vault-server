@@ -15,6 +15,8 @@ export interface Can {
   descrizione?: string;
   photoAt?: number; // timestamp ultima foto (per "recently photographed")
   updatedAt?: number;
+  createdAt?: number; // timestamp prima creazione (immutabile); null sui record migrati
+
   p1?: string; // URL foto, slot 1-4
   p2?: string;
   p3?: string;

@@ -7,7 +7,7 @@ import { CanDetail } from './CanDetail';
 import { filterCans, sortCans, filterOptions, type SortKey } from './filterCans';
 import { Hero } from './Hero';
 import { FilterBar } from './FilterBar';
-import { computeStats } from './computeStats';
+import { computeStats, addedThisMonth } from './computeStats';
 import { useAuthStore } from './authStore';
 import { LoginForm } from './LoginForm';
 import { CanEditForm } from './CanEditForm';
@@ -312,7 +312,8 @@ function App() {
     return (
       <LandingPage
         total={stats.total}
-        withPhoto={stats.withPhoto}
+        countries={stats.countries}
+        addedThisMonth={addedThisMonth(cans)}
         loading={loading}
         onEnter={() => setView('collection')}
         onAdmin={() => {

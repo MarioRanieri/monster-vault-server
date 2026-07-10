@@ -19,6 +19,19 @@ export function computeStats(cans: Can[]): Stats {
   };
 }
 
+// Quante lattine sono state create (campo `createdAt` immutabile) nel mese
+// solare corrente. I record migrati (createdAt null) non contano → il badge
+// "added this month" della landing riflette solo le aggiunte vere, non gli edit.
+export function addedThisMonth(cans: Can[], now: Date = new Date()): number {
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  return cans.filter((c) => {
+    if (c.createdAt == null) return false;
+    const d = new Date(c.createdAt);
+    return d.getFullYear() === y && d.getMonth() === m;
+  }).length;
+}
+
 // Somma del valore stimato (campo `valore`) di una lista di lattine.
 export function sumValue(cans: Can[]): number {
   return cans.reduce((s, c) => s + (Number.parseFloat(c.valore ?? '') || 0), 0);

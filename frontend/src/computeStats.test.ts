@@ -5,8 +5,23 @@ import {
   buildTimelineData,
   buildYearlyData,
   buildTopValue,
+  addedThisMonth,
 } from './computeStats';
 import type { Can } from './types';
+
+test('addedThisMonth conta solo i createdAt nel mese corrente, ignora null e altri mesi', () => {
+  const now = new Date('2026-07-10T12:00:00Z');
+  const inMonth = new Date('2026-07-02T08:00:00Z').getTime();
+  const lastMonth = new Date('2026-06-28T08:00:00Z').getTime();
+  const cans: Can[] = [
+    { id: '1', nome: 'A', createdAt: inMonth },
+    { id: '2', nome: 'B', createdAt: inMonth },
+    { id: '3', nome: 'C', createdAt: lastMonth }, // mese scorso → escluso
+    { id: '4', nome: 'D' }, // legacy, createdAt null → escluso
+  ];
+  expect(addedThisMonth(cans, now)).toBe(2);
+  expect(addedThisMonth([], now)).toBe(0);
+});
 
 test('sumValue somma i valori, ignorando quelli vuoti/non numerici', () => {
   const list: Can[] = [

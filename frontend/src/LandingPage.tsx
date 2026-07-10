@@ -2,13 +2,15 @@
 // vs admin + link alla mappa. Presentazionale: stats e callback vengono da App.
 export function LandingPage({
   total,
-  withPhoto,
+  countries,
+  addedThisMonth,
   loading = false,
   onEnter,
   onAdmin,
 }: Readonly<{
   total: number;
-  withPhoto: number;
+  countries: number;
+  addedThisMonth: number;
   loading?: boolean;
   onEnter: () => void;
   onAdmin: () => void;
@@ -52,11 +54,24 @@ export function LandingPage({
             <span>Cans</span>
           </div>
           <span className="land-stat-div" />
+          {/* Countries invece di "With photo": in vetrina racconta la stessa storia
+              di tagline e mappa ("mapped across the world"), più d'impatto per un visitatore. */}
           <div className="land-stat">
-            <b>{loading ? '…' : withPhoto}</b>
-            <span>With photo</span>
+            <b>{loading ? '…' : countries}</b>
+            <span>Countries</span>
           </div>
         </div>
+
+        {/* Badge "attività del mese": alimentato dal createdAt immutabile. Durante il
+            primo load non lo mostriamo (dato non attendibile finché le lattine non arrivano). */}
+        {!loading && (
+          <div className="land-notice">
+            <span className="land-live" aria-hidden="true" />
+            {addedThisMonth > 0
+              ? `${addedThisMonth} added this month`
+              : 'None added this month'}
+          </div>
+        )}
 
         <div className="land-btns">
           <button type="button" className="land-btn-enter" onClick={onEnter}>
