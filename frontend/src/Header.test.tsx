@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Header } from './Header';
 
@@ -64,4 +64,17 @@ test('il toggle tema chiama onToggleTheme', async () => {
   render(<Header {...base} isAdmin={false} onToggleTheme={onToggleTheme} />);
   await userEvent.click(screen.getByRole('button', { name: /theme/i }));
   expect(onToggleTheme).toHaveBeenCalled();
+});
+
+test('il menu ⋯ si apre col click e si chiude col click fuori', async () => {
+  render(
+    <Header {...base} isAdmin onGuide={noop} onExport={noop} onImport={noop} onAccount={noop} />,
+  );
+  const more = screen.getByRole('button', { name: /more actions/i });
+  expect(more.getAttribute('aria-expanded')).toBe('false');
+  await userEvent.click(more);
+  expect(more.getAttribute('aria-expanded')).toBe('true');
+  // click fuori → si chiude (listener mousedown sul document)
+  fireEvent.mouseDown(document.body);
+  expect(more.getAttribute('aria-expanded')).toBe('false');
 });

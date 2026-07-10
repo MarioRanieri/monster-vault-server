@@ -171,7 +171,9 @@ body {
   color: var(--text);
   font-family: 'DM Sans', sans-serif;
   min-height: 100vh;
-  overflow-x: hidden;
+  /* clip (non hidden): evita lo scroll orizzontale senza creare un contenitore
+     di scroll, così `position: sticky` (hero compatta) continua a funzionare. */
+  overflow-x: clip;
   transition:
     background 0.2s,
     color 0.2s;
@@ -557,6 +559,21 @@ body.public-mode .public-banner {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+/* Menu overflow ⋯ dell'header: su desktop wrapper e menu sono display:contents
+   → i bottoni secondari tornano inline (ordine ricostruito con `order`), il
+   trigger ⋯ resta nascosto. Su mobile diventa un dropdown (vedi media query). */
+.header-more,
+.header-more-menu {
+  display: contents;
+}
+.header-more-btn {
+  display: none;
+}
+/* Il toggle tema resta icon-only inline (desktop, come prima); la label "Theme"
+   serve solo dentro il menu ⋯ su mobile (dove viene ri-mostrata). */
+.btn-icon .btn-label {
+  display: none;
 }
 .btn {
   display: inline-flex;
@@ -1435,6 +1452,11 @@ body.light .filter-select option {
   gap: 10px;
   padding: 0 2rem;
   margin: 0 0 1.25rem;
+}
+/* Hero sticky (variante A): la barra compatta è solo mobile; su desktop resta
+   nascosta e .sticky-controls è un semplice wrapper della FilterBar. */
+.hero-compact {
+  display: none;
 }
 .reset-filters-btn {
   font-size: 11px;
@@ -3417,7 +3439,7 @@ input.field-invalid {
 /* ── MOBILE ── */
 @media (max-width: 640px) {
   html {
-    overflow-x: hidden;
+    overflow-x: clip;
   }
   /* Landing — letter-spacing e padding ridotti così eyebrow/sub/wordmark
      entrano nella larghezza anche su telefoni stretti (320–360px) */
@@ -3441,6 +3463,9 @@ input.field-invalid {
   /* Header */
   .header {
     padding: 0 0.75rem;
+    /* Hero sticky (variante A): su mobile l'header scorre via e lascia il posto
+       alla barra compatta (.sticky-controls), invece di restare agganciato. */
+    position: static;
   }
   .logo {
     flex-shrink: 0;
@@ -3476,6 +3501,54 @@ input.field-invalid {
   }
   .logout-btn {
     padding: 4px 8px;
+  }
+  /* Overflow ⋯: su mobile le azioni secondarie collassano in un dropdown,
+     restano visibili solo azione primaria (Add / Admin access) e user-pill. */
+  .header-more {
+    display: block;
+    position: relative;
+  }
+  .header-more-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    border-radius: 6px;
+    padding: 8px 10px;
+    cursor: pointer;
+  }
+  .header-more-btn[aria-expanded='true'] {
+    border-color: var(--green);
+    color: var(--green);
+  }
+  .header-more-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 6px;
+    min-width: 190px;
+    flex-direction: column;
+    gap: 2px;
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    padding: 5px;
+    z-index: 200;
+  }
+  .header-more-menu.open {
+    display: flex;
+  }
+  .header-more-menu .btn {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 9px 10px;
+  }
+  .header-more-menu .btn .btn-label {
+    display: inline;
   }
   /* Cloud bar */
   .cloud-bar {
@@ -3633,6 +3706,49 @@ input.field-invalid {
   }
   .collection-actions {
     padding: 0 0.75rem;
+  }
+  /* Hero sticky (mobile): scorrendo, ricerca + viste/sort restano agganciate in
+     alto e compare una barra compatta wordmark + conteggio. */
+  .sticky-controls {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--bg2);
+  }
+  .hero-compact {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    padding: 0 0.75rem;
+    background: var(--bg2);
+    border-bottom: 0 solid var(--border);
+    transition:
+      max-height 0.25s ease,
+      opacity 0.2s ease,
+      padding 0.25s ease;
+  }
+  .hero-compact.show {
+    max-height: 48px;
+    opacity: 1;
+    padding: 9px 0.75rem;
+    border-bottom-width: 1px;
+  }
+  .hero-compact-mark {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 19px;
+    letter-spacing: 0.5px;
+    line-height: 1;
+    color: var(--text);
+  }
+  .hero-compact-mark span {
+    color: var(--green);
+  }
+  .hero-compact-count {
+    font-size: 12px;
+    color: var(--text3);
   }
   .stats-row {
     gap: 1rem;
