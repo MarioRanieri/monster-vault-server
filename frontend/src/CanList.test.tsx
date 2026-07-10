@@ -42,3 +42,16 @@ test("cliccando l'header Name ordina le righe", async () => {
   await userEvent.click(screen.getByRole('columnheader', { name: /name/i }));
   expect(screen.getAllByRole('row')[1].textContent).toContain('Alpha'); // ordinato A→Z
 });
+
+test('cambiare il sort globale azzera l’ordinamento da colonna', async () => {
+  const cans = [
+    { id: '1', nome: 'Zeta' },
+    { id: '2', nome: 'Alpha' },
+  ];
+  const { rerender } = render(<CanList cans={cans} globalSort="added-desc" />);
+  await userEvent.click(screen.getByRole('columnheader', { name: /name/i }));
+  expect(screen.getAllByRole('row')[1].textContent).toContain('Alpha'); // ordinato per colonna
+  // L'utente sceglie un sort dalla FilterBar → l'ordinamento da colonna si azzera
+  rerender(<CanList cans={cans} globalSort="nome-asc" />);
+  expect(screen.getAllByRole('row')[1].textContent).toContain('Zeta'); // torna all'ordine del prop
+});

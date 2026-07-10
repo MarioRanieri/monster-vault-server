@@ -524,7 +524,12 @@ function App() {
           }
         />
       ) : gridMode === 'list' ? (
-        <CanList cans={shownCans} showPrice={isAdmin && showPrice} onSelect={selectCan} />
+        <CanList
+          cans={shownCans}
+          showPrice={isAdmin && showPrice}
+          onSelect={selectCan}
+          globalSort={sort}
+        />
       ) : (
         <CanWall
           cans={shownCans}

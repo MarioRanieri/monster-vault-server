@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Can } from './types';
 import { statoBadgeClass } from './statoBadge';
 import { hasPromo } from './filterCans';
@@ -16,12 +16,18 @@ export function CanList({
   cans,
   onSelect,
   showPrice,
+  globalSort,
 }: Readonly<{
   cans: Can[];
   onSelect?: (can: Can) => void;
   showPrice?: boolean;
+  globalSort?: string;
 }>) {
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 } | null>(null);
+  // Il sort da colonna è locale e sovrascrive l'ordine globale ricevuto in `cans`.
+  // Quando l'utente cambia il sort dalla FilterBar (globalSort) lo azzeriamo, così
+  // i due ordinamenti non si contraddicono: vince l'ultimo scelto.
+  useEffect(() => setSort(null), [globalSort]);
 
   const rows = sort
     ? [...cans].sort((a, b) => {
