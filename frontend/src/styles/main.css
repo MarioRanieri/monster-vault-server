@@ -3552,6 +3552,70 @@ input.field-invalid {
   .wall-grid {
     columns: 3;
   }
+  /* List: su mobile la tabella (8 colonne) diventa card impilate → niente più
+     scroll orizzontale. Il DOM resta <table>; qui la rendiamo a blocchi e ogni
+     cella mostra la sua etichetta via ::before (data-label). */
+  .list-table thead {
+    display: none;
+  }
+  .list-table,
+  .list-table tbody,
+  .list-table tr,
+  .list-table td {
+    display: block;
+  }
+  .list-table tr.lt-row {
+    position: relative;
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  .list-table tr.lt-row td {
+    padding: 0;
+  }
+  /* Thumbnail ancorata in alto a sinistra della card */
+  .list-table td.td-thumb {
+    position: absolute;
+    top: 12px;
+    left: 14px;
+    width: 48px;
+  }
+  .list-table td.td-thumb .lt-thumb,
+  .list-table td.td-thumb .lt-nophoto {
+    width: 48px;
+    height: 48px;
+  }
+  /* Nome come titolo della card, lascia spazio alla thumb */
+  .list-table td.td-nome {
+    min-height: 48px;
+    margin: 0 0 8px 60px;
+    display: flex;
+    align-items: center;
+  }
+  .list-table td.td-nome .lt-name-btn {
+    font-size: 15px;
+  }
+  /* Le altre celle: etichetta a sinistra, valore a destra */
+  .list-table td[data-label] {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 0;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text);
+  }
+  .list-table td[data-label]::before {
+    content: attr(data-label);
+    color: var(--text3);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
   /* Hero / stats */
   .hero {
     padding: 1rem 0.75rem;
