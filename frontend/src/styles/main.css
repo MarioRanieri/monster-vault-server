@@ -1791,7 +1791,9 @@ button.view-save {
 }
 .card {
   background: var(--bg2);
-  border: 1px solid var(--border);
+  /* Nessun bordo a riposo: le card si staccano da sfondo + gap. Il bordo resta
+     1px trasparente così il verde di :hover/:focus-within non sposta il layout. */
+  border: 1px solid transparent;
   border-radius: 14px;
   overflow: hidden;
   cursor: pointer;
