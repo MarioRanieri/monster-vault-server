@@ -1417,13 +1417,15 @@ body.light .filter-select option {
 .grid-container {
   padding: 1.5rem 2rem;
 }
-.grid-info {
-  font-size: 12px;
-  color: var(--text3);
-  margin-bottom: 1rem;
+/* Riga azioni di vista (Show prices / Views / Share) subito sotto l'hero,
+   allineata al contenuto dell'hero. Prima erano in fondo, nella grid-info. */
+.collection-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  gap: 10px;
+  padding: 0 2rem;
+  margin: 0 0 1.25rem;
 }
 .reset-filters-btn {
   font-size: 11px;
@@ -3619,6 +3621,9 @@ input.field-invalid {
   /* Hero / stats */
   .hero {
     padding: 1rem 0.75rem;
+  }
+  .collection-actions {
+    padding: 0 0.75rem;
   }
   .stats-row {
     gap: 1rem;
