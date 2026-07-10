@@ -45,8 +45,8 @@ describe('skuKey', () => {
     expect(md.skuKey('0610')).toBeLessThan(md.skuKey('0122')); // Jun 2010 < Jan 2022
     expect(md.skuKey('0106')).toBeLessThan(md.skuKey('1206')); // Jan 2006 < Dec 2006
   });
-  test('3-digit SKU: the leading two digits are the month (110 = Nov 2000)', () => {
-    expect(md.skuKey('110')).toBe(2000 * 100 + 11);
+  test('3-digit SKU is MMY: 2-digit month + 1-digit year (079 = Jul 2009)', () => {
+    expect(md.skuKey('079')).toBe((2000 + 9) * 100 + 7);
   });
   test('invalid month or non-date sorts to the end (Infinity)', () => {
     expect(md.skuKey('1310')).toBe(Infinity); // month 13

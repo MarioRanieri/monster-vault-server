@@ -106,7 +106,8 @@ function parseLinguaToIsos(lingua){
   return { isos: isos, regions: regions, unknown: unknown };
 }
 
-/* Chiave d'ordine dallo SKU (MMYY/MYY = mese+anno): più vecchio prima; non-data in fondo. */
+/* Chiave d'ordine dallo SKU (MMYY o MMY = mese[2 cifre] + anno; es. 079 = luglio 2009):
+   prime 2 cifre = mese, il resto = anno (200Y o 20YY). Più vecchio prima; non-data in fondo. */
 function skuKey(sku){
   var s = String(sku == null ? '' : sku).trim();
   if(/^\d{3,4}$/.test(s)){
