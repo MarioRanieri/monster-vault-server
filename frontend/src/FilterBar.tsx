@@ -121,147 +121,147 @@ export function FilterBar({
       </button>
       <div className={`filter-advanced${showFilters ? ' open' : ''}`}>
         {selects.map((s) => (
-        <select
-          key={s.key}
-          className="filter-select"
-          aria-label={s.allLabel}
-          value={s.value}
-          onChange={(e) => s.onChange(e.target.value)}
-        >
-          <option value="">{s.allLabel}</option>
-          {s.options.map((o) => (
-            <option key={o} value={o}>
-              {o}
-            </option>
-          ))}
-        </select>
-      ))}
-      {chips.map((chip) => (
-        <button
-          key={chip.key}
-          type="button"
-          className={`filter-chip ${chip.cls}${chip.active ? ' active' : ''}`}
-          aria-pressed={chip.active}
-          onClick={chip.onToggle}
-        >
-          {chip.label}
-          <span className="chip-count">{chip.count}</span>
-        </button>
-      ))}
-      {ranges.map((r) => (
-        <div key={r.key} className="vrange-wrap">
-          <span className="vrange-sep">{r.sep}</span>
-          <input
-            type="number"
-            className="vrange-input"
-            aria-label={`${r.key} min`}
-            placeholder={r.minPlaceholder ?? 'min'}
-            value={r.min}
-            onChange={(e) => r.onMin(e.target.value)}
-          />
-          <span className="vrange-sep">—</span>
-          <input
-            type="number"
-            className="vrange-input"
-            aria-label={`${r.key} max`}
-            placeholder={r.maxPlaceholder ?? 'max'}
-            value={r.max}
-            onChange={(e) => r.onMax(e.target.value)}
-          />
-        </div>
-      ))}
-      <div className="filter-tools">
-        {onReset && (
-          <button type="button" className="btn btn-ghost" onClick={onReset}>
-            Reset
-          </button>
-        )}
-        {view && (
-          <div className="view-toggle">
-            <button
-              type="button"
-              className={`view-btn${view.value === 'grid' ? ' active' : ''}`}
-              aria-label="Grid view"
-              aria-pressed={view.value === 'grid'}
-              onClick={() => view.onChange('grid')}
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                aria-hidden="true"
-              >
-                <rect x="3" y="3" width="7" height="7" />
-                <rect x="14" y="3" width="7" height="7" />
-                <rect x="14" y="14" width="7" height="7" />
-                <rect x="3" y="14" width="7" height="7" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              className={`view-btn${view.value === 'list' ? ' active' : ''}`}
-              aria-label="List view"
-              aria-pressed={view.value === 'list'}
-              onClick={() => view.onChange('list')}
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                aria-hidden="true"
-              >
-                <line x1="8" y1="6" x2="21" y2="6" />
-                <line x1="8" y1="12" x2="21" y2="12" />
-                <line x1="8" y1="18" x2="21" y2="18" />
-                <line x1="3" y1="6" x2="3.01" y2="6" />
-                <line x1="3" y1="12" x2="3.01" y2="12" />
-                <line x1="3" y1="18" x2="3.01" y2="18" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              className={`view-btn${view.value === 'wall' ? ' active' : ''}`}
-              aria-label="Wall view"
-              aria-pressed={view.value === 'wall'}
-              onClick={() => view.onChange('wall')}
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                aria-hidden="true"
-              >
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <polyline points="21 15 16 10 5 21" />
-              </svg>
-            </button>
-          </div>
-        )}
-        {sort && (
           <select
+            key={s.key}
             className="filter-select"
-            aria-label="Sort"
-            value={sort.value}
-            onChange={(e) => sort.onChange(e.target.value)}
+            aria-label={s.allLabel}
+            value={s.value}
+            onChange={(e) => s.onChange(e.target.value)}
           >
-            {sort.options.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
+            <option value="">{s.allLabel}</option>
+            {s.options.map((o) => (
+              <option key={o} value={o}>
+                {o}
               </option>
             ))}
           </select>
-        )}
-      </div>
+        ))}
+        {chips.map((chip) => (
+          <button
+            key={chip.key}
+            type="button"
+            className={`filter-chip ${chip.cls}${chip.active ? ' active' : ''}`}
+            aria-pressed={chip.active}
+            onClick={chip.onToggle}
+          >
+            {chip.label}
+            <span className="chip-count">{chip.count}</span>
+          </button>
+        ))}
+        {ranges.map((r) => (
+          <div key={r.key} className="vrange-wrap">
+            <span className="vrange-sep">{r.sep}</span>
+            <input
+              type="number"
+              className="vrange-input"
+              aria-label={`${r.key} min`}
+              placeholder={r.minPlaceholder ?? 'min'}
+              value={r.min}
+              onChange={(e) => r.onMin(e.target.value)}
+            />
+            <span className="vrange-sep">—</span>
+            <input
+              type="number"
+              className="vrange-input"
+              aria-label={`${r.key} max`}
+              placeholder={r.maxPlaceholder ?? 'max'}
+              value={r.max}
+              onChange={(e) => r.onMax(e.target.value)}
+            />
+          </div>
+        ))}
+        <div className="filter-tools">
+          {onReset && (
+            <button type="button" className="btn btn-ghost" onClick={onReset}>
+              Reset
+            </button>
+          )}
+          {view && (
+            <div className="view-toggle">
+              <button
+                type="button"
+                className={`view-btn${view.value === 'grid' ? ' active' : ''}`}
+                aria-label="Grid view"
+                aria-pressed={view.value === 'grid'}
+                onClick={() => view.onChange('grid')}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden="true"
+                >
+                  <rect x="3" y="3" width="7" height="7" />
+                  <rect x="14" y="3" width="7" height="7" />
+                  <rect x="14" y="14" width="7" height="7" />
+                  <rect x="3" y="14" width="7" height="7" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                className={`view-btn${view.value === 'list' ? ' active' : ''}`}
+                aria-label="List view"
+                aria-pressed={view.value === 'list'}
+                onClick={() => view.onChange('list')}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden="true"
+                >
+                  <line x1="8" y1="6" x2="21" y2="6" />
+                  <line x1="8" y1="12" x2="21" y2="12" />
+                  <line x1="8" y1="18" x2="21" y2="18" />
+                  <line x1="3" y1="6" x2="3.01" y2="6" />
+                  <line x1="3" y1="12" x2="3.01" y2="12" />
+                  <line x1="3" y1="18" x2="3.01" y2="18" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                className={`view-btn${view.value === 'wall' ? ' active' : ''}`}
+                aria-label="Wall view"
+                aria-pressed={view.value === 'wall'}
+                onClick={() => view.onChange('wall')}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden="true"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
+                </svg>
+              </button>
+            </div>
+          )}
+          {sort && (
+            <select
+              className="filter-select"
+              aria-label="Sort"
+              value={sort.value}
+              onChange={(e) => sort.onChange(e.target.value)}
+            >
+              {sort.options.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
       </div>
     </div>
   );
