@@ -68,8 +68,8 @@ export function LandingPage({
           <div className="land-notice">
             <span className="land-live" aria-hidden="true" />
             {addedThisMonth > 0
-              ? `${addedThisMonth} added this month`
-              : 'None added this month'}
+              ? `${addedThisMonth} ${addedThisMonth === 1 ? 'can' : 'cans'} added this month`
+              : 'no new cans added this month'}
           </div>
         )}
 

@@ -18,14 +18,19 @@ test('mostra il wordmark e le stats (cans / countries)', () => {
   expect(screen.getByText(/countries/i)).toBeTruthy();
 });
 
-test('badge mensile: "N added this month" quando > 0', () => {
+test('badge mensile: "N cans added this month" quando > 1', () => {
   render(<LandingPage {...base} addedThisMonth={5} />);
-  expect(screen.getByText(/5 added this month/i)).toBeTruthy();
+  expect(screen.getByText(/5 cans added this month/i)).toBeTruthy();
 });
 
-test('badge mensile: "None added this month" quando 0', () => {
+test('badge mensile: singolare "1 can added this month"', () => {
+  render(<LandingPage {...base} addedThisMonth={1} />);
+  expect(screen.getByText(/1 can added this month/i)).toBeTruthy();
+});
+
+test('badge mensile: "no new cans added this month" quando 0', () => {
   render(<LandingPage {...base} addedThisMonth={0} />);
-  expect(screen.getByText(/none added this month/i)).toBeTruthy();
+  expect(screen.getByText(/no new cans added this month/i)).toBeTruthy();
 });
 
 test('ENTER THE COLLECTION chiama onEnter (guest)', async () => {
