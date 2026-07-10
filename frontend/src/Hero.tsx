@@ -31,7 +31,9 @@ export function Hero({
           <span className="stat-lbl">Countries</span>
         </div>
         <div className="stat-item">
-          <span className="stat-val">{stats.withPhoto}</span>
+          <span className="stat-val" style={{ color: '#a855f7' }}>
+            {stats.withPhoto}
+          </span>
           <span className="stat-lbl">With Photo</span>
         </div>
         <div className="stat-item">

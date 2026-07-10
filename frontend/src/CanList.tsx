@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Can } from './types';
 import { statoBadgeClass } from './statoBadge';
 import { hasPromo } from './filterCans';
@@ -16,12 +16,18 @@ export function CanList({
   cans,
   onSelect,
   showPrice,
+  globalSort,
 }: Readonly<{
   cans: Can[];
   onSelect?: (can: Can) => void;
   showPrice?: boolean;
+  globalSort?: string;
 }>) {
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 } | null>(null);
+  // Il sort da colonna è locale e sovrascrive l'ordine globale ricevuto in `cans`.
+  // Quando l'utente cambia il sort dalla FilterBar (globalSort) lo azzeriamo, così
+  // i due ordinamenti non si contraddicono: vince l'ultimo scelto.
+  useEffect(() => setSort(null), [globalSort]);
 
   const rows = sort
     ? [...cans].sort((a, b) => {
@@ -86,19 +92,23 @@ export function CanList({
                   {can.nome || '—'}
                 </button>
               </td>
-              <td>{can.sku || '—'}</td>
-              <td>{can.produttore || '—'}</td>
-              <td>{can.lingua ? <Flags lingua={can.lingua} /> : '—'}</td>
-              <td>{can.size || '—'}</td>
-              <td className="lt-top">{renderTab(can.top)}</td>
-              <td className="lt-status">
+              {/* data-label: su mobile la tabella diventa card impilate e ogni cella
+                  mostra la sua etichetta via CSS ::before (vedi main.css). */}
+              <td data-label="SKU">{can.sku || '—'}</td>
+              <td data-label="Manufacturer">{can.produttore || '—'}</td>
+              <td data-label="Country">{can.lingua ? <Flags lingua={can.lingua} /> : '—'}</td>
+              <td data-label="Size">{can.size || '—'}</td>
+              <td className="lt-top" data-label="Top/Tab">
+                {renderTab(can.top)}
+              </td>
+              <td className="lt-status" data-label="Status">
                 {hasPromo(can.promo) && <span className="badge badge-promo">{can.promo}</span>}
                 {can.stato && (
                   <span className={`badge ${statoBadgeClass(can.stato)}`}>{can.stato}</span>
                 )}
                 {!hasPromo(can.promo) && !can.stato && '—'}
               </td>
-              {showPrice && <td>{can.valore ? `€${can.valore}` : '—'}</td>}
+              {showPrice && <td data-label="Value">{can.valore ? `€${can.valore}` : '—'}</td>}
             </tr>
           ))}
         </tbody>
