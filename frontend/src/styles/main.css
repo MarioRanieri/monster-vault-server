@@ -1388,6 +1388,15 @@ body.light .filter-select option {
 .filter-advanced {
   display: contents;
 }
+/* Riga view + sort: sempre visibile (fuori dal collasso "Filters"), a tutta
+   larghezza in fondo alla filter-bar → viste a sinistra, ordinamento a destra. */
+.view-sort-bar {
+  flex: 1 1 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
 .view-toggle {
   display: flex;
   border: 1px solid var(--border2);

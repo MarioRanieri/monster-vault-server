@@ -176,6 +176,12 @@ export function FilterBar({
               Reset
             </button>
           )}
+        </div>
+      </div>
+      {/* View toggle + sort: fuori dal collasso "Filters", sempre visibili sopra
+          la griglia (riga a tutta larghezza in fondo alla filter-bar). */}
+      {(view || sort) && (
+        <div className="view-sort-bar">
           {view && (
             <div className="view-toggle">
               <button
@@ -262,7 +268,7 @@ export function FilterBar({
             </select>
           )}
         </div>
-      </div>
+      )}
     </div>
   );
 }
