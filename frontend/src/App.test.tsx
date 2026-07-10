@@ -184,6 +184,36 @@ test('login, poi "Esci" riporta alla landing', async () => {
   expect(await screen.findByRole('button', { name: /admin access/i })).toBeTruthy();
 });
 
+test('chi ha già visto la landing entra dritto nella collection', async () => {
+  localStorage.setItem('mv_seen_landing', '1');
+  render(<App />);
+  // niente splash: nessun "enter the collection", siamo già nella collection
+  expect(screen.queryByRole('button', { name: /enter the collection/i })).toBeNull();
+  expect(await screen.findByRole('searchbox')).toBeTruthy();
+});
+
+test('il logo torna alla landing restando admin; ADMIN ACCESS rientra senza password', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => [] }) // loadCans
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) }), // login
+  );
+
+  render(<App />);
+  await loginAsAdmin();
+
+  // logo = home: torna alla landing SENZA logout
+  await userEvent.click(screen.getByRole('button', { name: /monster vault.*home/i }));
+  expect(screen.getByRole('heading', { name: /monster vault/i })).toBeTruthy();
+
+  // già admin → ADMIN ACCESS rientra dritto, nessun form di login
+  await userEvent.click(screen.getByRole('button', { name: /admin access/i }));
+  expect(screen.queryByLabelText('Username')).toBeNull();
+  expect(await screen.findByRole('button', { name: /sign out/i })).toBeTruthy();
+});
+
 test('admin: elimina una can dal dettaglio', async () => {
   vi.stubGlobal(
     'fetch',

@@ -23,6 +23,7 @@ function Ic({ children, size = 14 }: Readonly<{ children: React.ReactNode; size?
 export function Header({
   isAdmin,
   onSignOut,
+  onLogoHome,
   onAdd,
   onLogin,
   onToggleTheme,
@@ -33,6 +34,7 @@ export function Header({
 }: Readonly<{
   isAdmin: boolean;
   onSignOut: () => void;
+  onLogoHome: () => void;
   onAdd: () => void;
   onLogin: () => void;
   onToggleTheme: () => void;
@@ -43,7 +45,9 @@ export function Header({
 }>) {
   return (
     <header className="header">
-      <div className="logo">
+      {/* Logo = home: torna alla landing SENZA fare logout (Sign out è separato).
+          <button> e non <div> così è raggiungibile da tastiera/screen-reader. */}
+      <button type="button" className="logo" onClick={onLogoHome} aria-label="Monster Vault — home">
         <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
           <rect width="32" height="32" rx="7" fill="#a8ff00" />
           <path d="M16 5L7 27h4.5l1.5-5h6l1.5 5H25L16 5zm-1.5 14l1.5-6 1.5 6h-3z" fill="#000" />
@@ -54,7 +58,7 @@ export function Header({
           </div>
           <div className="logo-sub">Collection</div>
         </div>
-      </div>
+      </button>
       <div className="header-right">
         <button
           type="button"

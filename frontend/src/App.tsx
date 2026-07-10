@@ -92,7 +92,15 @@ function App() {
   const setFilter = <K extends keyof Filters>(k: K, v: Filters[K]) =>
     setFilters((f) => ({ ...f, [k]: v }));
   const [sort, setSort] = useState<SortKey>('added-desc');
-  const [view, setView] = useState<'landing' | 'collection'>('landing');
+  // Chi è già entrato una volta (mv_seen_landing) salta la splash e va dritto in
+  // collection; la landing resta raggiungibile dal logo dell'header.
+  const [view, setView] = useState<'landing' | 'collection'>(() =>
+    localStorage.getItem('mv_seen_landing') ? 'collection' : 'landing',
+  );
+  const enterCollection = () => {
+    localStorage.setItem('mv_seen_landing', '1');
+    setView('collection');
+  };
   const [showLogin, setShowLogin] = useState(false);
   const [light, setLight] = useState(false);
   const [gridMode, setGridMode] = useState<'grid' | 'list' | 'wall'>('grid');
@@ -315,10 +323,12 @@ function App() {
         countries={stats.countries}
         addedThisMonth={addedThisMonth(cans)}
         loading={loading}
-        onEnter={() => setView('collection')}
+        onEnter={enterCollection}
         onAdmin={() => {
-          setView('collection');
-          setShowLogin(true);
+          // Già admin (sessione attiva) → entra dritto, niente password.
+          // Guest → entra e apre il login.
+          enterCollection();
+          if (!isAdmin) setShowLogin(true);
         }}
       />
     );
@@ -332,6 +342,7 @@ function App() {
           logout();
           setView('landing');
         }}
+        onLogoHome={() => setView('landing')}
         onAdd={() => setCreating({ id: crypto.randomUUID(), nome: '' })}
         onLogin={() => setShowLogin(true)}
         onToggleTheme={() => setLight((v) => !v)}
