@@ -2101,12 +2101,6 @@ button.view-save {
 .list-table th:hover {
   color: var(--text2);
 }
-.list-table th.sort-asc::after {
-  content: ' ↑';
-}
-.list-table th.sort-desc::after {
-  content: ' ↓';
-}
 .list-table tbody tr {
   border-bottom: 1px solid var(--border);
   transition: background 0.1s;
@@ -2148,28 +2142,6 @@ button.view-save {
 .list-table .td-price {
   color: var(--green);
   font-weight: 600;
-}
-.list-table .td-actions {
-  white-space: nowrap;
-}
-.list-table .td-actions button {
-  background: none;
-  border: none;
-  color: var(--text3);
-  cursor: pointer;
-  padding: 4px 6px;
-  border-radius: 4px;
-  font-size: 12px;
-  transition: all 0.15s;
-}
-.list-table .td-actions button:hover {
-  background: var(--bg4);
-  color: var(--text);
-}
-.load-more-wrap {
-  text-align: center;
-  padding: 2rem;
-  display: none;
 }
 .load-more-btn {
   background: var(--bg3);
