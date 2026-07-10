@@ -2,7 +2,7 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-07-10 (rev 47 — audit guest: +filtri mobile, guest 401, SEO/OG, bug promo)  
+**Updated:** 2026-07-10 (rev 48 — audit guest COMPLETO: +refactor filtri, render incrementale)  
 **Branch:** main (lavoro su `feat/react-migration`, mergiato a `main`)  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
@@ -23,8 +23,12 @@
 > **(#11)** OG/Twitter/description/JSON-LD spostati nel sorgente `frontend/index.html` (prima solo
 > nell'artefatto backend sovrascritto dal build → live senza OG). **Extra:** bug segnalato — badge
 > "NO" promo su lattine con `promo="NO"` legacy, risolto con predicato condiviso `hasPromo()` (anche
-> filtro/stats). Test frontend: **223**. Restano solo **#6** (refactor stato filtri, no impatto
-> guest) e **#9** (virtualizzazione, solo se misurata).
+> filtro/stats). **(#6)** i 14 `useState` dei filtri in `App.tsx` (duplicati in 5 punti) consolidati
+> in un unico oggetto `filters` + helper `setFilter` + costante `NO_FILTERS` (nessun cambio di
+> comportamento). **(#9)** render incrementale: griglia/lista/wall montano le prime 60 card e crescono
+> di 60 allo scroll (IntersectionObserver via callback ref, rootMargin 600px), invece di ~1866 nodi
+> al primo paint; il conteggio "X of Y" resta sul set filtrato completo (verificato: DOM 60 vs 1866).
+> **Audit guest COMPLETO: tutte le 11 voci + bug promo.** Test frontend: **223**.
 
 > **2026-07-09 — eBay monitor spostato in cloud (gratis).** Il radar `ebay-monitor/` non gira
 > più sul PC: ora è su **GitHub Actions** (`.github/workflows/ebay-monitor.yml`, cron ogni 2h, un
