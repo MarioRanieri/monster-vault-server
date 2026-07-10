@@ -58,6 +58,13 @@ public class Can {
      *  da MongoCanRepository.save() per garantire ordine cronologico coerente. */
     private Long updatedAt;
 
+    /** Timestamp Unix in millisecondi della PRIMA creazione. Impostato una sola volta dal
+     *  repository quando la lattina non esiste ancora su MongoDB, poi mai più modificato
+     *  (a differenza di updatedAt, che cambia a ogni edit). Alimenta il badge "added this
+     *  month" della landing. I record migrati da Firestore, precedenti a questo campo,
+     *  restano null: si contano solo le lattine davvero nuove da qui in avanti. */
+    private Long createdAt;
+
     /**
      * Soft-delete: quando non null la lattina è "nel cestino" e non appare in GET /api/cans.
      * Impostato da CanService.softDelete(); azzerato da CanService.restore().

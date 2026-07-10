@@ -66,12 +66,23 @@ public class MongoCanRepository implements CanRepository {
         mongo.remove(new Query(), Can.class);
     }
 
-    /** Come il vecchio repository: aggiorna updatedAt, e photoAt se almeno uno slot foto è presente. */
+    /** Come il vecchio repository: aggiorna updatedAt, e photoAt se almeno uno slot foto è presente.
+     *  createdAt è server-autoritativo e immutabile: si timbra `now` SOLO se la lattina non esiste
+     *  ancora su Mongo (creazione vera); per un record esistente si preserva il valore già salvato
+     *  — null incluso, così i record migrati da Firestore non vengono "inventati" a oggi da un
+     *  edit o da un restore (altrimenti finirebbero in "added this month"). */
     private void stampTimestamps(Can can) {
         long now = System.currentTimeMillis();
         can.setUpdatedAt(now);
         if (can.getP1() != null || can.getP2() != null || can.getP3() != null || can.getP4() != null) {
             can.setPhotoAt(now);
+        }
+        if (can.getCreatedAt() == null) {
+            Can existing = can.getId() != null ? mongo.findById(can.getId(), Can.class) : null;
+            // if/else (non ternario) di proposito: `now` è long e getCreatedAt() è Long null →
+            // un ternario misto unboxerebbe e andrebbe in NPE sul ramo legacy.
+            if (existing == null) can.setCreatedAt(now);
+            else can.setCreatedAt(existing.getCreatedAt());
         }
     }
 }
