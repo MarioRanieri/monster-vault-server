@@ -57,6 +57,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return;
       }
       const { accessToken } = (await res.json()) as { accessToken: string };
+      // Hint (non HttpOnly) che questo browser ha una sessione: al load evita di
+      // interrogare /auth/refresh per i guest, che risponde 401 (rumore console).
+      localStorage.setItem('mv_auth', '1');
       set({ accessToken, isAdmin: true, error: null, loading: false });
     } catch {
       set({ error: 'Network error. Please try again.', loading: false });
@@ -64,6 +67,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   logout: async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
+    localStorage.removeItem('mv_auth');
     set({ accessToken: null, isAdmin: false });
   },
   // Ripristina la sessione dal cookie refresh HttpOnly: chiamato al caricamento

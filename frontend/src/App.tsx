@@ -81,7 +81,9 @@ function App() {
 
   useEffect(() => {
     loadCans();
-    refresh();
+    // Ripristina la sessione solo se questo browser ha già fatto login (hint
+    // mv_auth): i guest non chiamano /auth/refresh → niente 401 in console.
+    if (localStorage.getItem('mv_auth')) refresh();
   }, [loadCans, refresh]);
 
   useEffect(() => {

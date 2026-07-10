@@ -7,6 +7,7 @@ import { useAuthStore } from './authStore';
 beforeEach(() => {
   useCansStore.setState({ cans: [], loading: false, error: null });
   useAuthStore.setState({ accessToken: null, isAdmin: false, error: null });
+  localStorage.clear(); // evita che l'hint di sessione (mv_auth) trapeli fra i test
   vi.stubGlobal(
     'fetch',
     vi.fn().mockResolvedValue({
@@ -74,7 +75,6 @@ test('admin: apre il pannello Account e il Value calc', async () => {
         ok: true,
         json: async () => [{ id: '1', nome: 'Alpha', valore: '10' }],
       })
-      .mockResolvedValueOnce({ ok: false }) // refresh al mount
       .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) }), // login
   );
   render(<App />);
@@ -101,7 +101,6 @@ test('admin: Export Excel mostra la conferma', async () => {
         ok: true,
         json: async () => [{ id: '1', nome: 'Alpha', valore: '10' }],
       })
-      .mockResolvedValueOnce({ ok: false })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) }),
   );
   render(<App />);

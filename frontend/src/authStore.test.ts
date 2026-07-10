@@ -2,6 +2,7 @@ import { useAuthStore } from './authStore';
 
 beforeEach(() => {
   useAuthStore.setState({ accessToken: null, isAdmin: false, error: null });
+  localStorage.clear();
 });
 
 afterEach(() => {
@@ -45,6 +46,24 @@ test('logout azzera token e isAdmin', async () => {
   const s = useAuthStore.getState();
   expect(s.accessToken).toBeNull();
   expect(s.isAdmin).toBe(false);
+});
+
+// Hint di sessione: evita di chiamare /auth/refresh (→ 401 in console) per i
+// guest che non hanno mai fatto login in questo browser.
+test('login segna un hint di sessione in localStorage', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({ ok: true, json: async () => ({ accessToken: 'tok' }) }),
+  );
+  await useAuthStore.getState().login('admin', 'pw');
+  expect(localStorage.getItem('mv_auth')).toBe('1');
+});
+
+test("logout rimuove l'hint di sessione", async () => {
+  localStorage.setItem('mv_auth', '1');
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
+  await useAuthStore.getState().logout();
+  expect(localStorage.getItem('mv_auth')).toBeNull();
 });
 
 test('login mappa 429 a un errore dedicato', async () => {
