@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCansStore } from './store';
 import { CanGrid } from './CanGrid';
 import { CanList } from './CanList';
@@ -45,6 +45,8 @@ interface Filters {
   ymin: string;
   ymax: string;
 }
+// Render incrementale: quante card montare per "pagina" (vedi shownCans).
+const PAGE = 60;
 const NO_FILTERS: Filters = {
   query: '',
   lingua: '',
@@ -196,6 +198,28 @@ function App() {
     if (persistReady.current) localStorage.setItem('mv_filters', filtersJson);
     else persistReady.current = true;
   }, [filtersJson]);
+  // Render incrementale: monta le prime PAGE card, poi cresce quando l'utente
+  // arriva in fondo (IntersectionObserver sul sentinel) → evita ~1866 nodi al
+  // primo paint. Riparte da capo quando cambiano filtri/sort o i dati.
+  const [shown, setShown] = useState(PAGE);
+  useEffect(() => setShown(PAGE), [filtersJson, cans.length]);
+  // Callback ref sul sentinel: (dis)connette l'IntersectionObserver esattamente
+  // quando il nodo monta/smonta, senza dipendere dal timing degli effetti.
+  // rootMargin carica la pagina successiva ~600px prima del fondo (preload).
+  const ioRef = useRef<IntersectionObserver | null>(null);
+  const sentinelRef = useCallback((node: HTMLDivElement | null) => {
+    ioRef.current?.disconnect();
+    if (node && typeof IntersectionObserver !== 'undefined') {
+      ioRef.current = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting) setShown((n) => n + PAGE);
+        },
+        { rootMargin: '600px' },
+      );
+      ioRef.current.observe(node);
+    }
+  }, []);
+  const shownCans = visible.slice(0, shown);
   const applyShareFilters = (f: Partial<ShareFilters>) => {
     const { sort: s, ...rest } = f;
     setFilters({ ...NO_FILTERS, ...rest });
@@ -475,7 +499,7 @@ function App() {
       </div>
       {gridMode === 'grid' ? (
         <CanGrid
-          cans={visible}
+          cans={shownCans}
           showPrice={isAdmin && showPrice}
           onSelect={selectCan}
           onEdit={
@@ -488,16 +512,17 @@ function App() {
           }
         />
       ) : gridMode === 'list' ? (
-        <CanList cans={visible} showPrice={isAdmin && showPrice} onSelect={selectCan} />
+        <CanList cans={shownCans} showPrice={isAdmin && showPrice} onSelect={selectCan} />
       ) : (
         <CanWall
-          cans={visible}
+          cans={shownCans}
           onSelect={(can) => {
             const ph = [can.p1, can.p2, can.p3, can.p4].filter((u): u is string => Boolean(u));
             if (ph.length) setWallPhotos({ photos: ph, alt: can.nome });
           }}
         />
       )}
+      {shown < visible.length && <div ref={sentinelRef} aria-hidden="true" />}
       {selected &&
         (editing ? (
           <CanEditForm
