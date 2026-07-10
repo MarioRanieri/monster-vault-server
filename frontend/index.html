@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="it">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/icon.png" />
@@ -11,7 +11,49 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="Monster Vault" />
     <link rel="apple-touch-icon" href="/icon-512.png" />
-    <title>Monster Vault</title>
+
+    <title>Monster Vault — RedMghost's Monster Energy Collection</title>
+    <meta
+      name="description"
+      content="RedMghost's personal Monster Energy archive — 1,800+ cans from 99 countries, catalogued, valued and mapped on an interactive world map."
+    />
+    <link rel="canonical" href="https://monster-vault-server.onrender.com/" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph / Twitter: rich link previews when the site is shared. Must
+         live here (source), not only in the built static/index.html which the
+         Docker build overwrites. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Monster Vault" />
+    <meta property="og:title" content="Monster Vault — RedMghost's Monster Energy Collection" />
+    <meta
+      property="og:description"
+      content="1,800+ Monster Energy cans from 99 countries, catalogued, valued and mapped."
+    />
+    <meta property="og:url" content="https://monster-vault-server.onrender.com/" />
+    <meta property="og:image" content="https://monster-vault-server.onrender.com/social-preview.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Monster Vault — RedMghost's Monster Energy Collection" />
+    <meta
+      name="twitter:description"
+      content="1,800+ Monster Energy cans from 99 countries, catalogued, valued and mapped."
+    />
+    <meta name="twitter:image" content="https://monster-vault-server.onrender.com/social-preview.png" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Monster Vault",
+        "url": "https://monster-vault-server.onrender.com/",
+        "description": "RedMghost's personal Monster Energy can collection — catalogued, valued and mapped.",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "Web",
+        "author": { "@type": "Person", "name": "Mario Ranieri" }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
