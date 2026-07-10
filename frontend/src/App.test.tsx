@@ -481,6 +481,10 @@ test('admin: carica una foto durante la modifica', async () => {
   await userEvent.upload(screen.getByLabelText('Photo 1'), file);
   await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
-  // salvataggio + upload della foto staged → la foto compare
-  expect((await screen.findAllByRole('img', { name: 'Alpha' })).length).toBeGreaterThan(0);
-});
+  // Salvataggio + upload della foto staged → la foto compare. timeout esteso:
+  // la catena async (save → upload → re-render) può superare il default di 1s
+  // quando la suite intera gira in parallelo sotto carico (evita il flaky).
+  expect(
+    (await screen.findAllByRole('img', { name: 'Alpha' }, { timeout: 4000 })).length,
+  ).toBeGreaterThan(0);
+}, 15000); // la catena async è lenta sotto carico/coverage: alza il testTimeout

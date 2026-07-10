@@ -181,13 +181,8 @@ export function Header({
           <circle cx="19" cy="12" r="2" />
         </svg>
       </button>
-      {/* Clic su una voce chiude il menu (bubbling dopo l'azione della voce). */}
-      <div
-        className={`header-more-menu${moreOpen ? ' open' : ''}`}
-        onClick={() => setMoreOpen(false)}
-      >
-        {children}
-      </div>
+      {/* Il menu si chiude col click fuori (useEffect) o ri-toccando ⋯. */}
+      <div className={`header-more-menu${moreOpen ? ' open' : ''}`}>{children}</div>
     </div>
   );
 
