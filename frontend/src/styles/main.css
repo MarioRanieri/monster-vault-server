@@ -558,6 +558,21 @@ body.public-mode .public-banner {
   align-items: center;
   gap: 10px;
 }
+/* Menu overflow ⋯ dell'header: su desktop wrapper e menu sono display:contents
+   → i bottoni secondari tornano inline (ordine ricostruito con `order`), il
+   trigger ⋯ resta nascosto. Su mobile diventa un dropdown (vedi media query). */
+.header-more,
+.header-more-menu {
+  display: contents;
+}
+.header-more-btn {
+  display: none;
+}
+/* Il toggle tema resta icon-only inline (desktop, come prima); la label "Theme"
+   serve solo dentro il menu ⋯ su mobile (dove viene ri-mostrata). */
+.btn-icon .btn-label {
+  display: none;
+}
 .btn {
   display: inline-flex;
   align-items: center;
@@ -3476,6 +3491,54 @@ input.field-invalid {
   }
   .logout-btn {
     padding: 4px 8px;
+  }
+  /* Overflow ⋯: su mobile le azioni secondarie collassano in un dropdown,
+     restano visibili solo azione primaria (Add / Admin access) e user-pill. */
+  .header-more {
+    display: block;
+    position: relative;
+  }
+  .header-more-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    border-radius: 6px;
+    padding: 8px 10px;
+    cursor: pointer;
+  }
+  .header-more-btn[aria-expanded='true'] {
+    border-color: var(--green);
+    color: var(--green);
+  }
+  .header-more-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 6px;
+    min-width: 190px;
+    flex-direction: column;
+    gap: 2px;
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    padding: 5px;
+    z-index: 200;
+  }
+  .header-more-menu.open {
+    display: flex;
+  }
+  .header-more-menu .btn {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 9px 10px;
+  }
+  .header-more-menu .btn .btn-label {
+    display: inline;
   }
   /* Cloud bar */
   .cloud-bar {
