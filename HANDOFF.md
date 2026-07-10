@@ -2,7 +2,7 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-07-10 (rev 46 — audit esperienza guest: font, sort, copy, accent, contrasto)  
+**Updated:** 2026-07-10 (rev 47 — audit guest: +filtri mobile, guest 401, SEO/OG, bug promo)  
 **Branch:** main (lavoro su `feat/react-migration`, mergiato a `main`)  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
@@ -17,9 +17,14 @@
 > vecchi); ora la presenza di foto (`p1`) è la chiave primaria → le lattine fotografate vengono
 > prima, senza nascondere nulla (TDD). **(#3)** tagline di contesto sulla landing (chi + cosa fa il
 > sito). **(#4)** l'accent "Full" (`#00b4ff` ripetuto in 6 punti) tokenizzato in `--full` (cyan più
-> vivo). **(#7)** `--text3` schiarito verso WCAG AA. Restano #5 (filtri mobile), #6 (refactor stato
-> filtri), #8 (rumore console — il 401 refresh richiede un tocco backend), #9 (virtualizzazione),
-> #10 (landing, in parte già risolta da #1), #11 (SEO/OG).
+> vivo). **(#7)** `--text3` schiarito verso WCAG AA. **(#5)** su mobile i filtri avanzati collassano
+> dietro un toggle "Filters" (desktop invariato via `display:contents`). **(#8)** i guest non chiamano
+> più `/auth/refresh` (hint `mv_auth` in localStorage) → niente 401 in console + meta PWA moderno.
+> **(#11)** OG/Twitter/description/JSON-LD spostati nel sorgente `frontend/index.html` (prima solo
+> nell'artefatto backend sovrascritto dal build → live senza OG). **Extra:** bug segnalato — badge
+> "NO" promo su lattine con `promo="NO"` legacy, risolto con predicato condiviso `hasPromo()` (anche
+> filtro/stats). Test frontend: **223**. Restano solo **#6** (refactor stato filtri, no impatto
+> guest) e **#9** (virtualizzazione, solo se misurata).
 
 > **2026-07-09 — eBay monitor spostato in cloud (gratis).** Il radar `ebay-monitor/` non gira
 > più sul PC: ora è su **GitHub Actions** (`.github/workflows/ebay-monitor.yml`, cron ogni 2h, un

@@ -1,6 +1,8 @@
 # Audit — Monster Vault (focus: esperienza guest)
 
-> **Stato (2026-07-10):** implementate **#1, #2, #3, #4, #7** (commit `e9aec85`, `47d3c5d`, `25b741e`). Restano #5, #6, #8, #9, #10, #11.
+> **Stato (2026-07-10):** implementate **#1, #2, #3, #4, #5, #7, #8, #11** + un bug promo segnalato fuori audit. Restano solo **#6** (refactor, no impatto guest) e **#9** (virtualizzazione, solo se misurata).
+>
+> **Extra (fuori audit) — badge "NO" promo:** le lattine con `promo="NO"` legacy mostravano un badge "NO" su card/lista/dettaglio ed erano contate nel filtro/stat Promo. Predicato condiviso `hasPromo()` (vuoto o "no" → non-promo) applicato ovunque (commit `c94a283`).
 
 > Shortlist ad alto segnale. Perimetro: sito React + esperienza **guest**; backend solo dove tocca il sito; monitor eBay fuori. Asse visivo = raffinare **dentro** l'identità esistente (dark-first, accent lime, font attuali). Verificato dal vivo su `monster-vault-server.onrender.com` (screenshot guest: landing, griglia, dettaglio, mobile) + lettura codice.
 >
@@ -14,13 +16,13 @@
 | 2 | Griglia guest dominata da card senza foto (1510/1866) | Logico+Visivo | Alto | S–M | **P1** | ✅ fatto |
 | 3 | Etichette criptiche: "RedMghost's Collection", nessun "cos'è" | Contesto | Alto | S | **P1** | ✅ fatto |
 | 4 | Accent blu fuori palette (`#00b4ff`) accanto al lime | Visivo | Medio | S | **P1** | ✅ fatto |
-| 5 | Mobile: la filter-bar mangia tutta la prima schermata | Visivo+Logico | Medio-alto | M | **P1** | ⏳ da fare |
+| 5 | Mobile: la filter-bar mangia tutta la prima schermata | Visivo+Logico | Medio-alto | M | **P1** | ✅ fatto |
 | 6 | Stato filtri sparso in App.tsx (~30 useState, +14 filtri ×5 punti) | Codice | Nullo per il guest, alto per te | M | **P2** | ⏳ da fare |
 | 7 | Contrasto testo insufficiente (`--text3 #555` su nero → ~2.6:1) | Visivo (a11y) | Medio | S | **P2** | ✅ fatto |
-| 8 | Rumore in console: 401 `refresh` da guest + meta PWA deprecato | Codice+Contesto | Basso (percezione qualità) | S | **P2** | ⏳ da fare |
+| 8 | Rumore in console: 401 `refresh` da guest + meta PWA deprecato | Codice+Contesto | Basso (percezione qualità) | S | **P2** | ✅ fatto |
 | 9 | Griglia renderizza tutte le ~1866 card in DOM | Codice (perf) | Basso-medio | M–L | **P2** | ⏳ da fare |
-| 10 | Landing: prima impressione migliorabile (claw sfocato, gerarchia) | Visivo | Medio | S–M | **P2** | ⏳ (in parte da #1) |
-| 11 | SEO/OG/social + `llms.txt` da verificare e rifinire | Contesto | Medio (scoperta esterna) | S | **P2** | ⏳ da fare |
+| 10 | Landing: prima impressione migliorabile (claw sfocato, gerarchia) | Visivo | Medio | S–M | **P2** | ⏳ (in gran parte da #1) |
+| 11 | SEO/OG/social + `llms.txt` da verificare e rifinire | Contesto | Medio (scoperta esterna) | S | **P2** | ✅ fatto |
 
 ---
 
