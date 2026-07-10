@@ -196,12 +196,7 @@ function flagImg(iso,size){
   return '<img src="https://flagcdn.com/'+(size||'20x15')+'/'+iso.toLowerCase()+'.png" width="'+wh[0]+'" height="'+wh[1]+'" alt="'+esc(iso)+'" onerror="this.outerHTML=flagEmoji(this.alt)+\' \'">';
 }
 function isPromo(c){ return !!(c.promo&&String(c.promo).trim()); }
-/* chiave d'ordine dallo SKU (MMYY/MYY = mese+anno): più vecchio prima; non-data in fondo */
-function skuKey(sku){
-  var s=String(sku==null?'':sku).trim();
-  if(/^\d{3,4}$/.test(s)){ var mm=parseInt(s.slice(0,2),10); if(mm>=1&&mm<=12) return (2000+parseInt(s.slice(2),10))*100+mm; }
-  return Infinity;
-}
+/* skuKey, flavourMatch e listGroups vivono in map-data.js (puri, testati) — qui sono globali. */
 
 function buildStats(cans){
   byIso={}; regionsFound={}; unknownFound={}; tinyMissing={};
@@ -310,27 +305,12 @@ function selectFlavour(key){
   currentFlavour=key;
   document.querySelectorAll('.fchip').forEach(function(c){ c.classList.toggle('active',c.dataset.key===key); });
   var f=FLAVOURS.filter(function(x){return x.key===key;})[0];
-  var matches=allCans.filter(function(c){
-    var n=String(c.nome||'');
-    if(GLOBAL_EXCLUDE.some(function(re){return re.test(n);})) return false;
-    return f.words.every(function(re){ return re.test(n); });
-  });
+  var matches=allCans.filter(function(c){ return flavourMatch(c.nome,f.words,GLOBAL_EXCLUDE); });
   buildStats(matches);
   lightMap();
   document.getElementById('f-count').innerHTML='<b>'+matches.length+'</b> can'+(matches.length===1?'':'s')+' &middot; <b>'+Object.keys(byIso).length+'</b> countries';
   renderList(matches);
   document.getElementById('list-scroll').style.display='block';
-}
-/* Gruppi per la LISTA: come la mappa, ma le lattine CARIBBEAN finiscono in UN solo
-   blocco "Caribbean" (sulla mappa restano accese tutte le isole). */
-function listGroups(c){
-  var isos=parseLinguaToIsos(c.lingua).isos.slice();
-  if(/\bCARIBBEAN\b/i.test(String(c.lingua||''))){
-    var car=MAP_EXPAND['CARIBBEAN']||[];
-    isos=isos.filter(function(i){ return car.indexOf(i)===-1; });
-    isos.push('_CARIB');
-  }
-  return isos;
 }
 /* Lista: blocchi per nazione (alfabetico), bandiera nel titolo, righe ordinate per SKU.
    Niente promo, TRANNE se la nazione ha SOLO promo → la mostro e la segnalo. */
