@@ -3327,6 +3327,10 @@ input.field-invalid {
 
 .land-footer {
   display: flex;
+  /* wrap + center: su schermi stretti il testo va a capo e "GitHub" scende su una
+     riga propria centrata invece di galleggiare disallineato accanto a 2 righe. */
+  flex-wrap: wrap;
+  justify-content: center;
   align-items: center;
   gap: 0.5rem;
   margin-top: 2.4rem;
