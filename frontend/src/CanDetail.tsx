@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Can } from './types';
 import { statoBadgeClass } from './statoBadge';
+import { hasPromo } from './filterCans';
 import { colorizeTab } from './colorizeTab';
 import { cloudinaryThumb } from './cloudinary';
 import { CanShare } from './CanShare';
@@ -41,7 +42,7 @@ export function CanDetail({
     { lbl: 'Country/Language', val: can.lingua },
     { lbl: 'Size', val: can.size },
     { lbl: 'Top / Tab', val: can.top, isTop: true },
-    { lbl: 'Promo', val: can.promo },
+    { lbl: 'Promo', val: hasPromo(can.promo) ? can.promo : undefined },
     { lbl: 'Est. Value', val: showPrice && can.valore ? `€${can.valore}` : undefined },
     { lbl: 'Condition', val: can.stato },
   ];
@@ -119,7 +120,7 @@ export function CanDetail({
           <div className="detail-sku">SKU {can.sku || '—'}</div>
           <div className="detail-badges">
             {can.size && <span className="badge badge-size">{can.size}</span>}
-            {can.promo && <span className="badge badge-promo">{can.promo}</span>}
+            {hasPromo(can.promo) && <span className="badge badge-promo">{can.promo}</span>}
             {can.stato && (
               <span className={`badge ${statoBadgeClass(can.stato)}`}>{can.stato}</span>
             )}

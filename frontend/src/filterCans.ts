@@ -21,6 +21,14 @@ export interface CanFilters {
 const num = (v?: string) => Number.parseFloat(v ?? '') || 0;
 const isFull = (can: Can) => (can.note ?? '').toUpperCase().includes('FULL');
 
+// Una lattina è "in promo" se il campo è valorizzato. Il form salva "" quando
+// si sceglie No, ma import vecchi hanno lasciato il letterale "NO"/"No": va
+// trattato come non-promo (niente badge, escluso dal filtro e dalle stats).
+export const hasPromo = (promo?: string): boolean => {
+  const p = (promo ?? '').trim().toLowerCase();
+  return p !== '' && p !== 'no';
+};
+
 // Anno di produzione dallo SKU (es. 0610 = 06/2010, 093 = 09/2003). null se non
 // interpretabile (SKU non composto da soli 3-4 cifre o mese fuori range).
 export function extractYearFromCan(can: Can): number | null {
@@ -42,7 +50,7 @@ export function filterCans(cans: Can[], filters: CanFilters): Can[] {
     }
     if (filters.withPhoto && !can.p1) return false;
     if (filters.noPhoto && can.p1) return false;
-    if (filters.promo && !can.promo) return false;
+    if (filters.promo && !hasPromo(can.promo)) return false;
     if (filters.full && !isFull(can)) return false;
     if (filters.lingua && can.lingua !== filters.lingua) return false;
     if (filters.size && can.size !== filters.size) return false;

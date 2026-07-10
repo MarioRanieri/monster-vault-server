@@ -1,5 +1,23 @@
-import { filterCans, sortCans, filterOptions, extractYearFromCan } from './filterCans';
+import { filterCans, sortCans, filterOptions, extractYearFromCan, hasPromo } from './filterCans';
 import type { Can } from './types';
+
+test('hasPromo: valorizzato = promo, vuoto o "no" (legacy) = non promo', () => {
+  expect(hasPromo('Yes')).toBe(true);
+  expect(hasPromo('Christmas')).toBe(true);
+  expect(hasPromo('')).toBe(false);
+  expect(hasPromo(undefined)).toBe(false);
+  expect(hasPromo('NO')).toBe(false);
+  expect(hasPromo('  No ')).toBe(false);
+});
+
+test('filtro promo esclude i valori legacy "NO"', () => {
+  const list: Can[] = [
+    { id: '1', nome: 'A', promo: 'Yes' },
+    { id: '2', nome: 'B', promo: 'NO' },
+    { id: '3', nome: 'C' },
+  ];
+  expect(filterCans(list, { promo: true }).map((c) => c.nome)).toEqual(['A']);
+});
 
 const cans: Can[] = [
   { id: '1', nome: 'Alpha', p1: 'a.jpg' },

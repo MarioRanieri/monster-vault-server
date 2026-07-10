@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Can } from './types';
 import { statoBadgeClass } from './statoBadge';
+import { hasPromo } from './filterCans';
 import { cloudinaryThumb } from './cloudinary';
 import { Flags } from './flags';
 import { colorizeTab } from './colorizeTab';
@@ -91,11 +92,11 @@ export function CanList({
               <td>{can.size || '—'}</td>
               <td className="lt-top">{renderTab(can.top)}</td>
               <td className="lt-status">
-                {can.promo && <span className="badge badge-promo">{can.promo}</span>}
+                {hasPromo(can.promo) && <span className="badge badge-promo">{can.promo}</span>}
                 {can.stato && (
                   <span className={`badge ${statoBadgeClass(can.stato)}`}>{can.stato}</span>
                 )}
-                {!can.promo && !can.stato && '—'}
+                {!hasPromo(can.promo) && !can.stato && '—'}
               </td>
               {showPrice && <td>{can.valore ? `€${can.valore}` : '—'}</td>}
             </tr>
