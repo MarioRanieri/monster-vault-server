@@ -112,6 +112,9 @@ function App() {
   const [showPrice, setShowPrice] = useState(false);
   const [wallPhotos, setWallPhotos] = useState<{ photos: string[]; alt: string } | null>(null);
   const [showAccount, setShowAccount] = useState(false);
+  // Hero che collassa allo scroll (mobile): quando il sentinel esce dal viewport
+  // in alto, mostra la barra compatta wordmark + conteggio.
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     loadCans();
@@ -224,6 +227,17 @@ function App() {
         { rootMargin: '600px' },
       );
       ioRef.current.observe(node);
+    }
+  }, []);
+  // Sentinel per l'hero sticky: fuori dal viewport (in alto) → mostra la compatta.
+  const stickyIoRef = useRef<IntersectionObserver | null>(null);
+  const stickySentinelRef = useCallback((node: HTMLDivElement | null) => {
+    stickyIoRef.current?.disconnect();
+    if (node && typeof IntersectionObserver !== 'undefined') {
+      stickyIoRef.current = new IntersectionObserver((entries) =>
+        setScrolled(!entries[0].isIntersecting),
+      );
+      stickyIoRef.current.observe(node);
     }
   }, []);
   const shownCans = visible.slice(0, shown);
@@ -374,111 +388,124 @@ function App() {
           🔗 Share view
         </button>
       </div>
-      <FilterBar
-        query={filters.query}
-        onQuery={(v) => setFilter('query', v)}
-        selects={[
-          {
-            key: 'lingua',
-            allLabel: 'ALL COUNTRIES',
-            value: filters.lingua,
-            options: options.countries,
-            onChange: (v) => setFilter('lingua', v),
-          },
-          {
-            key: 'size',
-            allLabel: 'ALL SIZES',
-            value: filters.size,
-            options: options.sizes,
-            onChange: (v) => setFilter('size', v),
-          },
-          {
-            key: 'produttore',
-            allLabel: 'ALL MANUFACTURERS',
-            value: filters.produttore,
-            options: options.manufacturers,
-            onChange: (v) => setFilter('produttore', v),
-          },
-          {
-            key: 'top',
-            allLabel: 'ALL TOPS/TABS',
-            value: filters.top,
-            options: options.tops,
-            onChange: (v) => setFilter('top', v),
-          },
-        ]}
-        chips={[
-          {
-            key: 'promo',
-            label: 'Promo',
-            cls: 'filter-chip-promo',
-            active: filters.promo,
-            count: stats.promo,
-            onToggle: () => setFilter('promo', !filters.promo),
-          },
-          {
-            key: 'full',
-            label: 'FULL',
-            cls: 'filter-chip-full',
-            active: filters.full,
-            count: stats.full,
-            onToggle: () => setFilter('full', !filters.full),
-          },
-          {
-            key: 'withPhoto',
-            label: 'With photo',
-            cls: 'filter-chip-withphoto',
-            active: filters.withPhoto,
-            count: stats.withPhoto,
-            // withPhoto e noPhoto sono mutuamente esclusivi.
-            onToggle: () => setFilters((f) => ({ ...f, withPhoto: !f.withPhoto, noPhoto: false })),
-          },
-          {
-            key: 'noPhoto',
-            label: 'No photo',
-            cls: 'filter-chip-nophotos',
-            active: filters.noPhoto,
-            count: stats.total - stats.withPhoto,
-            onToggle: () => setFilters((f) => ({ ...f, noPhoto: !f.noPhoto, withPhoto: false })),
-          },
-        ]}
-        sort={{
-          value: sort,
-          options: [
-            { value: 'added-desc', label: 'RECENTLY PHOTOGRAPHED' },
-            { value: 'nome-asc', label: 'NAME A→Z' },
-            { value: 'lingua-asc', label: 'COUNTRY A→Z' },
-            { value: 'valore-desc', label: 'VALUE ↓' },
-            { value: 'valore-asc', label: 'VALUE ↑' },
-          ],
-          onChange: (v) => setSort(v as SortKey),
-        }}
-        ranges={[
-          {
-            key: 'price',
-            sep: '€',
-            min: filters.vmin,
-            max: filters.vmax,
-            onMin: (v) => setFilter('vmin', v),
-            onMax: (v) => setFilter('vmax', v),
-          },
-          {
-            key: 'year',
-            sep: '📅',
-            min: filters.ymin,
-            max: filters.ymax,
-            onMin: (v) => setFilter('ymin', v),
-            onMax: (v) => setFilter('ymax', v),
-            minPlaceholder: 'from',
-            maxPlaceholder: 'to',
-          },
-        ]}
-        onReset={hasFilters ? resetFilters : undefined}
-        view={{
-          value: gridMode,
-          onChange: (v) => setGridMode(v as 'grid' | 'list' | 'wall'),
-        }}
-      />
+      {/* Sentinel: quando esce dal viewport in alto, l'hero è "scrollato via" e
+          compare la barra compatta. La FilterBar è avvolta in un contenitore
+          sticky (mobile) così ricerca + viste/sort restano a portata. */}
+      <div ref={stickySentinelRef} aria-hidden="true" className="sticky-sentinel" />
+      <div className="sticky-controls">
+        <div className={`hero-compact${scrolled ? ' show' : ''}`} aria-hidden="true">
+          <span className="hero-compact-mark">
+            MONSTER <span>VAULT</span>
+          </span>
+          <span className="hero-compact-count">{stats.total} cans</span>
+        </div>
+        <FilterBar
+          query={filters.query}
+          onQuery={(v) => setFilter('query', v)}
+          selects={[
+            {
+              key: 'lingua',
+              allLabel: 'ALL COUNTRIES',
+              value: filters.lingua,
+              options: options.countries,
+              onChange: (v) => setFilter('lingua', v),
+            },
+            {
+              key: 'size',
+              allLabel: 'ALL SIZES',
+              value: filters.size,
+              options: options.sizes,
+              onChange: (v) => setFilter('size', v),
+            },
+            {
+              key: 'produttore',
+              allLabel: 'ALL MANUFACTURERS',
+              value: filters.produttore,
+              options: options.manufacturers,
+              onChange: (v) => setFilter('produttore', v),
+            },
+            {
+              key: 'top',
+              allLabel: 'ALL TOPS/TABS',
+              value: filters.top,
+              options: options.tops,
+              onChange: (v) => setFilter('top', v),
+            },
+          ]}
+          chips={[
+            {
+              key: 'promo',
+              label: 'Promo',
+              cls: 'filter-chip-promo',
+              active: filters.promo,
+              count: stats.promo,
+              onToggle: () => setFilter('promo', !filters.promo),
+            },
+            {
+              key: 'full',
+              label: 'FULL',
+              cls: 'filter-chip-full',
+              active: filters.full,
+              count: stats.full,
+              onToggle: () => setFilter('full', !filters.full),
+            },
+            {
+              key: 'withPhoto',
+              label: 'With photo',
+              cls: 'filter-chip-withphoto',
+              active: filters.withPhoto,
+              count: stats.withPhoto,
+              // withPhoto e noPhoto sono mutuamente esclusivi.
+              onToggle: () =>
+                setFilters((f) => ({ ...f, withPhoto: !f.withPhoto, noPhoto: false })),
+            },
+            {
+              key: 'noPhoto',
+              label: 'No photo',
+              cls: 'filter-chip-nophotos',
+              active: filters.noPhoto,
+              count: stats.total - stats.withPhoto,
+              onToggle: () => setFilters((f) => ({ ...f, noPhoto: !f.noPhoto, withPhoto: false })),
+            },
+          ]}
+          sort={{
+            value: sort,
+            options: [
+              { value: 'added-desc', label: 'RECENTLY PHOTOGRAPHED' },
+              { value: 'nome-asc', label: 'NAME A→Z' },
+              { value: 'lingua-asc', label: 'COUNTRY A→Z' },
+              { value: 'valore-desc', label: 'VALUE ↓' },
+              { value: 'valore-asc', label: 'VALUE ↑' },
+            ],
+            onChange: (v) => setSort(v as SortKey),
+          }}
+          ranges={[
+            {
+              key: 'price',
+              sep: '€',
+              min: filters.vmin,
+              max: filters.vmax,
+              onMin: (v) => setFilter('vmin', v),
+              onMax: (v) => setFilter('vmax', v),
+            },
+            {
+              key: 'year',
+              sep: '📅',
+              min: filters.ymin,
+              max: filters.ymax,
+              onMin: (v) => setFilter('ymin', v),
+              onMax: (v) => setFilter('ymax', v),
+              minPlaceholder: 'from',
+              maxPlaceholder: 'to',
+            },
+          ]}
+          onReset={hasFilters ? resetFilters : undefined}
+          view={{
+            value: gridMode,
+            onChange: (v) => setGridMode(v as 'grid' | 'list' | 'wall'),
+          }}
+        />
+      </div>
       {loading && (
         <p>
           {warming ? (

@@ -171,7 +171,9 @@ body {
   color: var(--text);
   font-family: 'DM Sans', sans-serif;
   min-height: 100vh;
-  overflow-x: hidden;
+  /* clip (non hidden): evita lo scroll orizzontale senza creare un contenitore
+     di scroll, così `position: sticky` (hero compatta) continua a funzionare. */
+  overflow-x: clip;
   transition:
     background 0.2s,
     color 0.2s;
@@ -1450,6 +1452,11 @@ body.light .filter-select option {
   gap: 10px;
   padding: 0 2rem;
   margin: 0 0 1.25rem;
+}
+/* Hero sticky (variante A): la barra compatta è solo mobile; su desktop resta
+   nascosta e .sticky-controls è un semplice wrapper della FilterBar. */
+.hero-compact {
+  display: none;
 }
 .reset-filters-btn {
   font-size: 11px;
@@ -3432,7 +3439,7 @@ input.field-invalid {
 /* ── MOBILE ── */
 @media (max-width: 640px) {
   html {
-    overflow-x: hidden;
+    overflow-x: clip;
   }
   /* Landing — letter-spacing e padding ridotti così eyebrow/sub/wordmark
      entrano nella larghezza anche su telefoni stretti (320–360px) */
@@ -3456,6 +3463,9 @@ input.field-invalid {
   /* Header */
   .header {
     padding: 0 0.75rem;
+    /* Hero sticky (variante A): su mobile l'header scorre via e lascia il posto
+       alla barra compatta (.sticky-controls), invece di restare agganciato. */
+    position: static;
   }
   .logo {
     flex-shrink: 0;
@@ -3696,6 +3706,49 @@ input.field-invalid {
   }
   .collection-actions {
     padding: 0 0.75rem;
+  }
+  /* Hero sticky (mobile): scorrendo, ricerca + viste/sort restano agganciate in
+     alto e compare una barra compatta wordmark + conteggio. */
+  .sticky-controls {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--bg2);
+  }
+  .hero-compact {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    padding: 0 0.75rem;
+    background: var(--bg2);
+    border-bottom: 0 solid var(--border);
+    transition:
+      max-height 0.25s ease,
+      opacity 0.2s ease,
+      padding 0.25s ease;
+  }
+  .hero-compact.show {
+    max-height: 48px;
+    opacity: 1;
+    padding: 9px 0.75rem;
+    border-bottom-width: 1px;
+  }
+  .hero-compact-mark {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 19px;
+    letter-spacing: 0.5px;
+    line-height: 1;
+    color: var(--text);
+  }
+  .hero-compact-mark span {
+    color: var(--green);
+  }
+  .hero-compact-count {
+    font-size: 12px;
+    color: var(--text3);
   }
   .stats-row {
     gap: 1rem;
