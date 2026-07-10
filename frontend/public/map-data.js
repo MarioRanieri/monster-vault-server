@@ -106,10 +106,45 @@ function parseLinguaToIsos(lingua){
   return { isos: isos, regions: regions, unknown: unknown };
 }
 
+/* Chiave d'ordine dallo SKU (MMYY o MMY = mese[2 cifre] + anno; es. 079 = luglio 2009):
+   prime 2 cifre = mese, il resto = anno (200Y o 20YY). Più vecchio prima; non-data in fondo. */
+function skuKey(sku){
+  var s = String(sku == null ? '' : sku).trim();
+  if(/^\d{3,4}$/.test(s)){
+    var mm = parseInt(s.slice(0, 2), 10);
+    if(mm >= 1 && mm <= 12) return (2000 + parseInt(s.slice(2), 10)) * 100 + mm;
+  }
+  return Infinity;
+}
+
+/* True se il NOME lattina match il gusto: tutte le `words` presenti e nessuna `exclude`
+   (es. /zero ?sugar/). Le regex passate portano già i confini di parola. */
+function flavourMatch(name, words, exclude){
+  var n = String(name == null ? '' : name);
+  if(exclude && exclude.some(function(re){ return re.test(n); })) return false;
+  return words.every(function(re){ return re.test(n); });
+}
+
+/* Gruppi di una lattina per la LISTA: come la mappa, ma le CARIBBEAN confluiscono in un
+   solo gruppo "_CARIB" (sulla mappa restano accese tutte le isole). */
+function listGroups(c){
+  var isos = parseLinguaToIsos(c.lingua).isos.slice();
+  if(/\bCARIBBEAN\b/i.test(String(c.lingua || ''))){
+    var car = MAP_EXPAND['CARIBBEAN'] || [];
+    isos = isos.filter(function(i){ return car.indexOf(i) === -1; });
+    isos.push('_CARIB');
+  }
+  return isos;
+}
+
+/* Fascia choropleth dal n° di lattine: 1 / 2–3 / 4–7 / 8+. Guida colore mappa E legenda. */
+function litBand(n){ return n >= 8 ? 'q4' : n >= 4 ? 'q3' : n >= 2 ? 'q2' : 'q1'; }
+
 // Esporta per Node (test) senza toccare il comportamento browser
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { MAP_COUNTRY: MAP_COUNTRY, MAP_ISO_NAMES: MAP_ISO_NAMES,
                      MAP_EXPAND: MAP_EXPAND, MAP_REGIONS: MAP_REGIONS,
                      SHARED_CAN_ISO: SHARED_CAN_ISO, NO_MONSTER_ISO: NO_MONSTER_ISO,
-                     parseLinguaToIsos: parseLinguaToIsos };
+                     parseLinguaToIsos: parseLinguaToIsos, skuKey: skuKey,
+                     flavourMatch: flavourMatch, listGroups: listGroups, litBand: litBand };
 }
