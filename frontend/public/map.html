@@ -34,15 +34,36 @@
   #svg-host{transform-origin:0 0;width:100%}
   #svg-host svg{width:100%;height:auto;display:block}
   #svg-host path{fill:#161d16;stroke:#262e26;stroke-width:.5;transition:fill .15s}
-  #svg-host .lit, #svg-host .lit path{fill:var(--green);stroke:#3c5a00;cursor:pointer}
-  #svg-host .lit{filter:drop-shadow(0 0 5px rgba(168,255,0,.35))}
-  #svg-host .lit:hover, #svg-host .lit:hover path{fill:#d3ff66}
+  /* choropleth: più lattine = più acceso. Fasce 1 / 2–3 / 4–7 / 8+ (vedi litBand). */
+  #svg-host .lit, #svg-host .lit path{fill:#6b9e0e;stroke:#3c5a00;cursor:pointer}
+  #svg-host .q1, #svg-host .q1 path{fill:#3f5c12}
+  #svg-host .q2, #svg-host .q2 path{fill:#6b9e0e}
+  #svg-host .q3, #svg-host .q3 path{fill:#9be000}
+  #svg-host .q4, #svg-host .q4 path{fill:#c6ff4d}
+  #svg-host .q3, #svg-host .q4{filter:drop-shadow(0 0 4px rgba(168,255,0,.3))}
+  #svg-host .lit:hover, #svg-host .lit:hover path{fill:#e6ff99}
+  #svg-host .pulse, #svg-host .pulse path{fill:#e6ff99}
+  #svg-host .pulse{filter:drop-shadow(0 0 8px rgba(168,255,0,.8));animation:pls .5s ease-in-out 3}
+  @keyframes pls{50%{filter:drop-shadow(0 0 12px rgba(168,255,0,1))}}
   #svg-host .shared, #svg-host .shared path{fill:var(--red);stroke:#7a201b;cursor:pointer}
   #svg-host .nomon, #svg-host .nomon path{fill:#2a2a2a;stroke:#444}
 
   /* picker (chips + count + note) — sempre visibile nel primo schermo */
   #picker{flex-shrink:0;border-top:1px solid var(--line);background:var(--bg);padding:12px 16px}
-  .f-q{font-size:13px;color:var(--text2);margin-bottom:8px;font-weight:600;letter-spacing:.4px}
+  .f-q{font-size:13px;color:var(--text2);font-weight:600;letter-spacing:.4px}
+  .f-top{display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap}
+  .f-search{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .f-search input{background:var(--bg3);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:6px 10px;font-size:12.5px;width:160px}
+  .f-search input:focus{outline:none;border-color:var(--green)}
+  #f-search-hint{font-size:11px;color:var(--text3)}
+  .f-legend{display:flex;align-items:center;gap:6px;margin-top:9px;flex-wrap:wrap}
+  .f-legend .lg{font-size:10.5px;color:#0a0a0a;font-weight:700;border-radius:4px;padding:1px 7px;line-height:1.5}
+  .f-legend .lg-q1{background:#3f5c12;color:#cfe6a0}
+  .f-legend .lg-q2{background:#6b9e0e}
+  .f-legend .lg-q3{background:#9be000}
+  .f-legend .lg-q4{background:#c6ff4d}
+  .f-legend .lg-lbl{font-size:10.5px;color:var(--text3);margin-left:2px}
+  .fchip-all{background:var(--green-dim);border-color:rgba(168,255,0,.35);color:var(--green)}
   .f-chips{display:flex;gap:8px;flex-wrap:wrap}
   .fchip{background:var(--bg3);border:1px solid var(--line);color:var(--text2);border-radius:999px;padding:8px 18px;font-size:13px;cursor:pointer;font-weight:600;letter-spacing:.5px}
   .fchip:hover{border-color:var(--green);color:var(--green)}
@@ -129,9 +150,20 @@
       <div id="svg-host"></div>
     </div>
     <div id="picker" style="display:none">
-      <div class="f-q">Choose a flavour:</div>
+      <div class="f-top">
+        <div class="f-q">Choose a flavour:</div>
+        <div class="f-search">
+          <input id="f-search-in" type="search" placeholder="Find a country&hellip;" autocomplete="off"
+                 onkeydown="if(event.key==='Enter')jumpToCountry(this.value)"/>
+          <span id="f-search-hint"></span>
+        </div>
+      </div>
       <div class="f-chips" id="f-chips"></div>
       <div id="f-count"></div>
+      <div class="f-legend">
+        <span class="lg lg-q1">1</span><span class="lg lg-q2">2&ndash;3</span><span class="lg lg-q3">4&ndash;7</span><span class="lg lg-q4">8+</span>
+        <span class="lg-lbl">cans per country</span>
+      </div>
       <div id="notes"></div>
       <div class="attrib">Map: Simple World Map &copy; Al MacDonald / F. Lekschas &middot; CC BY-SA 3.0 &middot; Flags: flagcdn.com</div>
     </div>
@@ -213,7 +245,7 @@ function buildStats(cans){
 
 function clearMapClasses(){
   document.querySelectorAll('#svg-host .lit,#svg-host .shared,#svg-host .nomon').forEach(function(el){
-    el.classList.remove('lit','shared','nomon'); el.removeAttribute('data-iso');
+    el.classList.remove('lit','shared','nomon','q1','q2','q3','q4','pulse'); el.removeAttribute('data-iso');
   });
 }
 function lightMap(){
@@ -222,7 +254,7 @@ function lightMap(){
   var lit=0;
   Object.keys(byIso).forEach(function(iso){
     var el=host.querySelector('#'+iso.toLowerCase());
-    if(el){ el.classList.add('lit'); el.setAttribute('data-iso',iso); lit++; }
+    if(el){ el.classList.add('lit',litBand(byIso[iso].n)); el.setAttribute('data-iso',iso); lit++; }
     else  { tinyMissing[iso]=byIso[iso].n; }
   });
   SHARED_CAN_ISO.forEach(function(iso){ var el=host.querySelector('#'+iso.toLowerCase());
@@ -232,7 +264,8 @@ function lightMap(){
   document.getElementById('counter').innerHTML='&#127758; <b>'+lit+'</b>&nbsp;countries lit';
   var notes=[];
   if(usingMock) notes.push('&#9888;&#65039; Demo data (API not reachable)');
-  Object.keys(tinyMissing).forEach(function(iso){ notes.push(isoName(iso)+' too small for the map'); });
+  var tinyN=Object.keys(tinyMissing).length;
+  if(tinyN) notes.push('<b>'+tinyN+'</b> countr'+(tinyN>1?'ies':'y')+' too small for the map');
   if(Object.keys(regionsFound).length) notes.push('Regions not on map: '+Object.keys(regionsFound).join(', '));
   if(Object.keys(unknownFound).length) notes.push('Unmapped: '+Object.keys(unknownFound).join(', '));
   document.getElementById('notes').innerHTML=notes.join(' &middot; ');
@@ -287,7 +320,8 @@ function zoomMap(dir){
 
 /* ── flavour picker + lista raggruppata per nazione ── */
 function renderChips(){
-  document.getElementById('f-chips').innerHTML=FLAVOURS.map(function(f){
+  var all='<span class="fchip fchip-all" data-key="__all" onclick="selectFlavour(\'__all\')">&#127758; All</span>';
+  document.getElementById('f-chips').innerHTML=all+FLAVOURS.map(function(f){
     return '<span class="fchip" data-key="'+f.key+'" onclick="selectFlavour(\''+f.key+'\')">'+esc(f.label)+'</span>';
   }).join('');
 }
@@ -297,20 +331,43 @@ function resetMap(){
   document.querySelectorAll('.fchip').forEach(function(c){ c.classList.remove('active'); });
   document.getElementById('counter').innerHTML='&#127758; choose a flavour';
   document.getElementById('f-count').innerHTML=''; document.getElementById('notes').innerHTML='';
+  document.getElementById('f-search-hint').textContent='';
   document.getElementById('list-scroll').style.display='none';
   document.getElementById('list').innerHTML='';
+}
+/* Rende una selezione di lattine su mappa+conteggio+lista (condiviso da gusto e "All"). */
+function showCans(cans){
+  buildStats(cans);
+  lightMap();
+  var k=Object.keys(byIso).length;
+  document.getElementById('f-count').innerHTML='<b>'+cans.length+'</b> can'+(cans.length===1?'':'s')
+    +' &middot; <b>'+k+'</b> countr'+(k===1?'y':'ies');
+  renderList(cans);
+  document.getElementById('list-scroll').style.display='block';
 }
 function selectFlavour(key){
   if(key===currentFlavour){ resetMap(); return; }   // ri-click sullo stesso = reset (mappa vuota)
   currentFlavour=key;
   document.querySelectorAll('.fchip').forEach(function(c){ c.classList.toggle('active',c.dataset.key===key); });
+  if(key==='__all'){ showCans(allCans); return; }    // "All" = intera collezione, choropleth per densità
   var f=FLAVOURS.filter(function(x){return x.key===key;})[0];
-  var matches=allCans.filter(function(c){ return flavourMatch(c.nome,f.words,GLOBAL_EXCLUDE); });
-  buildStats(matches);
-  lightMap();
-  document.getElementById('f-count').innerHTML='<b>'+matches.length+'</b> can'+(matches.length===1?'':'s')+' &middot; <b>'+Object.keys(byIso).length+'</b> countries';
-  renderList(matches);
-  document.getElementById('list-scroll').style.display='block';
+  showCans(allCans.filter(function(c){ return flavourMatch(c.nome,f.words,GLOBAL_EXCLUDE); }));
+}
+/* Ricerca/salto a paese: risolve il testo in un ISO e apre il pannello se è nella vista. */
+function jumpToCountry(q){
+  q=String(q||'').trim();
+  var hint=document.getElementById('f-search-hint');
+  if(!q){ hint.textContent=''; return; }
+  if(!currentFlavour){ hint.textContent='Pick a flavour or All first'; return; }
+  var up=q.toUpperCase(), target=MAP_COUNTRY[up]||(/^[A-Z]{2}$/.test(up)?up:null);
+  if(!target) Object.keys(byIso).forEach(function(iso){
+    if(!target&&isoName(iso).toLowerCase().indexOf(q.toLowerCase())===0) target=iso; });
+  if(target&&byIso[target]){ openPanel(target); pulse(target); hint.textContent=''; }
+  else hint.textContent = target ? isoName(target)+': not in this view' : 'No match for "'+esc(q)+'"';
+}
+function pulse(iso){
+  var el=document.getElementById('svg-host').querySelector('#'+iso.toLowerCase());
+  if(el){ el.classList.add('pulse'); setTimeout(function(){ el.classList.remove('pulse'); },1600); }
 }
 /* Lista: blocchi per nazione (alfabetico), bandiera nel titolo, righe ordinate per SKU.
    Niente promo, TRANNE se la nazione ha SOLO promo → la mostro e la segnalo. */

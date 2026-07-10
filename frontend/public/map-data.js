@@ -136,11 +136,14 @@ function listGroups(c){
   return isos;
 }
 
+/* Fascia choropleth dal n° di lattine: 1 / 2–3 / 4–7 / 8+. Guida colore mappa E legenda. */
+function litBand(n){ return n >= 8 ? 'q4' : n >= 4 ? 'q3' : n >= 2 ? 'q2' : 'q1'; }
+
 // Esporta per Node (test) senza toccare il comportamento browser
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { MAP_COUNTRY: MAP_COUNTRY, MAP_ISO_NAMES: MAP_ISO_NAMES,
                      MAP_EXPAND: MAP_EXPAND, MAP_REGIONS: MAP_REGIONS,
                      SHARED_CAN_ISO: SHARED_CAN_ISO, NO_MONSTER_ISO: NO_MONSTER_ISO,
                      parseLinguaToIsos: parseLinguaToIsos, skuKey: skuKey,
-                     flavourMatch: flavourMatch, listGroups: listGroups };
+                     flavourMatch: flavourMatch, listGroups: listGroups, litBand: litBand };
 }

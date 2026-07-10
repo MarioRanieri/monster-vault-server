@@ -8,6 +8,7 @@ const md = mapData as unknown as {
   skuKey: (sku: unknown) => number;
   flavourMatch: (name: unknown, words: RegExp[], exclude?: RegExp[]) => boolean;
   listGroups: (c: { lingua: string }) => string[];
+  litBand: (n: number) => string;
 };
 const MAP_COUNTRY = md.MAP_COUNTRY;
 
@@ -67,6 +68,18 @@ describe('flavourMatch', () => {
   });
   test('nullish name is a non-match, not a crash', () => {
     expect(md.flavourMatch(null, [/\bog\b/i])).toBe(false);
+  });
+});
+
+describe('litBand', () => {
+  test('maps can counts to the four legend bands at their thresholds', () => {
+    expect(md.litBand(1)).toBe('q1');
+    expect(md.litBand(2)).toBe('q2');
+    expect(md.litBand(3)).toBe('q2');
+    expect(md.litBand(4)).toBe('q3');
+    expect(md.litBand(7)).toBe('q3');
+    expect(md.litBand(8)).toBe('q4');
+    expect(md.litBand(40)).toBe('q4');
   });
 });
 
