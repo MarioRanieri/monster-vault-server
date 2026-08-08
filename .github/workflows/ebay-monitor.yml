@@ -23,6 +23,9 @@ concurrency:
 jobs:
   monitor:
     runs-on: ubuntu-latest
+    # Un giro sano dura secondi/minuti. Se una chiamata resta appesa (es. raffica 429 eBay),
+    # taglia a 10 min invece di restare appeso ~15 e intasare la coda del cron ogni 5 min.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
 
