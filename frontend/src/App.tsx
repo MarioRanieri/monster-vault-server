@@ -205,7 +205,10 @@ function App() {
   const filtersJson = JSON.stringify(currentFilters);
   const persistReady = useRef(false);
   useEffect(() => {
-    if (persistReady.current) localStorage.setItem('mv_filters', filtersJson);
+    // I filtri sono dati dell'utente riletti solo come stato React (mai come HTML): localStorage
+    // non esegue codice, quindi non è una sink XSS. Falso positivo verificato (come viewStorage). NOSONAR
+    if (persistReady.current)
+      localStorage.setItem('mv_filters', filtersJson); // NOSONAR
     else persistReady.current = true;
   }, [filtersJson]);
   // Render incrementale: monta le prime PAGE card, poi cresce quando l'utente
