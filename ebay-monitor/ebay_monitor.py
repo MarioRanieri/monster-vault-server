@@ -23,6 +23,8 @@ import os
 import sys
 import time
 import base64
+import hashlib
+import json
 import requests
 import threading
 from pathlib import Path
@@ -125,6 +127,67 @@ def validate_add_word(word, require_words):
     if w in {r.lower() for r in require_words}:
         return False, f"'{w}' è obbligatoria: escluderla accecherebbe il radar"
     return True, ""
+
+
+# ─── MERCATI: risoluzione + override dinamico (comando /market) ────────────────
+
+def resolve_marketplace(text):
+    """'uk'/'UK' -> 'EBAY_GB', 'EBAY_DE'/'ebay_fr' -> se stesso se valido. Ignoto -> None."""
+    t = (text or "").strip().lower()
+    if not t:
+        return None
+    if t in settings.MARKET_ALIASES:
+        return settings.MARKET_ALIASES[t]
+    up = t.upper()
+    if not up.startswith("EBAY_"):
+        up = "EBAY_" + up
+    return up if up in settings.VALID_MARKETPLACES else None
+
+
+def daily_ebay_calls(n_markets, n_queries=None, runs_per_day=None):
+    """Stima chiamate Browse/giorno = mercati × query × sweep-al-giorno. Puro."""
+    nq = n_queries if n_queries is not None else len(settings.SEARCH_QUERIES)
+    rpd = runs_per_day if runs_per_day is not None else round(86400 / settings.SWEEP_INTERVAL_SECONDS)
+    return n_markets * nq * rpd
+
+
+def effective_markets(defaults, override):
+    """Lista mercati attiva = (defaults ∪ extra) − disabled, ordine preservato
+    (defaults prima, poi gli extra). Puro: nessun accesso a Mongo."""
+    override = override or {}
+    disabled = set(override.get("disabled", []))
+    out = [m for m in defaults if m not in disabled]
+    for m in override.get("extra", []):
+        if m not in disabled and m not in out:
+            out.append(m)
+    return out
+
+
+def apply_market_change(override, action, marketplace, defaults):
+    """Applica add/remove di un marketplace (già risolto) all'override. Puro.
+    Ritorna (nuovo_override, ok, messaggio). Rifiuta i no-op e la rimozione dell'ultimo."""
+    ov = {"disabled": list((override or {}).get("disabled", [])),
+          "extra":    list((override or {}).get("extra", []))}
+    before = effective_markets(defaults, ov)
+    if action == "add":
+        if marketplace in before:
+            return override or ov, False, f"{marketplace} è già attivo"
+        if marketplace in ov["disabled"]:
+            ov["disabled"].remove(marketplace)
+        elif marketplace not in defaults:
+            ov["extra"].append(marketplace)
+        return ov, True, f"aggiunto {marketplace}"
+    if action == "remove":
+        if marketplace not in before:
+            return override or ov, False, f"{marketplace} non è attivo"
+        if len(before) <= 1:
+            return override or ov, False, "non puoi rimuovere l'ultimo mercato"
+        if marketplace in ov["extra"]:
+            ov["extra"].remove(marketplace)
+        elif marketplace not in ov["disabled"]:
+            ov["disabled"].append(marketplace)
+        return ov, True, f"rimosso {marketplace}"
+    return override or ov, False, "azione sconosciuta"
 
 
 # ─── MONGODB (stato: anti-duplicati + blacklist dinamica) ─────────────────────
@@ -373,11 +436,45 @@ def _handle_command(store, cmd, arg, msg_id):
             _tg_text("🗒️ Nessuna parola dinamica: la blacklist è solo quella di base (blacklist.txt).")
         print(f"  [/list] {len(words)} parole dinamiche")
         return True
+    if cmd == "market":
+        override = store.get_meta("market_override")
+        parts = arg.split()
+        if not parts:                                   # nessun argomento → mostra i mercati attivi
+            active = effective_markets(settings.EBAY_MARKETPLACES, override)
+            _tg_text(f"🌍 Mercati attivi ({len(active)}):\n" + "\n".join(active)
+                     + "\n\nUso: /market add <paese> · /market remove <paese>  (es. uk, it, de, fr)")
+            print(f"  [/market] lista: {len(active)} mercati")
+            return True
+        action = parts[0].lower()
+        if action not in ("add", "remove"):
+            _tg_text("⚠️ uso: /market · /market add <paese> · /market remove <paese>")
+            return True
+        raw = " ".join(parts[1:])
+        target = resolve_marketplace(raw)
+        if not target:
+            _tg_text(f"⚠️ mercato non valido: '{raw}'. Esempi: uk, it, de, us, fr, es, ca, au…")
+            print(f"  [/market] {action} rifiutato: '{raw}' non valido")
+            return True
+        new_override, ok, msg = apply_market_change(override, action, target, settings.EBAY_MARKETPLACES)
+        if ok:
+            store.set_meta("market_override", new_override)
+            active = effective_markets(settings.EBAY_MARKETPLACES, new_override)
+            calls = daily_ebay_calls(len(active))
+            warn = ""
+            if calls > 0.8 * settings.EBAY_DAILY_BUDGET:
+                warn = (f"\n⚠️ ~{calls} chiamate eBay/giorno (limite ~{settings.EBAY_DAILY_BUDGET}): "
+                        f"vicino al tetto, occhio ad aggiungerne altri.")
+            _tg_text(f"✅ {msg}\n🌍 attivi ora ({len(active)}): {', '.join(active)}{warn}")
+            print(f"  [/market] {msg} → {len(active)} attivi (~{calls} chiamate/giorno)")
+        else:
+            _tg_text(f"⚠️ {msg}")
+            print(f"  [/market] rifiutato: {msg}")
+        return True
     return False
 
 BANNER_TEXT = (
     "ℹ️ Come funziona questo bot\n\n"
-    "I comandi /add /list /delete NON sono istantanei: il radar gira in cloud ~ogni 2h e li "
+    "I comandi /add /list /market /delete NON sono istantanei: il radar gira in cloud ~ogni 2h e li "
     "esegue al giro successivo (attesa fino a ~2h). Scrivi pure il comando e aspetta il prossimo "
     "giro per la risposta/effetto — non è rotto, è in coda.\n"
     "È il costo dell'esecuzione gratuita: nessun processo sempre acceso in ascolto."
@@ -403,26 +500,41 @@ def ensure_banner(store):
         print(f"  [banner] non creato: {exc}")
 
 
-def register_bot_ui(store):
-    """Housekeeping UI del bot: menu comandi, descrizione, banner fissato. Cambia di rado →
-    lo chiamiamo solo negli sweep (ogni ~2h), non a ogni drain da 5 min."""
+# Menu comandi (tastino ☰ e autocompletamento "/"). Aggiungere qui un comando lo fa
+# comparire premendo "/". La descrizione è la spiegazione mostrata accanto al comando.
+BOT_COMMANDS = [
+    {"command": "add",    "description": "Aggiungi una parola alla blacklist"},
+    {"command": "list",   "description": "Mostra le parole aggiunte con /add"},
+    {"command": "market", "description": "Mercati eBay: /market · add <paese> · remove <paese>"},
+    {"command": "delete", "description": "Cancella i messaggi inviati dal bot"},
+]
+
+
+def register_commands_menu(store):
+    """Registra il menu comandi (quello che compare premendo "/") su Telegram. Idempotente e
+    a costo ~zero: chiama setMyCommands SOLO quando l'elenco cambia (firma su Mongo) → dopo un
+    deploy il menu è fresco entro un giro (5 min), senza martellare l'API a ogni giro.
+    Lo registriamo su scope 'default' e 'all_private_chats' (più specifico: vince nelle chat
+    private — se resta indietro, il client mostra i comandi vecchi)."""
+    sig = hashlib.md5(json.dumps(BOT_COMMANDS, sort_keys=True).encode()).hexdigest()
+    if store.get_meta("cmds_sig") == sig:
+        return
     url = _tg_url()
-    # Menu comandi (tastino ☰ e autocompletamento "/"). Lo registriamo sia sullo scope
-    # 'default' sia su 'all_private_chats': quest'ultimo è PIÙ SPECIFICO e vince nelle chat
-    # private — se resta indietro, il client mostra solo i comandi vecchi.
-    _cmds = [
-        {"command": "add",    "description": "Aggiungi una parola alla blacklist"},
-        {"command": "list",   "description": "Mostra le parole aggiunte con /add"},
-        {"command": "delete", "description": "Cancella i messaggi inviati dal bot"},
-    ]
     for scope in (None, {"type": "all_private_chats"}):
         try:
-            payload = {"commands": _cmds}
+            payload = {"commands": BOT_COMMANDS}
             if scope:
                 payload["scope"] = scope
             requests.post(f"{url}/setMyCommands", json=payload, timeout=15)
         except Exception:
-            pass
+            return   # non salvare la firma se la registrazione è fallita: riprova al giro dopo
+    store.set_meta("cmds_sig", sig)
+
+
+def register_bot_ui(store):
+    """Housekeeping UI pesante (descrizione + banner fissato): cambia di rado → solo negli
+    sweep (~2h). Il menu comandi invece è gestito da register_commands_menu a OGNI giro."""
+    url = _tg_url()
     try:   # descrizione bot (schermata iniziale / profilo): spiega la latenza
         requests.post(f"{url}/setMyDescription", json={"description": BANNER_TEXT}, timeout=15)
     except Exception:
@@ -447,7 +559,7 @@ def drain_commands(store):
         if chat_id != str(_chat_id()):
             continue
         cmd, arg = parse_command(msg.get("text") or "")
-        if cmd in ("add", "list", "delete"):
+        if cmd in ("add", "list", "delete", "market"):
             _handle_command(store, cmd, arg, msg.get("message_id", 0))
     if last is not None:   # conferma: Telegram scarta gli update <= last
         try:
@@ -463,10 +575,12 @@ def _reset_search_stats():
         _search_stats["fail"] = 0
         _search_stats["last"] = None
 
-def _report_search_stats():
+def _report_search_stats(markets=None):
     """A fine giro: se è fallita PIÙ DELLA METÀ delle ricerche, allarme Telegram
     (radar quasi/completamente cieco)."""
-    total = len(settings.EBAY_MARKETPLACES) * len(settings.SEARCH_QUERIES)
+    if markets is None:
+        markets = settings.EBAY_MARKETPLACES
+    total = len(markets) * len(settings.SEARCH_QUERIES)
     with _stats_lock:
         fail, last = _search_stats["fail"], _search_stats["last"]
     if not fail:
@@ -476,11 +590,13 @@ def _report_search_stats():
         _tg_text(f"⚠️ eBay Monitor: {fail}/{total} ricerche FALLITE in questo giro — "
                  f"il radar è quasi cieco. Controlla chiavi/quota eBay. Ultimo errore: {last}")
 
-def gather_listings(token):
+def gather_listings(token, markets=None):
     """Tutte le ricerche (mercati × query) IN PARALLELO → lista (mercato, query, item).
     A fine giro segnala i fallimenti."""
+    if markets is None:
+        markets = settings.EBAY_MARKETPLACES
     _reset_search_stats()
-    tasks = [(mk, q) for mk in settings.EBAY_MARKETPLACES for q in settings.SEARCH_QUERIES]
+    tasks = [(mk, q) for mk in markets for q in settings.SEARCH_QUERIES]
     total = len(tasks)
     workers = max(1, getattr(settings, "PARALLEL_WORKERS", 8))
     results, done = [], 0
@@ -496,18 +612,18 @@ def gather_listings(token):
             except Exception as exc:
                 _note_search_failure(exc)
     print(f"\r  ricerche {total}/{total} completate ✓{' ' * 18}")
-    _report_search_stats()
+    _report_search_stats(markets)
     return results
 
 
 # ─── PROCESSO PRINCIPALE ──────────────────────────────────────────────────────
 
-def process(store, token, exclude_words, notify_all=False, cap_per_query=None):
+def process(store, token, exclude_words, notify_all=False, cap_per_query=None, markets=None):
     """notify_all=False → notifica solo i NUOVI. notify_all=True → manda anche i già visti
     (test --send-now). cap_per_query limita gli invii per ricerca (test)."""
     sent_ids, per_query = set(), {}
     examined = sent = 0
-    for mk, q, item in gather_listings(token):
+    for mk, q, item in gather_listings(token, markets):
         item_id, title, price, currency, url, image = parse_summary(item)
         if not item_id or item_id in sent_ids:
             continue
@@ -530,9 +646,9 @@ def process(store, token, exclude_words, notify_all=False, cap_per_query=None):
     return examined, sent
 
 
-def establish_baseline(store, token):
+def establish_baseline(store, token, markets=None):
     total = 0
-    for mk, q, item in gather_listings(token):
+    for mk, q, item in gather_listings(token, markets):
         item_id, title, price, currency, url, _ = parse_summary(item)
         if item_id and not store.already_seen(item_id):
             store.mark_seen(item_id, title, price, currency, url, mk, q)
@@ -541,9 +657,9 @@ def establish_baseline(store, token):
 
 
 def run_once(send_now=False, cap_per_query=None):
-    nq, nm = len(settings.SEARCH_QUERIES), len(settings.EBAY_MARKETPLACES)
+    nq = len(settings.SEARCH_QUERIES)
     print("=" * 60)
-    print(f"  Monster eBay Monitor — {nm} mercati × {nq} ricerche  |  finestra {settings.MAX_LISTING_AGE_HOURS}h")
+    print(f"  Monster eBay Monitor — {nq} ricerche/mercato  |  finestra {settings.MAX_LISTING_AGE_HOURS}h")
     print("=" * 60)
 
     uri = os.environ.get("MONGODB_URI", "")
@@ -557,7 +673,8 @@ def run_once(send_now=False, cap_per_query=None):
         _tg_text(f"⚠️ eBay Monitor: MongoDB irraggiungibile, giro saltato. {type(exc).__name__}")
         return
 
-    drain_commands(store)   # OGNI giro (5 min): la parte reattiva
+    drain_commands(store)         # OGNI giro (5 min): la parte reattiva
+    register_commands_menu(store) # menu "/" sempre aggiornato (chiama Telegram solo se cambia)
 
     # Ricerca eBay: solo se sono passati ≥ SWEEP_INTERVAL_SECONDS dall'ultimo sweep (o test).
     now = time.time()
@@ -573,15 +690,19 @@ def run_once(send_now=False, cap_per_query=None):
         print("⚠️  Niente token eBay — vedi il messaggio [ERRORE]/[RETE] sopra."); return
 
     exclude_words = merge_blacklist(load_base_blacklist(), store.blacklist_additions())
+    markets = effective_markets(settings.EBAY_MARKETPLACES, store.get_meta("market_override"))
+    if not markets:                       # override corrotto (es. edit manuale) → non restare cieco
+        markets = settings.EBAY_MARKETPLACES
+    print(f"  Mercati attivi ({len(markets)}): {', '.join(markets)}")
 
     if not send_now and store.seen_count() == 0:
         print("Primo avvio: baseline (gli annunci già online non vengono notificati).")
-        establish_baseline(store, token)
+        establish_baseline(store, token, markets)
         store.set_meta("last_sweep_at", now)
         return
 
     examined, sent = process(store, token, exclude_words,
-                             notify_all=send_now, cap_per_query=cap_per_query)
+                             notify_all=send_now, cap_per_query=cap_per_query, markets=markets)
     if not send_now:                                # il test --send-now non altera la cadenza reale
         store.set_meta("last_sweep_at", now)
     print(f"  → {examined} candidati, {sent} notificati.")
