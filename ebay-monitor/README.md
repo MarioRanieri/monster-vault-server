@@ -63,6 +63,13 @@ rigenera da solo se sparisce. I comandi sono idempotenti.
   Conferma in chat: *"✅ aggiunto 'camicia' (ora N parole dinamiche)"*.
 - **`/list`** — stampa le parole aggiunte con `/add`. Per versionarle, incollale a mano in fondo a
   `blacklist.txt` (il sync file↔Mongo è **manuale**, per scelta).
+- **`/market`** — gestisce i mercati eBay cercati, con stato dinamico su Mongo (default in
+  `settings.EBAY_MARKETPLACES`, override su Mongo — stessa filosofia base+dinamico della blacklist):
+  - **`/market`** (senza argomenti) — elenca i mercati attivi.
+  - **`/market remove uk`** — disattiva un mercato (accetta sigla paese `uk`/`it`/`de`… o ID pieno
+    `EBAY_GB`). Rifiuta la rimozione dell'ultimo mercato.
+  - **`/market add fr`** — aggiunge un mercato tra quelli validi per la Browse API
+    (vedi `settings.MARKET_ALIASES`). Riattivare un default rimosso: stesso comando.
 - **`/delete`** — cancella i messaggi del bot (Telegram permette solo i **propri**, < 48h).
 
 ## ⚠️ Budget chiamate eBay

@@ -14,6 +14,19 @@ EBAY_MARKETPLACES = [
     "EBAY_IT", "EBAY_DE", "EBAY_US", "EBAY_CA", "EBAY_GB", "EBAY_AU",
 ]
 
+# Alias amichevoli (sigla paese → marketplace ID) per i comandi /market da Telegram,
+# es. "/market remove uk". I valori sono anche la whitelist dei marketplace VALIDI per
+# la Browse API (X-EBAY-C-MARKETPLACE-ID): aggiungere solo mercati che eBay supporta.
+MARKET_ALIASES = {
+    "us": "EBAY_US", "usa": "EBAY_US", "gb": "EBAY_GB", "uk": "EBAY_GB",
+    "it": "EBAY_IT", "de": "EBAY_DE", "fr": "EBAY_FR", "es": "EBAY_ES",
+    "ca": "EBAY_CA", "au": "EBAY_AU", "at": "EBAY_AT", "be": "EBAY_BE",
+    "ch": "EBAY_CH", "ie": "EBAY_IE", "nl": "EBAY_NL", "pl": "EBAY_PL",
+    "hk": "EBAY_HK", "my": "EBAY_MY", "ph": "EBAY_PH", "sg": "EBAY_SG",
+    "tw": "EBAY_TW", "in": "EBAY_IN",
+}
+VALID_MARKETPLACES = set(MARKET_ALIASES.values())
+
 # Ogni ricerca è "monster energy <keyword>": eBay matcha tutte le parole (non frase esatta).
 _KEYWORDS = [
     "all star", "billabong", "ufc", "assault", "hydro", "tour water",
@@ -39,6 +52,10 @@ REQUIRE_WORDS = ["monster", "energy"]
 # solo se sono passati almeno SWEEP_INTERVAL_SECONDS dall'ultimo (timestamp su Mongo).
 # Deve restare < MAX_LISTING_AGE_HOURS (finestra), o perdi annunci tra uno sweep e l'altro.
 SWEEP_INTERVAL_SECONDS = 7200   # 2 ore
+
+# Tetto orientativo chiamate/giorno della Browse API (per l'avviso su /market add: aggiungere
+# mercati moltiplica le chiamate query×mercati×sweep-al-giorno e può sforare in silenzio).
+EBAY_DAILY_BUDGET = 5000
 
 # Richieste eBay simultanee (le ricerche mercati×query partono in parallelo).
 PARALLEL_WORKERS = 8
