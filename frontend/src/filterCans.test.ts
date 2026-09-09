@@ -150,6 +150,36 @@ test('filterOptions estrae i valori distinti ordinati', () => {
   expect(opts.tops).toEqual(['gold']);
 });
 
+test('filterOptions esclude combinazioni impossibili in base agli altri filtri attivi (simmetrico)', () => {
+  // Pattern reale (tools/sheet-sync/Monster Vault Sync.csv): TOP/TAB=BOTTLE
+  // esiste solo su size 750ML (e altre bottiglie), mai su 355ML; 355ML ha
+  // solo tab da lattina (SILVER, BLACK, ...), mai BOTTLE.
+  const list: Can[] = [
+    { id: '1', nome: 'Hydro Blue Ice', size: '750ML', top: 'BOTTLE' },
+    { id: '2', nome: 'Absolutely Zero', size: '355ML', top: 'SILVER' },
+    { id: '3', nome: 'Ultra Black', size: '355ML', top: 'BLACK' },
+  ];
+  // size=750ML → l'unico top esistente su quella size è BOTTLE.
+  expect(filterOptions(list, { size: '750ML' }).tops).toEqual(['BOTTLE']);
+  // top=SILVER → l'unica size esistente con quel top è 355ML (BOTTLE non c'entra).
+  expect(filterOptions(list, { top: 'SILVER' }).sizes).toEqual(['355ML']);
+  // il filtro attivo di un facet non deve restringere le opzioni di se stesso.
+  expect(filterOptions(list, { size: '750ML' }).sizes).toEqual(['355ML', '750ML']);
+});
+
+test('filterOptions tiene visibile il valore attivo anche su una combinazione ormai impossibile (deep-link/saved view stale)', () => {
+  const list: Can[] = [
+    { id: '1', nome: 'Hydro Blue Ice', size: '750ML', top: 'BOTTLE' },
+    { id: '2', nome: 'Absolutely Zero', size: '355ML', top: 'SILVER' },
+  ];
+  // size=750ML + top=SILVER non esiste in collezione (SILVER è solo su 355ML),
+  // ma entrambi i value devono restare tra le rispettive option: altrimenti la
+  // <select> risulterebbe deselezionata pur avendo il filtro ancora attivo.
+  const opts = filterOptions(list, { size: '750ML', top: 'SILVER' });
+  expect(opts.sizes).toContain('750ML');
+  expect(opts.tops).toContain('SILVER');
+});
+
 test('filtra per stato (match esatto, dalle stats)', () => {
   const cans = [
     { id: '1', nome: 'A', stato: 'Damaged' },
