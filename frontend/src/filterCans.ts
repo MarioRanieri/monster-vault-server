@@ -104,21 +104,38 @@ export interface FilterOptions {
   tops: string[];
 }
 
-// Valori distinti (ordinati) per popolare i dropdown.
-export function filterOptions(cans: Can[]): FilterOptions {
-  const distinct = (sel: (c: Can) => string | undefined, cmp?: (a: string, b: string) => number) =>
-    [...new Set(cans.map((c) => sel(c)?.trim()).filter((v): v is string => Boolean(v)))].sort(
-      cmp ?? ((a, b) => a.localeCompare(b)),
-    );
+// Valori distinti (ordinati) per popolare i dropdown. Ogni facet è calcolato
+// sulle lattine ristrette dagli ALTRI filtri già attivi (mai dal proprio, o
+// l'utente non potrebbe più deselezionarlo): così una combinazione che non
+// esiste in collezione (es. size=750ML + top=SILVER, che in pratica è sempre
+// BOTTLE) non compare mai come opzione selezionabile.
+export function filterOptions(cans: Can[], filters: CanFilters = {}): FilterOptions {
+  const distinct = (
+    key: keyof CanFilters,
+    sel: (c: Can) => string | undefined,
+    cmp?: (a: string, b: string) => number,
+  ) => {
+    const pool = filterCans(cans, { ...filters, [key]: undefined });
+    const values = new Set(pool.map((c) => sel(c)?.trim()).filter((v): v is string => Boolean(v)));
+    // Il valore attivo del facet resta in lista anche se le altre lattine che
+    // lo hanno non incrociano più gli altri filtri: altrimenti un deep-link o
+    // una saved view con una combinazione ormai impossibile lascia la <select>
+    // senza l'<option> corrispondente al suo stesso value (appare deselezionata
+    // pur restando attiva sui risultati).
+    const current = filters[key];
+    if (typeof current === 'string' && current) values.add(current);
+    return [...values].sort(cmp ?? ((a, b) => a.localeCompare(b)));
+  };
   // le taglie vanno per ml crescenti (89ML < 90ML < 250ML < 500ML), non alfabetico
   const sizeMl = (s: string) => Number.parseFloat(s.replace(/[^0-9.]/g, '')) || 0;
   return {
-    countries: distinct((c) => c.lingua),
+    countries: distinct('lingua', (c) => c.lingua),
     sizes: distinct(
+      'size',
       (c) => c.size,
       (a, b) => sizeMl(a) - sizeMl(b) || a.localeCompare(b),
     ),
-    manufacturers: distinct((c) => c.produttore),
-    tops: distinct((c) => c.top),
+    manufacturers: distinct('produttore', (c) => c.produttore),
+    tops: distinct('top', (c) => c.top),
   };
 }
