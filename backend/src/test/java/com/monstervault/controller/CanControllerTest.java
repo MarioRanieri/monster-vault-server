@@ -3,6 +3,7 @@ package com.monstervault.controller;
 import com.monstervault.model.Can;
 import com.monstervault.security.JwtUtil;
 import com.monstervault.service.CanService;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,6 +91,104 @@ class CanControllerTest {
 
         mockMvc.perform(get("/api/cans/missing"))
                 .andExpect(status().isNotFound());
+    }
+
+    // --- Guest non deve vedere il prezzo (valore) né dedurlo via cache HTTP ---
+
+    @Test
+    void getAll_noAuth_hidesValore() throws Exception {
+        Can c = new Can();
+        c.setId("1");
+        c.setNome("Birra Alpha");
+        c.setValore("50");
+        when(canService.getAll()).thenReturn(List.of(c));
+
+        mockMvc.perform(get("/api/cans"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].nome").value("Birra Alpha"))
+                .andExpect(jsonPath("$[0].valore").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    void getAll_withValidJwt_showsValore() throws Exception {
+        Can c = new Can();
+        c.setId("1");
+        c.setValore("50");
+        when(canService.getAll()).thenReturn(List.of(c));
+
+        mockMvc.perform(get("/api/cans").header("Authorization", bearerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].valore").value("50"));
+    }
+
+    @Test
+    void getById_noAuth_hidesValore() throws Exception {
+        Can c = new Can();
+        c.setId("abc");
+        c.setValore("99");
+        when(canService.getById("abc")).thenReturn(c);
+
+        mockMvc.perform(get("/api/cans/abc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.valore").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    void getById_withValidJwt_showsValore() throws Exception {
+        Can c = new Can();
+        c.setId("abc");
+        c.setValore("99");
+        when(canService.getById("abc")).thenReturn(c);
+
+        mockMvc.perform(get("/api/cans/abc").header("Authorization", bearerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.valore").value("99"));
+    }
+
+    // La cache in CanService condivide le stesse istanze Can tra tutte le richieste
+    // (vedi CopyOnWriteArrayList in CanService): oscurare il prezzo NON deve mutare
+    // l'oggetto originale, altrimenti una successiva richiesta admin (o un update che
+    // rilegge lo stesso oggetto) vedrebbe/persisterebbe il prezzo perso per sempre.
+    @Test
+    void getAll_noAuth_doesNotMutateOriginalCanObject() throws Exception {
+        Can c = new Can();
+        c.setId("1");
+        c.setValore("50");
+        when(canService.getAll()).thenReturn(List.of(c));
+
+        mockMvc.perform(get("/api/cans")).andExpect(status().isOk());
+
+        Assertions.assertEquals("50", c.getValore());
+    }
+
+    // L'ETag è calcolato da id+updatedAt, uguale per admin e guest: se non lo si
+    // differenzia per ruolo, un browser che ha in cache la risposta admin (con
+    // prezzi) risponderebbe 304 anche a una richiesta guest con lo stesso
+    // If-None-Match, servendo dalla cache locale il body con i prezzi.
+    @Test
+    void getAll_etagDiffersBetweenGuestAndAdmin() throws Exception {
+        Can c = new Can();
+        c.setId("1");
+        c.setUpdatedAt(123L);
+        c.setValore("50");
+        when(canService.getAll()).thenReturn(List.of(c));
+
+        String guestEtag = mockMvc.perform(get("/api/cans"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getHeader("ETag");
+        String adminEtag = mockMvc.perform(get("/api/cans").header("Authorization", bearerToken))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getHeader("ETag");
+
+        Assertions.assertNotEquals(guestEtag, adminEtag);
+
+        // Il guest-etag non deve far scattare 304 su una richiesta admin: altrimenti
+        // il browser servirebbe dalla propria cache locale il body guest (senza prezzo)
+        // — non è un leak, ma dimostra che gli scope sono davvero separati.
+        mockMvc.perform(get("/api/cans").header("Authorization", bearerToken)
+                        .header("If-None-Match", guestEtag))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].valore").value("50"));
     }
 
     // --- POST /api/cans ---

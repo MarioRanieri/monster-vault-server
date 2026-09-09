@@ -4,8 +4,10 @@ import com.monstervault.model.Can;
 import com.monstervault.service.CanService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -59,17 +61,42 @@ public class CanController {
             @RequestHeader(value = "If-None-Match", required = false) String ifNoneMatch)
             throws Exception {
         List<Can> all = canService.getAll();
-        String etag = CanService.computeEtag(all);
+        // Suffisso di ruolo sull'ETag: senza, admin e guest condividerebbero lo stesso
+        // ETag pur ricevendo body diversi (prezzo oscurato per il guest), e un browser
+        // con in cache la risposta admin risponderebbe 304 a una richiesta guest
+        // successiva, servendo dalla propria cache locale il body con i prezzi.
+        String etag = roleEtag(CanService.computeEtag(all));
         if (etag.equals(ifNoneMatch)) {
             return ResponseEntity.status(HttpStatus.NOT_MODIFIED).eTag(etag).build();
         }
-        return ResponseEntity.ok().eTag(etag).body(all);
+        List<Can> body = isAdmin() ? all : all.stream().map(CanController::redactPrice).toList();
+        return ResponseEntity.ok().eTag(etag).body(body);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Can> getById(@PathVariable String id) throws Exception {
         Can can = canService.getById(id);
-        return can != null ? ResponseEntity.ok(can) : ResponseEntity.notFound().build();
+        if (can == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(isAdmin() ? can : redactPrice(can));
+    }
+
+    private static boolean isAdmin() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+    }
+
+    private static String roleEtag(String baseEtag) {
+        return baseEtag.substring(0, baseEtag.length() - 1) + (isAdmin() ? "a\"" : "g\"");
+    }
+
+    /** Copia la lattina con il prezzo oscurato per i guest, senza mutare l'originale
+     *  (condiviso dalla cache in-memory di CanService tra tutte le richieste). */
+    private static Can redactPrice(Can c) {
+        Can copy = new Can();
+        BeanUtils.copyProperties(c, copy);
+        copy.setValore(null);
+        return copy;
     }
 
     @PostMapping

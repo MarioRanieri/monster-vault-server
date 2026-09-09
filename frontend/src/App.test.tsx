@@ -488,3 +488,54 @@ test('admin: carica una foto durante la modifica', async () => {
     (await screen.findAllByRole('img', { name: 'Alpha' }, { timeout: 4000 })).length,
   ).toBeGreaterThan(0);
 }, 15000); // la catena async è lenta sotto carico/coverage: alza il testTimeout
+
+// Il backend non invia mai il prezzo (valore) al guest (redatto server-side): il
+// filtro min/max era comunque un side-channel che permetteva di dedurlo per
+// tentativi. Il guest non deve vedere né il filtro né l'ordinamento per valore.
+test('guest: niente filtro di prezzo né ordinamento per valore', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({ ok: true, json: async () => [{ id: '1', nome: 'Alpha' }] }),
+  );
+
+  render(<App />);
+  await enterCollection();
+  await screen.findByText('Alpha');
+
+  expect(screen.queryByLabelText('price min')).toBeNull();
+  expect(screen.queryByLabelText('price max')).toBeNull();
+  expect(screen.queryByRole('option', { name: /value/i })).toBeNull();
+});
+
+test('admin: vede il filtro di prezzo e l’ordinamento per valore', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: '1', nome: 'Alpha' }] }) // loadCans
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) }), // login
+  );
+
+  render(<App />);
+  await loginAsAdmin();
+  await screen.findByText('Alpha');
+
+  expect(screen.getByLabelText('price min')).toBeTruthy();
+  expect(screen.getAllByRole('option', { name: /value/i }).length).toBe(2);
+});
+
+// Un link condiviso da un admin con un filtro di prezzo attivo (?vmin=10) aperto
+// da un guest non deve svuotare la griglia: il guest non ha `valore` da filtrare
+// (redatto dal backend), quindi il filtro va ignorato lato client, non applicato
+// a zero.
+test('guest: un vmin residuo da una share URL admin non svuota la griglia', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({ ok: true, json: async () => [{ id: '1', nome: 'Alpha' }] }),
+  );
+  window.history.pushState({}, '', '/?vmin=10');
+
+  render(<App />);
+
+  expect(await screen.findByText('Alpha')).toBeTruthy();
+});
