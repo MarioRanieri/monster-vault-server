@@ -147,12 +147,25 @@ function App() {
     if (fromUrl) setView('collection');
   }, []);
 
-  const options = filterOptions(cans);
+  const numOrUndef = (s: string) => (s === '' ? undefined : Number(s));
+  const normalizedFilters = {
+    ...filters,
+    vmin: numOrUndef(filters.vmin),
+    vmax: numOrUndef(filters.vmax),
+    ymin: numOrUndef(filters.ymin),
+    ymax: numOrUndef(filters.ymax),
+  };
+  const options = filterOptions(cans, normalizedFilters);
+  // Suggerimenti per l'autocomplete del form (CanEditForm): sempre sull'intera
+  // collezione, non ristretti dai filtri attivi — altrimenti editare una lattina
+  // mentre un filtro è attivo nasconde valori validi (es. un produttore mai
+  // usato su size=750ML non verrebbe suggerito con quel filtro attivo).
+  const allOptions = filterOptions(cans);
   const suggestions = {
-    manufacturers: options.manufacturers,
-    sizes: options.sizes,
-    countries: options.countries,
-    tops: options.tops,
+    manufacturers: allOptions.manufacturers,
+    sizes: allOptions.sizes,
+    countries: allOptions.countries,
+    tops: allOptions.tops,
     conditions: [
       ...new Set(cans.map((c) => c.stato?.trim()).filter((v): v is string => Boolean(v))),
     ].sort((a, b) => a.localeCompare(b)),
@@ -166,17 +179,7 @@ function App() {
       else if (u.url) await uploadPhotoFromUrl(id, u.slot, u.url);
     }
   };
-  const numOrUndef = (s: string) => (s === '' ? undefined : Number(s));
-  const visible = sortCans(
-    filterCans(cans, {
-      ...filters,
-      vmin: numOrUndef(filters.vmin),
-      vmax: numOrUndef(filters.vmax),
-      ymin: numOrUndef(filters.ymin),
-      ymax: numOrUndef(filters.ymax),
-    }),
-    sort,
-  );
+  const visible = sortCans(filterCans(cans, normalizedFilters), sort);
   const hasFilters = Object.values(filters).some(Boolean);
   const resetFilters = () => setFilters(NO_FILTERS);
   const selectCan = (can: Can) => {
