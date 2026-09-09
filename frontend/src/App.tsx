@@ -6,7 +6,7 @@ import { CanWall } from './CanWall';
 import { CanDetail } from './CanDetail';
 import { filterCans, sortCans, filterOptions, type SortKey } from './filterCans';
 import { Hero } from './Hero';
-import { FilterBar } from './FilterBar';
+import { FilterBar, type Range } from './FilterBar';
 import { computeStats, addedThisMonth } from './computeStats';
 import { useAuthStore } from './authStore';
 import { LoginForm } from './LoginForm';
@@ -167,11 +167,14 @@ function App() {
     }
   };
   const numOrUndef = (s: string) => (s === '' ? undefined : Number(s));
+  // Il backend non invia mai `valore` al guest (redatto server-side): un vmin/vmax
+  // residuo (share URL o mv_filters di una sessione admin precedente) va ignorato,
+  // non applicato a zero — altrimenti svuoterebbe la griglia in modo confuso.
   const visible = sortCans(
     filterCans(cans, {
       ...filters,
-      vmin: numOrUndef(filters.vmin),
-      vmax: numOrUndef(filters.vmax),
+      vmin: isAdmin ? numOrUndef(filters.vmin) : undefined,
+      vmax: isAdmin ? numOrUndef(filters.vmax) : undefined,
       ymin: numOrUndef(filters.ymin),
       ymax: numOrUndef(filters.ymax),
     }),
@@ -477,20 +480,32 @@ function App() {
               { value: 'added-desc', label: 'RECENTLY PHOTOGRAPHED' },
               { value: 'nome-asc', label: 'NAME A→Z' },
               { value: 'lingua-asc', label: 'COUNTRY A→Z' },
-              { value: 'valore-desc', label: 'VALUE ↓' },
-              { value: 'valore-asc', label: 'VALUE ↑' },
+              // Il guest non riceve mai `valore` dal backend: ordinare per valore
+              // non farebbe nulla (tutti pari) e sarebbe solo un controllo morto.
+              ...(isAdmin
+                ? [
+                    { value: 'valore-desc', label: 'VALUE ↓' },
+                    { value: 'valore-asc', label: 'VALUE ↑' },
+                  ]
+                : []),
             ],
             onChange: (v) => setSort(v as SortKey),
           }}
           ranges={[
-            {
-              key: 'price',
-              sep: '€',
-              min: filters.vmin,
-              max: filters.vmax,
-              onMin: (v) => setFilter('vmin', v),
-              onMax: (v) => setFilter('vmax', v),
-            },
+            // Guest: niente filtro di prezzo — il backend non invia `valore`, e in
+            // passato il min/max permetteva di dedurlo per tentativi (bug reale).
+            ...((isAdmin
+              ? [
+                  {
+                    key: 'price',
+                    sep: '€',
+                    min: filters.vmin,
+                    max: filters.vmax,
+                    onMin: (v: string) => setFilter('vmin', v),
+                    onMax: (v: string) => setFilter('vmax', v),
+                  },
+                ]
+              : []) as Range[]),
             {
               key: 'year',
               sep: '📅',

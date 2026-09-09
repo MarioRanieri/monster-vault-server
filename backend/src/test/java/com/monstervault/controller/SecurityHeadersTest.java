@@ -55,10 +55,13 @@ class SecurityHeadersTest {
     void getAll_returnsETagHeader() throws Exception {
         when(canService.getAll()).thenReturn(twoTestCans());
 
+        // Suffisso "g"/"a" (guest/admin): stesso hash id+updatedAt, ma tag distinto per
+        // ruolo così un browser non riusa mai la cache di un ruolo per l'altro (vedi
+        // CanController.roleEtag — il body admin include il prezzo, quello guest no).
         mockMvc.perform(get("/api/cans"))
                 .andExpect(status().isOk())
                 .andExpect(header().exists("ETag"))
-                .andExpect(header().string("ETag", matchesPattern("\"[0-9a-f]+\"")));
+                .andExpect(header().string("ETag", matchesPattern("\"[0-9a-f]+g\"")));
     }
 
     @Test
