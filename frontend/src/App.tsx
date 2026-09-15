@@ -14,7 +14,6 @@ import { CanEditForm } from './CanEditForm';
 import { LandingPage } from './LandingPage';
 import { Header } from './Header';
 import { buildShareUrl, parseShareUrl, type ShareFilters } from './shareView';
-import { SavedViews } from './SavedViews';
 import { CompareBar } from './CompareBar';
 import { ComparePanel } from './ComparePanel';
 import { StatsModal } from './StatsModal';
@@ -212,7 +211,7 @@ function App() {
   const persistReady = useRef(false);
   useEffect(() => {
     // I filtri sono dati dell'utente riletti solo come stato React (mai come HTML): localStorage
-    // non esegue codice, quindi non è una sink XSS. Falso positivo verificato (come viewStorage). NOSONAR
+    // non esegue codice, quindi non è una sink XSS. Falso positivo verificato. NOSONAR
     if (persistReady.current)
       localStorage.setItem('mv_filters', filtersJson); // NOSONAR
     else persistReady.current = true;
@@ -250,11 +249,6 @@ function App() {
     }
   }, []);
   const shownCans = visible.slice(0, shown);
-  const applyShareFilters = (f: Partial<ShareFilters>) => {
-    const { sort: s, ...rest } = f;
-    setFilters({ ...NO_FILTERS, ...rest });
-    if (s) setSort(s as SortKey);
-  };
   const shareCurrentView = () => {
     const url = buildShareUrl(
       globalThis.location.origin + globalThis.location.pathname,
@@ -392,7 +386,6 @@ function App() {
             € {showPrice ? 'Hide prices' : 'Show prices'}
           </button>
         )}
-        <SavedViews current={currentFilters} onApply={applyShareFilters} />
         <button type="button" className="share-view-btn" onClick={shareCurrentView}>
           🔗 Share view
         </button>
