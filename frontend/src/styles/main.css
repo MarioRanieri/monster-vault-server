@@ -1700,7 +1700,9 @@ body.light .filter-select option {
   margin: 0 0 12px;
 }
 .detail-related .grid {
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  /* Ora a tutta larghezza (prima era nella colonna destra, ~metà spazio):
+     card più larghe, come la griglia principale. */
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 10px;
 }
 

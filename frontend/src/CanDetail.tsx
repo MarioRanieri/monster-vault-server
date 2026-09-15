@@ -171,12 +171,6 @@ export function CanDetail({
                 <span className="badge badge-photo">{photos.length} photo</span>
               )}
             </div>
-            {relatedCans.length > 0 && (
-              <section className="detail-related" aria-label="Other cans from this country">
-                <h3 className="detail-related-title">Other cans from this country</h3>
-                <CanGrid cans={relatedCans} showPrice={showPrice} onSelect={onSelect} />
-              </section>
-            )}
           </div>
         </div>
         {/* Riga 2: pannello campi a tutta larghezza, sotto foto/altre lattine. */}
@@ -240,6 +234,15 @@ export function CanDetail({
             </div>
           )}
         </div>
+        {/* Riga 3: altre lattine per ultime — contenuto secondario, dopo le
+            info di questa lattina (prima erano accanto alla foto, in cima:
+            l'utente le vede prima delle info della lattina che sta guardando). */}
+        {relatedCans.length > 0 && (
+          <section className="detail-related" aria-label="Other cans from this country">
+            <h3 className="detail-related-title">Other cans from this country</h3>
+            <CanGrid cans={relatedCans} showPrice={showPrice} onSelect={onSelect} />
+          </section>
+        )}
       </div>
       {lbIdx !== null && (
         <Lightbox photos={photos} start={lbIdx} alt={can.nome} onClose={() => setLbIdx(null)} />
