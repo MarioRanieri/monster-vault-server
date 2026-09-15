@@ -921,21 +921,35 @@ body.public-mode .public-banner {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* .detail-body impila due righe: foto + altre lattine sopra (a due colonne),
+   pannello campi sotto a tutta larghezza — vedi .detail-top-row. */
 .detail-body {
-  display: grid;
-  /* minmax(0, 1fr), non 1fr: un track grid ha min-width:auto implicito, quindi
-     senza il minmax cresce per contenere il figlio più largo (es. il
-     placeholder senza foto, un flex item con width:100% senza min-width:0)
-     invece di stare nella sua quota — schiaccia l'altra colonna a una fessura. */
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 2rem;
   padding: 2rem;
   max-width: 1100px;
   width: 100%;
   margin: 0 auto;
 }
+.detail-top-row {
+  display: grid;
+  /* minmax(0, 1fr), non 1fr: un track grid ha min-width:auto implicito, quindi
+     senza il minmax cresce per contenere il figlio più largo (es. il
+     placeholder senza foto, un flex item con width:100% senza min-width:0)
+     invece di stare nella sua quota — schiaccia l'altra colonna a una fessura. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  /* start, non stretch (default): le due colonne non devono più allungarsi
+     per matchare l'altezza l'una dell'altra. Prima la colonna foto si tirava
+     fino all'altezza della lista campi (molto più lunga) → nero vuoto sotto
+     la foto. Ora col pannello campi spostato in una riga separata sotto, le
+     due colonne qui hanno altezze naturalmente vicine, ma start resta la
+     scelta robusta indipendentemente da quanto contenuto avrà ciascuna. */
+  align-items: start;
+  gap: 2rem;
+}
 @media (max-width: 700px) {
-  .detail-body {
+  .detail-top-row {
     grid-template-columns: 1fr;
   }
 }
@@ -1028,6 +1042,14 @@ body.public-mode .public-banner {
   flex-direction: column;
   gap: 1.25rem;
 }
+/* Riga 2 del detail-body: pannello campi + opening + more info + azioni
+   admin, a tutta larghezza sotto foto/altre lattine (era dentro .detail-info,
+   impilato con nome/badge/related nella colonna destra). */
+.detail-fields-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
 .detail-name {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 32px;
@@ -1086,6 +1108,8 @@ body.public-mode .public-banner {
    allineato a destra — specificità (0,2,0) batte la base (0,1,0) sopra. */
 .detail-fields .detail-field-lbl {
   font-family: 'Space Mono', monospace;
+  font-size: 13px;
+  color: var(--text2);
   letter-spacing: 0.5px;
   margin-bottom: 0;
   flex: 0 0 auto;
