@@ -177,7 +177,8 @@ def health():
 @app.route("/telegram-webhook", methods=["POST"])
 def telegram_webhook():
     secret = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
-    if secret != os.environ.get("TELEGRAM_WEBHOOK_SECRET", ""):
+    secret_expected = os.environ.get("TELEGRAM_WEBHOOK_SECRET", "")
+    if not secret_expected or secret != secret_expected:
         return ("", 401)
 
     _ensure_commands_registered()
@@ -185,7 +186,8 @@ def telegram_webhook():
     update = request.get_json(silent=True) or {}
     msg = update.get("message") or {}
     chat_id = str((msg.get("chat") or {}).get("id", ""))
-    if chat_id != str(_chat_id()):
+    expected_chat_id = str(_chat_id())
+    if not expected_chat_id or chat_id != expected_chat_id:
         return ("", 200)   # chat non autorizzata: nessuna risposta, non rivelare il bot
 
     cmd, arg = parse_command(msg.get("text") or "")

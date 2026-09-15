@@ -147,6 +147,43 @@ def test_store_error_replies_gracefully_not_500():
         w.get_store = orig_get_store
 
 
+def test_unset_secret_rejects_even_empty_header():
+    """If TELEGRAM_WEBHOOK_SECRET is unset (empty), reject even requests with empty secret."""
+    orig_secret = os.environ.get("TELEGRAM_WEBHOOK_SECRET")
+    os.environ["TELEGRAM_WEBHOOK_SECRET"] = ""
+    try:
+        client = _client()
+        # Request with empty secret header should be rejected (403/401, not 200)
+        r = _post(client, "/list", secret="")
+        assert r.status_code == 401   # must fail CLOSED, not pass
+        # Request with no secret header should also be rejected
+        r = _post(client, "/list", secret="")
+        assert r.status_code == 401
+    finally:
+        if orig_secret is not None:
+            os.environ["TELEGRAM_WEBHOOK_SECRET"] = orig_secret
+        else:
+            os.environ.pop("TELEGRAM_WEBHOOK_SECRET", None)
+
+
+def test_unset_chat_id_silently_ignores():
+    """If TELEGRAM_CHAT_ID is unset (empty), never dispatch commands even if incoming chat_id is empty."""
+    store = _FakeStore()
+    orig_chat_id = os.environ.get("TELEGRAM_CHAT_ID")
+    os.environ["TELEGRAM_CHAT_ID"] = ""
+    try:
+        client = _client(store)
+        # Request with matching empty chat_id should still be rejected (silent 200, no command)
+        r = _post(client, "/add camicia", chat_id="")
+        assert r.status_code == 200
+        assert store.blacklist_additions() == []   # no command executed
+    finally:
+        if orig_chat_id is not None:
+            os.environ["TELEGRAM_CHAT_ID"] = orig_chat_id
+        else:
+            os.environ.pop("TELEGRAM_CHAT_ID", None)
+
+
 if __name__ == "__main__":
     import traceback
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
