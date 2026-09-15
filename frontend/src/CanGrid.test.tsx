@@ -70,3 +70,12 @@ test('senza onEdit (guest) il bottone Edit non compare', () => {
 
   expect(screen.queryByRole('button', { name: /edit/i })).toBeNull();
 });
+
+test('lattina senza foto mostra una sagoma di lattina, non un trattino', () => {
+  const noPhotoCan: Can = { id: 'x1', nome: 'Test Can', lingua: 'ITALY' };
+  render(<CanGrid cans={[noPhotoCan]} />);
+  // Il nome/bandiera restano dove sono sempre stati (card-body, sotto la foto/
+  // placeholder): il placeholder aggiunge solo la sagoma, non li duplica.
+  expect(screen.getByRole('img', { name: /can placeholder/i })).toBeTruthy();
+  expect(screen.getByText('Test Can')).toBeTruthy();
+});

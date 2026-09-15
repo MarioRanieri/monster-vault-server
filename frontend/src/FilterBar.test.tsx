@@ -100,3 +100,16 @@ test('il sort chiama onChange', async () => {
   await userEvent.selectOptions(screen.getByRole('combobox', { name: /sort/i }), 'valore-desc');
   expect(onChange).toHaveBeenCalledWith('valore-desc');
 });
+
+test('il pulsante Filters apre/chiude il pannello filtri avanzati', async () => {
+  const user = userEvent.setup();
+  render(<FilterBar query="" onQuery={() => {}} chips={[]} />);
+  const toggle = screen.getByRole('button', { name: /filters/i });
+  expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+  await user.click(toggle);
+  expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+  await user.click(toggle);
+  expect(toggle).toHaveAttribute('aria-expanded', 'false');
+});

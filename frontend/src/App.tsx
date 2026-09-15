@@ -600,6 +600,8 @@ function App() {
             inCompare={compareIds.includes(selected.id)}
             onToggleCompare={() => toggleCompare(selected.id)}
             onToast={showToast}
+            allCans={cans}
+            onSelect={selectCan}
           />
         ))}
       {creating && (
