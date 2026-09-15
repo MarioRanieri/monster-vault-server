@@ -1305,7 +1305,7 @@ Nessun altro setup lato GitHub: il workflow installa le dipendenze e parte da so
 **Comandi Telegram** (secondo Web Service Render, separato dal sito):
 
 1. Crea un nuovo Web Service su Render, root directory `ebay-monitor/`, start command
-   `gunicorn webhook_app:app --bind 0.0.0.0:$PORT`.
+   `gunicorn webhook_app:app --bind 0.0.0.0:$PORT --threads 4 --timeout 120`.
 2. Env vars sul servizio: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `MONGODB_URI` (stessi valori
    dei Secret GitHub sopra — store separati, vanno copiati) + `TELEGRAM_WEBHOOK_SECRET` (nuovo,
    generato una tantum, es. `openssl rand -hex 32`).
@@ -1446,7 +1446,7 @@ Code and docs are done after Task 6. The bot won't actually use the new webhook 
 one-time, external steps happen:
 
 1. On Render: create a **second** Web Service (free tier), pointed at this same repo,
-   **root directory** `ebay-monitor/`, start command `gunicorn webhook_app:app --bind 0.0.0.0:$PORT`.
+   **root directory** `ebay-monitor/`, start command `gunicorn webhook_app:app --bind 0.0.0.0:$PORT --threads 4 --timeout 120`.
 2. On that service, set env vars: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `MONGODB_URI` (copy
    the same values already used as GitHub Secrets), plus a new `TELEGRAM_WEBHOOK_SECRET`
    (generate one, e.g. `openssl rand -hex 32`).
@@ -1457,9 +1457,14 @@ one-time, external steps happen:
      -d url=https://<name>.onrender.com/telegram-webhook \
      -d secret_token=<TELEGRAM_WEBHOOK_SECRET>
    ```
-5. Verify: send `/add test123` in the Telegram chat — expect a reply within seconds (or ~30-50s
+5. Retire the old banner from any previous deployment: unpin and delete the old banner message
+   in the Telegram chat (or just send `/delete` now that it no longer protects it), clear the
+   bot's stale description (`curl https://api.telegram.org/bot<TOKEN>/setMyDescription -d
+   description=` with an empty description, or a new accurate one), and remove the now-unused
+   `banner_msg_id` document from the `ebay_meta` Mongo collection.
+6. Verify: send `/add test123` in the Telegram chat — expect a reply within seconds (or ~30-50s
    if the service was asleep). Then `/list` should show it.
-6. Wait for (or manually trigger via `workflow_dispatch`) the next GitHub Actions run and confirm
+7. Wait for (or manually trigger via `workflow_dispatch`) the next GitHub Actions run and confirm
    its log shows the dynamically-added blacklist word being read.
-7. Clean up the test word by deleting it directly from the `ebay_blacklist` Mongo collection (no
+8. Clean up the test word by deleting it directly from the `ebay_blacklist` Mongo collection (no
    `/remove` command exists — unchanged, out of scope for this plan).

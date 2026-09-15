@@ -104,7 +104,7 @@ Nessun altro setup lato GitHub: il workflow installa le dipendenze e parte da so
 **Comandi Telegram** (secondo Web Service Render, separato dal sito):
 
 1. Crea un nuovo Web Service su Render, root directory `ebay-monitor/`, start command
-   `gunicorn webhook_app:app --bind 0.0.0.0:$PORT`.
+   `gunicorn webhook_app:app --bind 0.0.0.0:$PORT --threads 4 --timeout 120`.
 2. Env vars sul servizio: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `MONGODB_URI` (stessi valori
    dei Secret GitHub sopra — store separati, vanno copiati) + `TELEGRAM_WEBHOOK_SECRET` (nuovo,
    generato una tantum, es. `openssl rand -hex 32`).

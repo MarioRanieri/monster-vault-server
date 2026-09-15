@@ -10,7 +10,7 @@ webhook_app:app --bind 0.0.0.0:$PORT (Render Web Service, root ebay-monitor/).
 """
 import os
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 
 import requests
 from flask import Flask, request
@@ -69,8 +69,7 @@ def delete_bot_messages(up_to_id, protected=()):
 def _handle_command(store, cmd, arg, msg_id):
     """Esegue un comando. Ritorna True se gestito (per il log)."""
     if cmd == "delete":
-        banner = store.get_meta("banner_msg_id")
-        n = delete_bot_messages(msg_id, protected={banner} if banner else ())
+        n = delete_bot_messages(msg_id)
         _delete_one(msg_id)
         print(f"  [/delete] cancellati {n} messaggi del bot")
         return True
@@ -181,14 +180,14 @@ def telegram_webhook():
     if not secret_expected or secret != secret_expected:
         return ("", 401)
 
-    _ensure_commands_registered()
-
     update = request.get_json(silent=True) or {}
     msg = update.get("message") or {}
     chat_id = str((msg.get("chat") or {}).get("id", ""))
     expected_chat_id = str(_chat_id())
     if not expected_chat_id or chat_id != expected_chat_id:
         return ("", 200)   # chat non autorizzata: nessuna risposta, non rivelare il bot
+
+    _ensure_commands_registered()
 
     cmd, arg = parse_command(msg.get("text") or "")
     if cmd in ("add", "list", "delete", "market"):

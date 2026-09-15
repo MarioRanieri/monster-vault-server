@@ -107,12 +107,6 @@ def sweep_due(last_sweep_at, now, interval, send_now=False):
     return (now - last_sweep_at) >= interval
 
 
-# ─── MONGODB (stato: anti-duplicati + blacklist dinamica) ─────────────────────
-# (Store imported from bot_logic)
-
-# NOTE: Store imported from bot_logic, no local definition here
-# ────────────────────────────────────────────────────────────────────────────────
-
 # ─── EBAY BROWSE API ──────────────────────────────────────────────────────────
 
 _token_cache = {"token": None, "exp": 0.0}
@@ -348,7 +342,7 @@ def run_once(send_now=False, cap_per_query=None):
     # I comandi Telegram non passano più di qui: li gestisce webhook_app.py (Render), istantanei.
     now = time.time()
     last = store.get_meta("last_sweep_at")
-    if not sweep_due(last, now, settings.SWEEP_INTERVAL_SECONDS, send_now):
+    if not sweep_due(last, now, settings.SWEEP_INTERVAL_SECONDS * 0.9, send_now):
         wait = int((settings.SWEEP_INTERVAL_SECONDS - (now - last)) / 60)
         print(f"  Prossima ricerca eBay tra ~{wait} min.")
         return

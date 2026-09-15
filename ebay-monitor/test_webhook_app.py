@@ -14,6 +14,7 @@ os.environ.setdefault("TELEGRAM_CHAT_ID", "12345")
 os.environ.setdefault("TELEGRAM_WEBHOOK_SECRET", "test-secret")
 
 import webhook_app as w
+import bot_logic
 
 
 class _FakeStore:
@@ -109,6 +110,10 @@ def test_market_command_persists_override():
         assert r.status_code == 200
         assert "EBAY_GB" in store.get_meta("market_override")["disabled"]
         assert sent and sent[-1].startswith("✅")
+        # contratto cross-modulo: la stessa shape scritta qui deve essere quella che
+        # ebay_monitor.py/bot_logic.py leggono per calcolare i mercati attivi dello sweep.
+        active = bot_logic.effective_markets(w.settings.EBAY_MARKETPLACES, store.get_meta("market_override"))
+        assert "EBAY_GB" not in active
     finally:
         w._tg_text = orig_tg_text
 

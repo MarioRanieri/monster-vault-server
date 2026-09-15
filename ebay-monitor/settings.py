@@ -1,6 +1,6 @@
 # ============================================================
 #  Monster Energy — eBay Monitor  |  settings.py
-#  Config NON-segreta, VERSIONATA. Gira in cloud (GitHub Actions, un giro ogni 2h).
+#  Config NON-segreta, VERSIONATA. Gira in cloud (GitHub Actions, un giro ogni 1h).
 #  I SEGRETI arrivano dalle variabili d'ambiente (GitHub Secrets), NON da qui:
 #    EBAY_CLIENT_ID · EBAY_CLIENT_SECRET · TELEGRAM_BOT_TOKEN · TELEGRAM_CHAT_ID · MONGODB_URI
 #  La blacklist di base sta in blacklist.txt; le aggiunte /add vivono su MongoDB.
