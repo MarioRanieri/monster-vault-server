@@ -99,8 +99,10 @@ public class SecurityConfig {
                         // HTTP Basic (vedi metricsUser): Prometheus fa lo scrape con basic_auth.
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers("/actuator/prometheus").hasRole("METRICS")
-                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html",
-                                "/v3/api-docs/**", "/v3/api-docs").permitAll()
+                        // Swagger/OpenAPI espongono la mappa completa degli endpoint (incluse le
+                        // rotte di scrittura) a chi li legge: niente permitAll, ricadono su
+                        // anyRequest().authenticated() come il resto dell'API. Per usarli da
+                        // loggato: pulsante "Authorize" nella Swagger UI, Bearer token.
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(e -> e
