@@ -64,96 +64,88 @@ describe('lineupKey', () => {
   });
 });
 
+const byId = (ids: string[]) => [...ids].sort((a, b) => a.localeCompare(b));
+
 describe('sameLineupPool', () => {
-  test('non mischia mai promo e non-promo', () => {
-    const target = can({ id: 't', nome: 'OG Nico Hischier', promo: 'YES' });
-    const cans = [
-      target,
-      can({ id: 'p1', nome: 'OG Ken Block', promo: 'YES' }),
-      can({ id: 'n1', nome: 'OG Original' }), // stessa linea, ma non promo
-      can({ id: 'n2', nome: 'OG Original 2' }),
-    ];
-    const result = sameLineupPool(cans, target);
-    expect(result.every((c) => c.promo === 'YES')).toBe(true);
-    expect(result.map((c) => c.id)).not.toContain('n1');
-    expect(result.map((c) => c.id)).not.toContain('n2');
-  });
-
-  test('allarga a 1 parola se il match a 2 parole ha meno di 4 lattine', () => {
-    const target = can({ id: 't', nome: 'OG Nico Hischier' });
-    const cans = [
-      target,
-      can({ id: 'a', nome: 'OG Nico Other' }), // stesse 2 parole: solo 2 nel gruppo, < 4
-      can({ id: 'b', nome: 'OG Ken Block' }), // solo 1 parola in comune
-      can({ id: 'c', nome: 'OG First' }),
-      can({ id: 'd', nome: 'OG Second' }),
-    ];
-    const result = sameLineupPool(cans, target);
-    // Allargato a "OG": tutte le altre 4 lattine OG, non solo "OG Nico Other".
-    expect(result.length).toBe(4);
-  });
-
-  test('resta sulle 2 parole se il gruppo raggiunge la soglia', () => {
-    const target = can({ id: 't', nome: 'Ultra White A' });
-    const cans = [
-      target,
-      can({ id: 'w1', nome: 'Ultra White B' }),
-      can({ id: 'w2', nome: 'Ultra White C' }),
-      can({ id: 'w3', nome: 'Ultra White D' }),
-      can({ id: 'w4', nome: 'Ultra White E' }), // 4 = soglia: resta a 2 parole
-      can({ id: 'r1', nome: 'Ultra Red A' }), // 1 parola in comune, ma 2 parole diverse
-    ];
-    const result = sameLineupPool(cans, target);
-    expect(result.length).toBe(4); // solo le altre 4 "Ultra White"
-    expect(result.map((c) => c.id)).not.toContain('r1');
-  });
-
-  test('preferisce nome a 2 parole + stessa nazione quando basta', () => {
-    const target = can({ id: 't', nome: 'Hydro Mean Green', lingua: 'USA' });
-    const cans = [
-      target,
-      can({ id: 'us1', nome: 'Hydro Mean Green', lingua: 'USA' }),
-      can({ id: 'us2', nome: 'Hydro Mean Green', lingua: 'USA' }),
-      can({ id: 'us3', nome: 'Hydro Mean Green', lingua: 'USA' }),
-      can({ id: 'us4', nome: 'Hydro Mean Green', lingua: 'USA' }), // 4 = soglia
-      can({ id: 'uk1', nome: 'Hydro Mean Green', lingua: 'UK' }), // stesso nome, altra nazione
-    ];
-    const result = sameLineupPool(cans, target);
-    expect(result.length).toBe(4);
-    expect(result.every((c) => c.lingua === 'USA')).toBe(true);
-  });
-
-  test('rilassa la nazione solo dopo aver provato entrambe le larghezze di nome', () => {
-    // 2 parole + nazione: troppo poche. 1 parola + nazione: raggiunge la soglia
-    // → NON deve rilassare la nazione, anche se ce ne sarebbero altre a 2
-    // parole in altre nazioni.
-    const target = can({ id: 't', nome: 'OG Nico Hischier', promo: 'YES', lingua: 'SWISS' });
-    const cans = [
-      target,
-      can({ id: 'ch1', nome: 'OG Ken Block', promo: 'YES', lingua: 'SWISS' }),
-      can({ id: 'ch2', nome: 'OG First', promo: 'YES', lingua: 'SWISS' }),
-      can({ id: 'ch3', nome: 'OG Second', promo: 'YES', lingua: 'SWISS' }),
-      can({ id: 'ch4', nome: 'OG Third', promo: 'YES', lingua: 'SWISS' }), // 4 = soglia
-      can({ id: 'other', nome: 'OG Nico Other', promo: 'YES', lingua: 'GERMANY' }),
-    ];
-    const result = sameLineupPool(cans, target);
-    expect(result.length).toBe(4);
-    expect(result.every((c) => c.lingua === 'SWISS')).toBe(true);
-    expect(result.map((c) => c.id)).not.toContain('other');
-  });
-
-  test('rilassa la nazione come ultima spiaggia se anche 1 parola + nazione è troppo poco', () => {
-    const target = can({ id: 't', nome: 'Rare Flavor', lingua: 'JAPAN' });
-    const cans = [
-      target,
-      can({ id: 'jp1', nome: 'Rare Flavor 2', lingua: 'JAPAN' }), // solo 1 in JAPAN
-      can({ id: 'us1', nome: 'Rare Flavor 3', lingua: 'USA' }),
-      can({ id: 'us2', nome: 'Rare Flavor 4', lingua: 'USA' }),
-      can({ id: 'us3', nome: 'Rare Flavor 5', lingua: 'USA' }),
-    ];
-    const result = sameLineupPool(cans, target);
-    // Nessun tentativo raggiunge 4: usa l'ultimo (1 parola, ogni nazione) → tutte.
-    expect(result.length).toBe(4);
+  test.each([
+    {
+      desc: 'non mischia mai promo e non-promo',
+      target: { id: 't', nome: 'OG Nico Hischier', promo: 'YES' },
+      others: [
+        { id: 'p1', nome: 'OG Ken Block', promo: 'YES' },
+        { id: 'n1', nome: 'OG Original' }, // stessa linea, ma non promo → escluso
+        { id: 'n2', nome: 'OG Original 2' },
+      ],
+      expectedIds: ['p1'],
+    },
+    {
+      desc: 'allarga a 1 parola se il match a 2 parole ha meno di 4 lattine',
+      target: { id: 't', nome: 'OG Nico Hischier' },
+      others: [
+        { id: 'a', nome: 'OG Nico Other' }, // stesse 2 parole: solo 2 nel gruppo, < 4
+        { id: 'b', nome: 'OG Ken Block' }, // solo 1 parola in comune
+        { id: 'c', nome: 'OG First' },
+        { id: 'd', nome: 'OG Second' },
+      ],
+      // Allargato a "OG": tutte le altre 4, non solo "OG Nico Other".
+      expectedIds: ['a', 'b', 'c', 'd'],
+    },
+    {
+      desc: 'resta sulle 2 parole se il gruppo raggiunge la soglia',
+      target: { id: 't', nome: 'Ultra White A' },
+      others: [
+        { id: 'w1', nome: 'Ultra White B' },
+        { id: 'w2', nome: 'Ultra White C' },
+        { id: 'w3', nome: 'Ultra White D' },
+        { id: 'w4', nome: 'Ultra White E' }, // 4 = soglia: resta a 2 parole
+        { id: 'r1', nome: 'Ultra Red A' }, // 1 parola in comune, 2 parole diverse → escluso
+      ],
+      expectedIds: ['w1', 'w2', 'w3', 'w4'],
+    },
+    {
+      desc: 'preferisce nome a 2 parole + stessa nazione quando basta',
+      target: { id: 't', nome: 'Hydro Mean Green', lingua: 'USA' },
+      others: [
+        { id: 'us1', nome: 'Hydro Mean Green', lingua: 'USA' },
+        { id: 'us2', nome: 'Hydro Mean Green', lingua: 'USA' },
+        { id: 'us3', nome: 'Hydro Mean Green', lingua: 'USA' },
+        { id: 'us4', nome: 'Hydro Mean Green', lingua: 'USA' }, // 4 = soglia
+        { id: 'uk1', nome: 'Hydro Mean Green', lingua: 'UK' }, // stesso nome, altra nazione → escluso
+      ],
+      expectedIds: ['us1', 'us2', 'us3', 'us4'],
+    },
+    {
+      // 2 parole + nazione: troppo poche. 1 parola + nazione: raggiunge la soglia
+      // → NON deve rilassare la nazione, anche se ce ne sarebbero altre a 2
+      // parole in altre nazioni.
+      desc: 'rilassa la nazione solo dopo aver provato entrambe le larghezze di nome',
+      target: { id: 't', nome: 'OG Nico Hischier', promo: 'YES', lingua: 'SWISS' },
+      others: [
+        { id: 'ch1', nome: 'OG Ken Block', promo: 'YES', lingua: 'SWISS' },
+        { id: 'ch2', nome: 'OG First', promo: 'YES', lingua: 'SWISS' },
+        { id: 'ch3', nome: 'OG Second', promo: 'YES', lingua: 'SWISS' },
+        { id: 'ch4', nome: 'OG Third', promo: 'YES', lingua: 'SWISS' }, // 4 = soglia
+        { id: 'other', nome: 'OG Nico Other', promo: 'YES', lingua: 'GERMANY' }, // escluso
+      ],
+      expectedIds: ['ch1', 'ch2', 'ch3', 'ch4'],
+    },
+    {
+      // Nessun tentativo raggiunge 4: usa l'ultimo (1 parola, ogni nazione) → tutte.
+      desc: 'rilassa la nazione come ultima spiaggia se anche 1 parola + nazione è troppo poco',
+      target: { id: 't', nome: 'Rare Flavor', lingua: 'JAPAN' },
+      others: [
+        { id: 'jp1', nome: 'Rare Flavor 2', lingua: 'JAPAN' }, // solo 1 in JAPAN
+        { id: 'us1', nome: 'Rare Flavor 3', lingua: 'USA' },
+        { id: 'us2', nome: 'Rare Flavor 4', lingua: 'USA' },
+        { id: 'us3', nome: 'Rare Flavor 5', lingua: 'USA' },
+      ],
+      expectedIds: ['jp1', 'us1', 'us2', 'us3'],
+    },
+  ])('$desc', ({ target, others, expectedIds }) => {
+    const t = can(target);
+    const cans = [t, ...others.map((o) => can(o))];
+    const result = sameLineupPool(cans, t);
+    expect(byId(result.map((c) => c.id))).toEqual(byId(expectedIds));
   });
 });
 
@@ -234,7 +226,10 @@ describe('sameLineupGroups', () => {
     // Fascia A vuota (nessuna gemella "OG Nico" altrove): non entra in groups.
     // Fascia B: le due promo svizzere. Fascia C: quella tedesca, come riempimento.
     expect(groups[0].label).toBe('Other SWISS promos');
-    expect(groups[0].cans.map((c) => c.id).sort()).toEqual(['ch1', 'ch2']);
+    expect(groups[0].cans.map((c) => c.id).sort((a, b) => a.localeCompare(b))).toEqual([
+      'ch1',
+      'ch2',
+    ]);
     expect(groups[1].label).toBe('Other rare promos');
     expect(groups[1].cans.map((c) => c.id)).toEqual(['de1']);
   });
