@@ -20,6 +20,24 @@ async function enterCollection() {
   await userEvent.click(screen.getByRole('button', { name: /enter the collection/i }));
 }
 
+// Alpha + Beta: fixture condivisa dai test sui filtri (mv_filters/login/logout),
+// per evitare di ripetere lo stesso fetch mock in ognuno (duplicazione CPD).
+async function renderWithAlphaBeta() {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [
+        { id: '1', nome: 'Alpha' },
+        { id: '2', nome: 'Beta' },
+      ],
+    }),
+  );
+  render(<App />);
+  await enterCollection();
+  await screen.findByText('Alpha');
+}
+
 async function loginAsAdmin() {
   await userEvent.click(screen.getByRole('button', { name: /admin access/i }));
   await userEvent.type(screen.getByLabelText('Username'), 'admin');
@@ -384,21 +402,8 @@ test('i filtri non persistono più: un mv_filters residuo viene ignorato al moun
   // Residuo di una vecchia sessione (o versione precedente dell'app): non deve
   // più essere riapplicato — chiudi/riapri deve sempre ripartire da zero.
   localStorage.setItem('mv_filters', JSON.stringify({ query: 'alph' }));
-  vi.stubGlobal(
-    'fetch',
-    vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => [
-        { id: '1', nome: 'Alpha' },
-        { id: '2', nome: 'Beta' },
-      ],
-    }),
-  );
+  await renderWithAlphaBeta();
 
-  render(<App />);
-  await enterCollection();
-
-  expect(await screen.findByText('Alpha')).toBeTruthy();
   expect(screen.getByText('Beta')).toBeTruthy(); // nessun filtro applicato
 });
 
@@ -418,20 +423,7 @@ test('la ricerca non viene salvata in localStorage', async () => {
 });
 
 test('il login azzera i filtri attivi', async () => {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => [
-        { id: '1', nome: 'Alpha' },
-        { id: '2', nome: 'Beta' },
-      ],
-    }),
-  );
-
-  render(<App />);
-  await enterCollection();
-  await screen.findByText('Alpha');
+  await renderWithAlphaBeta();
 
   await userEvent.type(screen.getByRole('searchbox'), 'alp');
   expect(screen.queryByText('Beta')).toBeNull();
@@ -443,21 +435,8 @@ test('il login azzera i filtri attivi', async () => {
 });
 
 test('il logout azzera i filtri attivi', async () => {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => [
-        { id: '1', nome: 'Alpha' },
-        { id: '2', nome: 'Beta' },
-      ],
-    }),
-  );
-
-  render(<App />);
-  await enterCollection();
+  await renderWithAlphaBeta();
   await loginAsAdmin();
-  await screen.findByText('Alpha');
 
   await userEvent.type(screen.getByRole('searchbox'), 'alp');
   expect(screen.queryByText('Beta')).toBeNull();
