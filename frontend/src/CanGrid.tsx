@@ -4,6 +4,28 @@ import { hasPromo } from './filterCans';
 import { cloudinaryThumb, cloudinaryLqip } from './cloudinary';
 import { Flags } from './flags';
 
+// Sagoma di lattina per le card senza foto: SVG inline riusato (niente immagini
+// esterne, costo trascurabile anche su ~1500 render) invece del trattino "—" di
+// prima — deve leggersi come una scelta grafica, non un placeholder rotto.
+function CanSilhouette() {
+  return (
+    <svg
+      width="48"
+      height="64"
+      viewBox="0 0 48 64"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      role="img"
+      aria-label="can placeholder"
+    >
+      <rect x="10" y="6" width="28" height="6" rx="1" />
+      <path d="M8 12h32l-3 46a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3L8 12Z" />
+      <ellipse cx="24" cy="12" rx="16" ry="3" />
+    </svg>
+  );
+}
+
 // Griglia di card (struttura/classi del vecchio): foto con LQIP progressivo,
 // SKU, badge, nome, produttore, bandiere del paese e prezzo (solo admin).
 // Overlay al hover (come il vecchio): "Details" apre il dettaglio, "Edit" apre
@@ -58,7 +80,7 @@ export function CanGrid({
                 </div>
               ) : (
                 <div className="card-img-placeholder">
-                  <span>—</span>
+                  <CanSilhouette />
                 </div>
               )}
               {can.sku && (

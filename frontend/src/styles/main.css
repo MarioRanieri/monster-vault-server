@@ -1930,8 +1930,13 @@ button.view-save {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 8px;
+  height: 100%;
+  padding: 12px;
+  background: var(--bg3);
   color: var(--text3);
+  text-align: center;
 }
 .card-img-placeholder svg {
   opacity: 0.25;
@@ -1975,10 +1980,6 @@ button.view-save {
   to {
     width: 0%;
   }
-}
-.card-img-placeholder span {
-  font-size: 11px;
-  letter-spacing: 0.3px;
 }
 .card-overlay {
   position: absolute;
