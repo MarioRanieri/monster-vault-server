@@ -2,10 +2,13 @@
 """
 Monster Energy eBay Monitor — radar multi-mercato su Telegram (cloud, un giro per esecuzione).
 
-Gira su GitHub Actions (schedule ogni 2h + trigger manuale). Ogni esecuzione:
-  1. si connette a MongoDB (stato anti-duplicati + blacklist dinamica); se è giù, salta il giro
-  2. drena i comandi Telegram arrivati dall'ultimo giro (/add, /list, /delete)
-  3. per ogni query × mercato cerca gli annunci "appena listati" e notifica i NUOVI su Telegram
+Gira su GitHub Actions (schedule ogni 1h + trigger manuale). Ogni esecuzione:
+  1. si connette a MongoDB (stato anti-duplicati); se è giù, salta il giro
+  2. per ogni query × mercato cerca gli annunci "appena listati" e notifica i NUOVI su Telegram
+
+I comandi Telegram (/add /list /market /delete) non passano più da qui: li gestisce
+webhook_app.py, un servizio Render separato, istantaneo — vedi
+docs/superpowers/specs/2026-09-15-ebay-monitor-telegram-webhook-design.md.
 
 Ricerca per NOME (config.SEARCH_QUERIES): niente confronto foto (il VLM non distingue le
 lattine, rimosso). Il rumore lo scremi curando la blacklist con /add dalla chat.
@@ -23,8 +26,6 @@ import os
 import sys
 import time
 import base64
-import hashlib
-import json
 import requests
 import threading
 from pathlib import Path
@@ -32,11 +33,7 @@ from datetime import timedelta, timezone, datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import settings
-from bot_logic import (
-    Store, parse_command, validate_add_word, resolve_marketplace,
-    apply_market_change, effective_markets, daily_ebay_calls,
-    _tg_text, _tg_url, _chat_id,
-)
+from bot_logic import Store, effective_markets, _tg_text, _tg_url, _chat_id
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -241,196 +238,6 @@ def send_telegram(title, price, currency, url, image_url, site, reason):
         return False
 
 
-# ─── TELEGRAM: drain comandi (una volta per giro) ─────────────────────────────
-# Il cron non tiene un processo vivo: a inizio giro leggiamo i comandi arrivati dall'ultimo
-# giro, li eseguiamo, e li confermiamo (Telegram li scarta). Latenza fino a ~2h, accettata.
-# Tutti i comandi sono IDEMPOTENTI, così un'eventuale riprocessazione non fa danni.
-
-def _delete_one(mid):
-    """True se il messaggio è stato cancellato. Un retry sul 429 rispettando retry_after."""
-    for attempt in (1, 2):
-        try:
-            r = requests.post(f"{_tg_url()}/deleteMessage",
-                              data={"chat_id": _chat_id(), "message_id": mid}, timeout=15)
-            if r.status_code == 429 and attempt == 1:
-                retry_after = (r.json().get("parameters") or {}).get("retry_after", 1)
-                time.sleep(min(retry_after, 30) + 0.1)
-                continue
-            return bool(r.ok and r.json().get("ok"))
-        except Exception:
-            return False
-    return False
-
-def delete_bot_messages(up_to_id, protected=()):
-    """Cancella a ritroso i messaggi del bot prima di up_to_id (fino a DELETE_SCAN_BACK).
-    Telegram rifiuta quelli non del bot o più vecchi di 48h: contiamo solo i cancellati.
-    'protected' = message_id da NON cancellare (es. il banner fissato)."""
-    scan = getattr(settings, "DELETE_SCAN_BACK", 300)
-    workers = getattr(settings, "DELETE_WORKERS", 12)
-    protected = set(protected)
-    ids = [i for i in range(up_to_id - 1, max(0, up_to_id - scan - 1), -1) if i not in protected]
-    with ThreadPoolExecutor(max_workers=workers) as ex:
-        return sum(ex.map(_delete_one, ids))
-
-def _handle_command(store, cmd, arg, msg_id):
-    """Esegue un comando. Ritorna True se gestito (per il log)."""
-    if cmd == "delete":
-        banner = store.get_meta("banner_msg_id")           # non cancellare il banner fissato
-        n = delete_bot_messages(msg_id, protected={banner} if banner else ())
-        _delete_one(msg_id)   # cancella anche il comando stesso
-        print(f"  [/delete] cancellati {n} messaggi del bot")
-        return True
-    if cmd == "add":
-        word = arg.strip().lower()
-        ok, reason = validate_add_word(word, settings.REQUIRE_WORDS)
-        if ok:
-            store.add_blacklist_word(word)
-            tot = len(store.blacklist_additions())
-            _tg_text(f"✅ aggiunto '{word}' alla blacklist (ora {tot} parole dinamiche)")
-            print(f"  [/add] '{word}' aggiunto ({tot} dinamiche)")
-        else:
-            _tg_text(f"⚠️ '{arg.strip()}' ignorato: {reason}")
-            print(f"  [/add] rifiutato '{arg.strip()}': {reason}")
-        return True
-    if cmd == "list":
-        words = sorted(store.blacklist_additions())
-        if words:
-            _tg_text("🗒️ Parole dinamiche (aggiunte via /add):\n" + "\n".join(words))
-        else:
-            _tg_text("🗒️ Nessuna parola dinamica: la blacklist è solo quella di base (blacklist.txt).")
-        print(f"  [/list] {len(words)} parole dinamiche")
-        return True
-    if cmd == "market":
-        override = store.get_meta("market_override")
-        parts = arg.split()
-        if not parts:                                   # nessun argomento → mostra i mercati attivi
-            active = effective_markets(settings.EBAY_MARKETPLACES, override)
-            _tg_text(f"🌍 Mercati attivi ({len(active)}):\n" + "\n".join(active)
-                     + "\n\nUso: /market add <paese> · /market remove <paese>  (es. uk, it, de, fr)")
-            print(f"  [/market] lista: {len(active)} mercati")
-            return True
-        action = parts[0].lower()
-        if action not in ("add", "remove"):
-            _tg_text("⚠️ uso: /market · /market add <paese> · /market remove <paese>")
-            return True
-        raw = " ".join(parts[1:])
-        target = resolve_marketplace(raw)
-        if not target:
-            _tg_text(f"⚠️ mercato non valido: '{raw}'. Esempi: uk, it, de, us, fr, es, ca, au…")
-            print(f"  [/market] {action} rifiutato: '{raw}' non valido")
-            return True
-        new_override, ok, msg = apply_market_change(override, action, target, settings.EBAY_MARKETPLACES)
-        if ok:
-            store.set_meta("market_override", new_override)
-            active = effective_markets(settings.EBAY_MARKETPLACES, new_override)
-            calls = daily_ebay_calls(len(active))
-            warn = ""
-            if calls > 0.8 * settings.EBAY_DAILY_BUDGET:
-                warn = (f"\n⚠️ ~{calls} chiamate eBay/giorno (limite ~{settings.EBAY_DAILY_BUDGET}): "
-                        f"vicino al tetto, occhio ad aggiungerne altri.")
-            _tg_text(f"✅ {msg}\n🌍 attivi ora ({len(active)}): {', '.join(active)}{warn}")
-            print(f"  [/market] {msg} → {len(active)} attivi (~{calls} chiamate/giorno)")
-        else:
-            _tg_text(f"⚠️ {msg}")
-            print(f"  [/market] rifiutato: {msg}")
-        return True
-    return False
-
-BANNER_TEXT = (
-    "ℹ️ Come funziona questo bot\n\n"
-    "I comandi /add /list /market /delete NON sono istantanei: il radar gira in cloud ~ogni 2h e li "
-    "esegue al giro successivo (attesa fino a ~2h). Scrivi pure il comando e aspetta il prossimo "
-    "giro per la risposta/effetto — non è rotto, è in coda.\n"
-    "È il costo dell'esecuzione gratuita: nessun processo sempre acceso in ascolto."
-)
-
-def ensure_banner(store):
-    """Assicura che ci sia un messaggio fissato che spiega la latenza. Creato una volta e
-    salvato su Mongo (message_id): non lo rifà a ogni giro e il /delete lo preserva."""
-    if store.get_meta("banner_msg_id"):
-        return
-    try:
-        r = requests.post(f"{_tg_url()}/sendMessage",
-                          data={"chat_id": _chat_id(), "text": BANNER_TEXT,
-                                "disable_notification": True}, timeout=15)
-        mid = (r.json().get("result") or {}).get("message_id")
-        if mid:
-            requests.post(f"{_tg_url()}/pinChatMessage",
-                          data={"chat_id": _chat_id(), "message_id": mid,
-                                "disable_notification": True}, timeout=15)
-            store.set_meta("banner_msg_id", mid)
-            print(f"  [banner] creato e fissato (msg {mid})")
-    except Exception as exc:
-        print(f"  [banner] non creato: {exc}")
-
-
-# Menu comandi (tastino ☰ e autocompletamento "/"). Aggiungere qui un comando lo fa
-# comparire premendo "/". La descrizione è la spiegazione mostrata accanto al comando.
-BOT_COMMANDS = [
-    {"command": "add",    "description": "Aggiungi una parola alla blacklist"},
-    {"command": "list",   "description": "Mostra le parole aggiunte con /add"},
-    {"command": "market", "description": "Mercati eBay: /market · add <paese> · remove <paese>"},
-    {"command": "delete", "description": "Cancella i messaggi inviati dal bot"},
-]
-
-
-def register_commands_menu(store):
-    """Registra il menu comandi (quello che compare premendo "/") su Telegram. Idempotente e
-    a costo ~zero: chiama setMyCommands SOLO quando l'elenco cambia (firma su Mongo) → dopo un
-    deploy il menu è fresco entro un giro (5 min), senza martellare l'API a ogni giro.
-    Lo registriamo su scope 'default' e 'all_private_chats' (più specifico: vince nelle chat
-    private — se resta indietro, il client mostra i comandi vecchi)."""
-    sig = hashlib.md5(json.dumps(BOT_COMMANDS, sort_keys=True).encode()).hexdigest()
-    if store.get_meta("cmds_sig") == sig:
-        return
-    url = _tg_url()
-    for scope in (None, {"type": "all_private_chats"}):
-        try:
-            payload = {"commands": BOT_COMMANDS}
-            if scope:
-                payload["scope"] = scope
-            requests.post(f"{url}/setMyCommands", json=payload, timeout=15)
-        except Exception:
-            return   # non salvare la firma se la registrazione è fallita: riprova al giro dopo
-    store.set_meta("cmds_sig", sig)
-
-
-def register_bot_ui(store):
-    """Housekeeping UI pesante (descrizione + banner fissato): cambia di rado → solo negli
-    sweep (~2h). Il menu comandi invece è gestito da register_commands_menu a OGNI giro."""
-    url = _tg_url()
-    try:   # descrizione bot (schermata iniziale / profilo): spiega la latenza
-        requests.post(f"{url}/setMyDescription", json={"description": BANNER_TEXT}, timeout=15)
-    except Exception:
-        pass
-    ensure_banner(store)   # banner fissato in cima alla chat
-
-
-def drain_commands(store):
-    """Legge i comandi pendenti, li esegue, poi li conferma (offset) così al giro dopo
-    Telegram non li rimanda. Solo dalla chat autorizzata. Chiamato a OGNI giro (5 min)."""
-    url = _tg_url()
-    try:
-        ups = requests.get(f"{url}/getUpdates", params={"timeout": 0}, timeout=25).json().get("result", [])
-    except Exception as exc:
-        print(f"  [WARN] getUpdates fallito, comandi saltati: {exc}")
-        return
-    last = None
-    for u in ups:
-        last = u["update_id"]
-        msg = u.get("message") or {}
-        chat_id = str((msg.get("chat") or {}).get("id", ""))
-        if chat_id != str(_chat_id()):
-            continue
-        cmd, arg = parse_command(msg.get("text") or "")
-        if cmd in ("add", "list", "delete", "market"):
-            _handle_command(store, cmd, arg, msg.get("message_id", 0))
-    if last is not None:   # conferma: Telegram scarta gli update <= last
-        try:
-            requests.get(f"{url}/getUpdates", params={"offset": last + 1, "timeout": 0}, timeout=25)
-        except Exception:
-            pass   # non confermati: verranno riprocessati (idempotente, nessun danno)
-
 
 # ─── RICERCHE + STATS ─────────────────────────────────────────────────────────
 
@@ -537,18 +344,15 @@ def run_once(send_now=False, cap_per_query=None):
         _tg_text(f"⚠️ eBay Monitor: MongoDB irraggiungibile, giro saltato. {type(exc).__name__}")
         return
 
-    drain_commands(store)         # OGNI giro (5 min): la parte reattiva
-    register_commands_menu(store) # menu "/" sempre aggiornato (chiama Telegram solo se cambia)
-
     # Ricerca eBay: solo se sono passati ≥ SWEEP_INTERVAL_SECONDS dall'ultimo sweep (o test).
+    # I comandi Telegram non passano più di qui: li gestisce webhook_app.py (Render), istantanei.
     now = time.time()
     last = store.get_meta("last_sweep_at")
     if not sweep_due(last, now, settings.SWEEP_INTERVAL_SECONDS, send_now):
         wait = int((settings.SWEEP_INTERVAL_SECONDS - (now - last)) / 60)
-        print(f"  Comandi drenati. Prossima ricerca eBay tra ~{wait} min.")
+        print(f"  Prossima ricerca eBay tra ~{wait} min.")
         return
 
-    register_bot_ui(store)   # housekeeping UI: solo negli sweep, non ogni 5 min
     token = get_ebay_token()
     if not token:
         print("⚠️  Niente token eBay — vedi il messaggio [ERRORE]/[RETE] sopra."); return

@@ -39,19 +39,21 @@ SEARCH_QUERIES = [f"monster energy {kw}".strip() for kw in _KEYWORDS]
 
 MAX_PRICE_EUR = None
 
-# ⏱️ Solo annunci listati nelle ultime N ore (filtro lato eBay). Allargata da 2.5 a 3.5:
-# i cron di GitHub Actions non partono all'orario esatto (slittano di minuti, a volte saltano
-# un giro) → 3.5h assorbe i ritardi. Costo: qualche duplicato in più, già filtrato dal DB.
-MAX_LISTING_AGE_HOURS = 3.5
+# ⏱️ Solo annunci listati nelle ultime N ore (filtro lato eBay). Margine di sicurezza sopra
+# SWEEP_INTERVAL_SECONDS (1h): un cron orario reale ha molto meno drift da assorbire di prima
+# (era 3.5h per assorbire le ore di ritardo del vecchio schedule ogni 5 min, non più usato).
+MAX_LISTING_AGE_HOURS = 2
 
 # Parole OBBLIGATORIE nel titolo (tutte, in qualsiasi ordine): eBay non fa un AND stretto.
 REQUIRE_WORDS = ["monster", "energy"]
 
-# Il workflow gira ogni 5 min per drenare i COMANDI Telegram in fretta, ma la RICERCA eBay
-# resta ogni ~2h (altrimenti sfori il limite ~5.000 chiamate/giorno): ogni giro fa lo sweep
-# solo se sono passati almeno SWEEP_INTERVAL_SECONDS dall'ultimo (timestamp su Mongo).
+# I comandi Telegram (/add /list /market /delete) non passano più da qui: li gestisce
+# webhook_app.py (servizio Render separato, istantaneo). Questo script fa solo lo sweep
+# eBay, su un cron GitHub Actions dedicato ogni ora — vedi .github/workflows/ebay-monitor.yml
+# e docs/superpowers/specs/2026-09-15-ebay-monitor-telegram-webhook-design.md.
+# sweep_due() resta comunque un gate di sicurezza (es. run_once() lanciato più volte a mano).
 # Deve restare < MAX_LISTING_AGE_HOURS (finestra), o perdi annunci tra uno sweep e l'altro.
-SWEEP_INTERVAL_SECONDS = 7200   # 2 ore
+SWEEP_INTERVAL_SECONDS = 3600   # 1 ora
 
 # Tetto orientativo chiamate/giorno della Browse API (per l'avviso su /market add: aggiungere
 # mercati moltiplica le chiamate query×mercati×sweep-al-giorno e può sforare in silenzio).
