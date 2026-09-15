@@ -23,6 +23,8 @@ import os
 import sys
 import time
 import base64
+import hashlib
+import json
 import requests
 import threading
 from pathlib import Path

@@ -1,5 +1,12 @@
 """Test della logica pura del monitor (niente rete/Mongo). Esegui:  py test_ebay_monitor.py
    Compatibile anche con pytest."""
+import sys
+
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 import ebay_monitor as m
 import settings
 
@@ -125,8 +132,8 @@ if __name__ == "__main__":
     failed = 0
     for t in tests:
         try:
-            t(); print(f"  + {t.__name__}")
+            t(); print(f"  ✓ {t.__name__}")
         except Exception:
-            failed += 1; print(f"  - {t.__name__}"); traceback.print_exc()
+            failed += 1; print(f"  ✗ {t.__name__}"); traceback.print_exc()
     print(f"\n{len(tests) - failed}/{len(tests)} test passati.")
     raise SystemExit(1 if failed else 0)
