@@ -1,4 +1,10 @@
-import { pickRelated, lineupKey, sameLineupPool, rankByRelevance } from './relatedCans';
+import {
+  pickRelated,
+  lineupKey,
+  sameLineupPool,
+  rankByRelevance,
+  sameLineupGroups,
+} from './relatedCans';
 import type { Can } from './types';
 
 const can = (over: Partial<Can>): Can => ({ id: 'x', nome: 'X', ...over });
@@ -101,6 +107,54 @@ describe('sameLineupPool', () => {
     expect(result.length).toBe(4); // solo le altre 4 "Ultra White"
     expect(result.map((c) => c.id)).not.toContain('r1');
   });
+
+  test('preferisce nome a 2 parole + stessa nazione quando basta', () => {
+    const target = can({ id: 't', nome: 'Hydro Mean Green', lingua: 'USA' });
+    const cans = [
+      target,
+      can({ id: 'us1', nome: 'Hydro Mean Green', lingua: 'USA' }),
+      can({ id: 'us2', nome: 'Hydro Mean Green', lingua: 'USA' }),
+      can({ id: 'us3', nome: 'Hydro Mean Green', lingua: 'USA' }),
+      can({ id: 'us4', nome: 'Hydro Mean Green', lingua: 'USA' }), // 4 = soglia
+      can({ id: 'uk1', nome: 'Hydro Mean Green', lingua: 'UK' }), // stesso nome, altra nazione
+    ];
+    const result = sameLineupPool(cans, target);
+    expect(result.length).toBe(4);
+    expect(result.every((c) => c.lingua === 'USA')).toBe(true);
+  });
+
+  test('rilassa la nazione solo dopo aver provato entrambe le larghezze di nome', () => {
+    // 2 parole + nazione: troppo poche. 1 parola + nazione: raggiunge la soglia
+    // → NON deve rilassare la nazione, anche se ce ne sarebbero altre a 2
+    // parole in altre nazioni.
+    const target = can({ id: 't', nome: 'OG Nico Hischier', promo: 'YES', lingua: 'SWISS' });
+    const cans = [
+      target,
+      can({ id: 'ch1', nome: 'OG Ken Block', promo: 'YES', lingua: 'SWISS' }),
+      can({ id: 'ch2', nome: 'OG First', promo: 'YES', lingua: 'SWISS' }),
+      can({ id: 'ch3', nome: 'OG Second', promo: 'YES', lingua: 'SWISS' }),
+      can({ id: 'ch4', nome: 'OG Third', promo: 'YES', lingua: 'SWISS' }), // 4 = soglia
+      can({ id: 'other', nome: 'OG Nico Other', promo: 'YES', lingua: 'GERMANY' }),
+    ];
+    const result = sameLineupPool(cans, target);
+    expect(result.length).toBe(4);
+    expect(result.every((c) => c.lingua === 'SWISS')).toBe(true);
+    expect(result.map((c) => c.id)).not.toContain('other');
+  });
+
+  test('rilassa la nazione come ultima spiaggia se anche 1 parola + nazione è troppo poco', () => {
+    const target = can({ id: 't', nome: 'Rare Flavor', lingua: 'JAPAN' });
+    const cans = [
+      target,
+      can({ id: 'jp1', nome: 'Rare Flavor 2', lingua: 'JAPAN' }), // solo 1 in JAPAN
+      can({ id: 'us1', nome: 'Rare Flavor 3', lingua: 'USA' }),
+      can({ id: 'us2', nome: 'Rare Flavor 4', lingua: 'USA' }),
+      can({ id: 'us3', nome: 'Rare Flavor 5', lingua: 'USA' }),
+    ];
+    const result = sameLineupPool(cans, target);
+    // Nessun tentativo raggiunge 4: usa l'ultimo (1 parola, ogni nazione) → tutte.
+    expect(result.length).toBe(4);
+  });
 });
 
 describe('rankByRelevance', () => {
@@ -135,5 +189,78 @@ describe('rankByRelevance', () => {
     const result = rankByRelevance(cans, target);
     expect(result.length).toBe(6);
     expect(new Set(result.map((c) => c.id))).toEqual(new Set(cans.map((c) => c.id)));
+  });
+});
+
+describe('sameLineupGroups', () => {
+  test('lattina normale: un solo blocco senza etichetta (nazione-first)', () => {
+    const target = can({ id: 't', nome: 'Hydro Mean Green', lingua: 'USA' });
+    const cans = [
+      target,
+      can({ id: 'us1', nome: 'Hydro Mean Green', lingua: 'USA' }),
+      can({ id: 'us2', nome: 'Hydro Mean Green', lingua: 'USA' }),
+      can({ id: 'us3', nome: 'Hydro Mean Green', lingua: 'USA' }),
+      can({ id: 'us4', nome: 'Hydro Mean Green', lingua: 'USA' }),
+      can({ id: 'uk1', nome: 'Hydro Mean Green', lingua: 'UK' }),
+    ];
+    const groups = sameLineupGroups(cans, target);
+    expect(groups.length).toBe(1);
+    expect(groups[0].label).toBeNull();
+    expect(groups[0].cans.every((c) => c.lingua === 'USA')).toBe(true);
+  });
+
+  test('promo con gemella in un’altra nazione: fascia A senza etichetta la cattura', () => {
+    const target = can({ id: 'india', nome: 'OG Hardik Pandya', promo: 'YES', lingua: 'INDIA' });
+    const trinidad = can({
+      id: 'trin',
+      nome: 'OG Hardik Pandya Trinidad',
+      promo: 'YES',
+      lingua: 'TRINIDAD',
+    });
+    const groups = sameLineupGroups([target, trinidad], target);
+    expect(groups[0].label).toBeNull();
+    expect(groups[0].cans.map((c) => c.id)).toEqual(['trin']);
+  });
+
+  test('promo unica al mondo: fascia A vuota, fascia B con le altre promo della stessa nazione', () => {
+    const target = can({ id: 't', nome: 'OG Nico Hischier', promo: 'YES', lingua: 'SWISS' });
+    const cans = [
+      target,
+      can({ id: 'ch1', nome: 'OG Ken Block', promo: 'YES', lingua: 'SWISS' }),
+      can({ id: 'ch2', nome: 'OG First', promo: 'YES', lingua: 'SWISS' }),
+      can({ id: 'de1', nome: 'OG Ken Block', promo: 'YES', lingua: 'GERMANY' }), // altra nazione
+    ];
+    const groups = sameLineupGroups(cans, target);
+    // Fascia A vuota (nessuna gemella "OG Nico" altrove): non entra in groups.
+    // Fascia B: le due promo svizzere. Fascia C: quella tedesca, come riempimento.
+    expect(groups[0].label).toBe('Other SWISS promos');
+    expect(groups[0].cans.map((c) => c.id).sort()).toEqual(['ch1', 'ch2']);
+    expect(groups[1].label).toBe('Other rare promos');
+    expect(groups[1].cans.map((c) => c.id)).toEqual(['de1']);
+  });
+
+  test('fascia C fa da riempimento finale con promo rare da ovunque', () => {
+    const target = can({ id: 't', nome: 'OG Nico Hischier', promo: 'YES', lingua: 'SWISS' });
+    const cans = [
+      target,
+      can({ id: 'other', nome: 'ULTRA WHITE THAR', promo: 'YES', lingua: 'INDIA' }),
+    ];
+    const groups = sameLineupGroups(cans, target);
+    const last = groups[groups.length - 1];
+    expect(last.label).toBe('Other rare promos');
+    expect(last.cans.map((c) => c.id)).toEqual(['other']);
+  });
+
+  test('non supera il limite totale sommando le fasce', () => {
+    const target = can({ id: 't', nome: 'OG X', promo: 'YES', lingua: 'SWISS' });
+    const cans = [
+      target,
+      ...Array.from({ length: 10 }, (_, i) =>
+        can({ id: `c${i}`, nome: `OG Y${i}`, promo: 'YES', lingua: 'SWISS' }),
+      ),
+    ];
+    const groups = sameLineupGroups(cans, target, 8);
+    const total = groups.reduce((sum, g) => sum + g.cans.length, 0);
+    expect(total).toBe(8);
   });
 });

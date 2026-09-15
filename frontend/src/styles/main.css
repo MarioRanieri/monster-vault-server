@@ -1705,6 +1705,20 @@ body.light .filter-select option {
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 10px;
 }
+/* Fasce promo concatenate (vedi sameLineupGroups): separatore leggero +
+   sottotitolo tra un blocco e il successivo, non solo tra sezioni. */
+.detail-related-subgroup {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.detail-related-subtitle {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text3);
+  margin: 0 0 10px;
+}
 
 /* Stats: grafico a ciambella + legenda (React) */
 .donut-row {

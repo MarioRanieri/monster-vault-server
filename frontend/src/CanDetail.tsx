@@ -7,7 +7,7 @@ import { cloudinaryThumb } from './cloudinary';
 import { CanShare } from './CanShare';
 import { Lightbox } from './Lightbox';
 import { CanGrid } from './CanGrid';
-import { pickRelated, sameLineupPool, rankByRelevance } from './relatedCans';
+import { pickRelated, sameLineupGroups } from './relatedCans';
 
 // Pannello di dettaglio completo (struttura/classi del vecchio): immagine
 // principale + miniature, tutti i campi, opening, descrizione. Lightbox con
@@ -75,12 +75,13 @@ export function CanDetail({
     return pickRelated(sameCountry, 8);
   }, [can.id, allCans]);
 
-  // "Cans from the same lineup": match sul nome (adattivo 2→1 parola, mai
-  // mischiando promo/non-promo — vedi sameLineupPool), poi in ordine di
-  // rilevanza: stessa nazione, stessa size, con foto, pareggio a caso.
-  const lineupCans = useMemo(() => {
+  // "Cans from the same lineup": per una lattina normale un solo blocco
+  // (nazione-first). Per una promo, la "linea" è la campagna/oggetto — tre
+  // fasce concatenate (stesso item ovunque, altre promo stessa nazione,
+  // altre promo rare), ognuna col suo sottotitolo — vedi sameLineupGroups.
+  const lineupGroups = useMemo(() => {
     if (!allCans) return [];
-    return rankByRelevance(sameLineupPool(allCans, can), can).slice(0, 8);
+    return sameLineupGroups(allCans, can);
   }, [can.id, allCans]);
 
   return (
@@ -263,10 +264,18 @@ export function CanDetail({
             <CanGrid cans={relatedCans} showPrice={showPrice} onSelect={onSelect} />
           </section>
         )}
-        {lineupCans.length > 0 && (
+        {lineupGroups.length > 0 && (
           <section className="detail-related" aria-label="Cans from the same lineup">
             <h3 className="detail-related-title">Cans from the same lineup</h3>
-            <CanGrid cans={lineupCans} showPrice={showPrice} onSelect={onSelect} />
+            {lineupGroups.map((group, i) => (
+              <div
+                key={group.label ?? 'main'}
+                className={i > 0 ? 'detail-related-subgroup' : undefined}
+              >
+                {group.label && <h4 className="detail-related-subtitle">{group.label}</h4>}
+                <CanGrid cans={group.cans} showPrice={showPrice} onSelect={onSelect} />
+              </div>
+            ))}
           </section>
         )}
       </div>

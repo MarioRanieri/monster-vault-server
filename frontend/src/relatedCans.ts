@@ -39,24 +39,42 @@ export function pickRelated(cans: Can[], limit: number): Can[] {
  * Pool di lattine della stessa "linea" di `can`: promo e non-promo non si
  * mischiano mai (una lattina promo — crossover CoD, Halo, sponsor... — non
  * è la stessa linea di una lattina normale anche se il nome combacia, es.
- * "OG Nico Hischier" vs "OG" normale). Dentro quel filtro, prova il match
- * a 2 parole; se il gruppo risultante ha meno di `minGroupSize` lattine
- * (nomi molto specifici come "OG Nico Hischier" isolano gruppetti da 1-2),
- * allarga a 1 parola. Calcolato sui dati reali ogni volta, nessuna lista
- * scritta a mano — verificato sulla collezione live: "OG" si frammenta in
- * decine di varianti da 2 parole per lo più minuscole, "ULTRA"/"ABSOLUTELY
- * ZERO" no.
+ * "OG Nico Hischier" vs "OG" normale).
+ *
+ * Dentro quel filtro, prova in ordine — le linee sono principalmente per
+ * nazione, quindi la nazione si rilassa solo per ultima, dopo aver già
+ * provato entrambe le larghezze di nome:
+ *   1. nome a 2 parole + stessa nazione   (es. "HYDRO MEAN" + USA)
+ *   2. nome a 1 parola  + stessa nazione   (es. "OG" + SWISS)
+ *   3. nome a 2 parole, qualsiasi nazione
+ *   4. nome a 1 parola,  qualsiasi nazione (rete di sicurezza finale)
+ * Il primo tentativo che raggiunge `minGroupSize` lattine vince; se
+ * nessuno lo raggiunge si usa comunque l'ultimo (il più ampio), così la
+ * sezione non resta mai vuota per un pezzo davvero raro. Calcolato sui
+ * dati reali ogni volta, nessuna lista scritta a mano — verificato sulla
+ * collezione live: "HYDRO MEAN GREEN" USA isolato a 5 lattine (2 parole +
+ * nazione), "OG NICO HISCHIER" (promo, SWISS) a 10 (1 parola + nazione,
+ * niente bisogno di allargare oltre).
  */
 export function sameLineupPool(cans: Can[], can: Can, minGroupSize = 4): Can[] {
   const isPromo = hasPromo(can.promo);
   const sameStatus = cans.filter((c) => c.id !== can.id && hasPromo(c.promo) === isPromo);
 
+  const sameNazione = (c: Can) => Boolean(can.lingua) && c.lingua === can.lingua;
   const key2 = lineupKey(can.nome, 2);
-  const matches2 = sameStatus.filter((c) => lineupKey(c.nome, 2) === key2);
-  if (matches2.length >= minGroupSize) return matches2;
-
   const key1 = lineupKey(can.nome, 1);
-  return sameStatus.filter((c) => lineupKey(c.nome, 1) === key1);
+  const attempts: ((c: Can) => boolean)[] = [
+    (c) => sameNazione(c) && lineupKey(c.nome, 2) === key2,
+    (c) => sameNazione(c) && lineupKey(c.nome, 1) === key1,
+    (c) => lineupKey(c.nome, 2) === key2,
+    (c) => lineupKey(c.nome, 1) === key1,
+  ];
+
+  for (const attempt of attempts) {
+    const matches = sameStatus.filter(attempt);
+    if (matches.length >= minGroupSize) return matches;
+  }
+  return sameStatus.filter(attempts[attempts.length - 1]);
 }
 
 /**
@@ -78,4 +96,67 @@ export function rankByRelevance(cans: Can[], can: Can): Can[] {
     else byScore.set(s, [c]);
   }
   return [...byScore.keys()].sort((a, b) => b - a).flatMap((s) => shuffle(byScore.get(s)!));
+}
+
+/** Un blocco di card correlate con un'etichetta opzionale (null = nessun
+ *  sottotitolo, si mostrano subito sotto il titolo principale della sezione). */
+export interface RelatedGroup {
+  label: string | null;
+  cans: Can[];
+}
+
+/**
+ * Lattine "della stessa linea" di `can`, in blocchi. Per una lattina normale
+ * è un solo blocco (nazione-first, vedi sameLineupPool). Per una promo il
+ * concetto di "linea" è diverso: una promo è definita dalla campagna/oggetto
+ * (es. "OG Hardik Pandya"), non dal mercato locale, quindi ha priorità sulla
+ * nazione — tre fasce concatenate, ognuna riempie quel che ha (mai scartata
+ * per essere "troppo piccola" come nel cascade nazione-first):
+ *   A. stesso identico item (2 parole), qualsiasi nazione — es. la versione
+ *      Trinidad di "OG Hardik Pandya" guardando quella indiana.
+ *   B. qualsiasi altra promo della stessa nazione — se A non basta.
+ *   C. qualsiasi altra promo rara, da ovunque — riempimento finale.
+ * Verificato sui dati reali: "OG Nico Hischier" (unica al mondo) → fascia A
+ * vuota, fascia B con le altre promo svizzere; "OG Hardik Pandya" → fascia A
+ * con la sola versione Trinidad.
+ */
+export function sameLineupGroups(cans: Can[], can: Can, limit = 8): RelatedGroup[] {
+  const isPromo = hasPromo(can.promo);
+  if (!isPromo) {
+    const pool = rankByRelevance(sameLineupPool(cans, can), can).slice(0, limit);
+    return pool.length > 0 ? [{ label: null, cans: pool }] : [];
+  }
+
+  const sameStatus = cans.filter((c) => c.id !== can.id && hasPromo(c.promo) === isPromo);
+  const used = new Set<string>();
+  const groups: RelatedGroup[] = [];
+  let remaining = limit;
+
+  const takeGroup = (label: string | null, candidates: Can[]) => {
+    if (remaining <= 0 || candidates.length === 0) return;
+    const picked = rankByRelevance(candidates, can).slice(0, remaining);
+    picked.forEach((c) => used.add(c.id));
+    groups.push({ label, cans: picked });
+    remaining -= picked.length;
+  };
+
+  const key2 = lineupKey(can.nome, 2);
+  takeGroup(
+    null,
+    sameStatus.filter((c) => !used.has(c.id) && lineupKey(c.nome, 2) === key2),
+  );
+
+  if (can.lingua) {
+    takeGroup(
+      `Other ${can.lingua} promos`,
+      sameStatus.filter((c) => !used.has(c.id) && c.lingua === can.lingua),
+    );
+  }
+
+  takeGroup(
+    'Other rare promos',
+    sameStatus.filter((c) => !used.has(c.id)),
+  );
+
+  return groups;
 }
