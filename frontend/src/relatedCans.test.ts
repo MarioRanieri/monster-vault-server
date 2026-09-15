@@ -30,7 +30,7 @@ describe('pickRelated', () => {
     expect(pickRelated(cans, 8).length).toBe(2);
   });
 
-  test('non inventa lattine: il risultato pesca solo dall\'input', () => {
+  test("non inventa lattine: il risultato pesca solo dall'input", () => {
     const cans = Array.from({ length: 6 }, (_, i) => can({ id: `c${i}` }));
     const result = pickRelated(cans, 4);
     const inputIds = new Set(cans.map((c) => c.id));
