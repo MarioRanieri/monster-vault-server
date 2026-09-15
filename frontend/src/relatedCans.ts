@@ -12,7 +12,10 @@ export function lineupKey(nome: string): string {
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    // Ordine di visualizzazione delle card correlate, nessuna decisione di
+    // sicurezza: Math.random() non crittografico è adeguato qui, non serve
+    // crypto.getRandomValues(). Falso positivo verificato (S2245). NOSONAR
+    const j = Math.floor(Math.random() * (i + 1)); // NOSONAR
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
