@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CanDetail } from './CanDetail';
 import type { Can } from './types';
@@ -154,6 +154,35 @@ test('mostra le lattine della stessa linea (prime due parole del nome)', () => {
   const section = screen.getByRole('region', { name: /cans from the same lineup/i });
   expect(section.querySelectorAll('.card').length).toBe(2);
   expect(screen.queryByText('Ultra White (New)')).toBeNull();
+});
+
+test('nella stessa linea non mischia mai promo e non-promo', () => {
+  const target: Can = { id: '1', nome: 'OG Nico Hischier', promo: 'YES' };
+  const allCans: Can[] = [
+    target,
+    { id: '2', nome: 'OG Ken Block', promo: 'YES' }, // stesso stato promo → ok
+    { id: '3', nome: 'OG Original' }, // stessa linea ma NON promo → escluso
+  ];
+  render(<CanDetail can={target} onClose={() => {}} allCans={allCans} onSelect={() => {}} />);
+  const section = screen.getByRole('region', { name: /cans from the same lineup/i });
+  expect(section.querySelectorAll('.card').length).toBe(1);
+  expect(screen.queryByText('OG Original')).toBeNull();
+});
+
+test('una promo con gemella in un’altra nazione mostra la fascia senza sottotitolo, poi quella "same country" con etichetta', () => {
+  const target: Can = { id: '1', nome: 'OG Hardik Pandya', promo: 'YES', lingua: 'INDIA' };
+  const allCans: Can[] = [
+    target,
+    { id: '2', nome: 'OG Hardik Pandya Trinidad', promo: 'YES', lingua: 'TRINIDAD' },
+    { id: '3', nome: 'ULTRA WHITE THAR', promo: 'YES', lingua: 'INDIA' }, // altra promo indiana
+  ];
+  render(<CanDetail can={target} onClose={() => {}} allCans={allCans} onSelect={() => {}} />);
+  // "ULTRA WHITE THAR" combacia anche per "Other cans from this country" (stessa
+  // nazione+promo, sezione indipendente) — la query resta dentro "same lineup".
+  const section = screen.getByRole('region', { name: /cans from the same lineup/i });
+  expect(within(section).getByText('OG Hardik Pandya Trinidad')).toBeTruthy();
+  expect(within(section).getByText('Other INDIA promos')).toBeTruthy();
+  expect(within(section).getByText('ULTRA WHITE THAR')).toBeTruthy();
 });
 
 test('naviga le foto con le frecce e mostra il contatore', async () => {
