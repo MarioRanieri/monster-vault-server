@@ -7,7 +7,7 @@ import { cloudinaryThumb } from './cloudinary';
 import { CanShare } from './CanShare';
 import { Lightbox } from './Lightbox';
 import { CanGrid } from './CanGrid';
-import { pickRelated, lineupKey } from './relatedCans';
+import { pickRelated, sameLineupPool, rankByRelevance } from './relatedCans';
 
 // Pannello di dettaglio completo (struttura/classi del vecchio): immagine
 // principale + miniature, tutti i campi, opening, descrizione. Lightbox con
@@ -59,25 +59,28 @@ export function CanDetail({
     .map((v) => v.trim())
     .filter(Boolean);
 
-  // "Other cans from this country": stesso lingua/paese, esclusa se stessa, a
+  // "Other cans from this country": stesso lingua/paese e stesso stato promo
+  // (mai mischiare una promo con una lattina normale), esclusa se stessa, a
   // caso preferendo quelle con foto — memoizzato sull'id così non rimescola a
   // ogni render (es. cambio foto principale) ma solo aprendo un'altra can.
   const relatedCans = useMemo(() => {
     if (!allCans) return [];
     const sameCountry = allCans.filter(
-      (c) => c.id !== can.id && c.lingua && c.lingua === can.lingua,
+      (c) =>
+        c.id !== can.id &&
+        c.lingua &&
+        c.lingua === can.lingua &&
+        hasPromo(c.promo) === hasPromo(can.promo),
     );
     return pickRelated(sameCountry, 8);
   }, [can.id, allCans]);
 
-  // "Cans from the same lineup": stesse prime due parole del nome (es.
-  // "ABSOLUTELY ZERO ..." → stessa linea, varianti diverse). Stessa logica
-  // random + preferenza foto di sopra.
+  // "Cans from the same lineup": match sul nome (adattivo 2→1 parola, mai
+  // mischiando promo/non-promo — vedi sameLineupPool), poi in ordine di
+  // rilevanza: stessa nazione, stessa size, con foto, pareggio a caso.
   const lineupCans = useMemo(() => {
     if (!allCans) return [];
-    const key = lineupKey(can.nome);
-    const sameLineup = allCans.filter((c) => c.id !== can.id && lineupKey(c.nome) === key);
-    return pickRelated(sameLineup, 8);
+    return rankByRelevance(sameLineupPool(allCans, can), can).slice(0, 8);
   }, [can.id, allCans]);
 
   return (

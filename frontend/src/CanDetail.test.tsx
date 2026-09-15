@@ -156,6 +156,19 @@ test('mostra le lattine della stessa linea (prime due parole del nome)', () => {
   expect(screen.queryByText('Ultra White (New)')).toBeNull();
 });
 
+test('nella stessa linea non mischia mai promo e non-promo', () => {
+  const target: Can = { id: '1', nome: 'OG Nico Hischier', promo: 'YES' };
+  const allCans: Can[] = [
+    target,
+    { id: '2', nome: 'OG Ken Block', promo: 'YES' }, // stesso stato promo → ok
+    { id: '3', nome: 'OG Original' }, // stessa linea ma NON promo → escluso
+  ];
+  render(<CanDetail can={target} onClose={() => {}} allCans={allCans} onSelect={() => {}} />);
+  const section = screen.getByRole('region', { name: /cans from the same lineup/i });
+  expect(section.querySelectorAll('.card').length).toBe(1);
+  expect(screen.queryByText('OG Original')).toBeNull();
+});
+
 test('naviga le foto con le frecce e mostra il contatore', async () => {
   const user = userEvent.setup();
   const multiPhotoCan: Can = {
