@@ -380,7 +380,9 @@ test('admin: Annulla la creazione chiude il form', async () => {
   expect(screen.queryByLabelText('Name')).toBeNull();
 });
 
-test('filtri persistenti: mv_filters viene riapplicato al mount', async () => {
+test('i filtri non persistono più: un mv_filters residuo viene ignorato al mount', async () => {
+  // Residuo di una vecchia sessione (o versione precedente dell'app): non deve
+  // più essere riapplicato — chiudi/riapri deve sempre ripartire da zero.
   localStorage.setItem('mv_filters', JSON.stringify({ query: 'alph' }));
   vi.stubGlobal(
     'fetch',
@@ -397,10 +399,10 @@ test('filtri persistenti: mv_filters viene riapplicato al mount', async () => {
   await enterCollection();
 
   expect(await screen.findByText('Alpha')).toBeTruthy();
-  expect(screen.queryByText('Beta')).toBeNull(); // query 'alph' ripristinata
+  expect(screen.getByText('Beta')).toBeTruthy(); // nessun filtro applicato
 });
 
-test('filtri persistenti: i cambi finiscono in mv_filters', async () => {
+test('la ricerca non viene salvata in localStorage', async () => {
   vi.stubGlobal(
     'fetch',
     vi.fn().mockResolvedValue({ ok: true, json: async () => [{ id: '1', nome: 'Alpha' }] }),
@@ -412,7 +414,59 @@ test('filtri persistenti: i cambi finiscono in mv_filters', async () => {
 
   await userEvent.type(screen.getByRole('searchbox'), 'alp');
 
-  expect(JSON.parse(localStorage.getItem('mv_filters')!).query).toBe('alp');
+  expect(localStorage.getItem('mv_filters')).toBeNull();
+});
+
+test('il login azzera i filtri attivi', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [
+        { id: '1', nome: 'Alpha' },
+        { id: '2', nome: 'Beta' },
+      ],
+    }),
+  );
+
+  render(<App />);
+  await enterCollection();
+  await screen.findByText('Alpha');
+
+  await userEvent.type(screen.getByRole('searchbox'), 'alp');
+  expect(screen.queryByText('Beta')).toBeNull();
+
+  await loginAsAdmin();
+
+  expect(screen.getByRole('searchbox')).toHaveValue('');
+  expect(screen.getByText('Beta')).toBeTruthy();
+});
+
+test('il logout azzera i filtri attivi', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [
+        { id: '1', nome: 'Alpha' },
+        { id: '2', nome: 'Beta' },
+      ],
+    }),
+  );
+
+  render(<App />);
+  await enterCollection();
+  await loginAsAdmin();
+  await screen.findByText('Alpha');
+
+  await userEvent.type(screen.getByRole('searchbox'), 'alp');
+  expect(screen.queryByText('Beta')).toBeNull();
+
+  await userEvent.click(screen.getByRole('button', { name: /sign out/i }));
+  await enterCollection(); // il logout torna alla landing
+
+  expect(screen.getByRole('searchbox')).toHaveValue('');
+  expect(screen.getByText('Beta')).toBeTruthy();
 });
 
 test('stats: click su un paese filtra la griglia e chiude il modal', async () => {

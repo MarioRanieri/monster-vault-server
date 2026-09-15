@@ -101,6 +101,12 @@ test('il sort chiama onChange', async () => {
   expect(onChange).toHaveBeenCalledWith('valore-desc');
 });
 
+test('il bottone Reset è fuori dal pannello filtri avanzati (sempre cliccabile)', () => {
+  render(<FilterBar query="" onQuery={() => {}} chips={[]} onReset={() => {}} />);
+  const reset = screen.getByRole('button', { name: /reset/i });
+  expect(reset.closest('.filter-advanced')).toBeNull();
+});
+
 test('il pulsante Filters apre/chiude il pannello filtri avanzati', async () => {
   const user = userEvent.setup();
   render(<FilterBar query="" onQuery={() => {}} chips={[]} />);
