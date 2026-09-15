@@ -65,6 +65,13 @@ describe('lineupKey', () => {
 });
 
 const byId = (ids: string[]) => [...ids].sort((a, b) => a.localeCompare(b));
+// Genera N varianti con lo stesso nome (stesso prodotto, id diversi) — evita
+// di ripetere N oggetti letterali quasi identici nelle tabelle di test qui sotto.
+const named = (nome: string, ids: string[], extra: Partial<Can> = {}) =>
+  ids.map((id) => ({ id, nome, ...extra }));
+// Come `named`, ma con nomi diversi per variante (es. "OG Ken Block", "OG First"...).
+const variants = (specs: [id: string, nome: string][], extra: Partial<Can> = {}) =>
+  specs.map(([id, nome]) => ({ id, nome, ...extra }));
 
 describe('sameLineupPool', () => {
   test.each([
@@ -94,10 +101,13 @@ describe('sameLineupPool', () => {
       desc: 'resta sulle 2 parole se il gruppo raggiunge la soglia',
       target: { id: 't', nome: 'Ultra White A' },
       others: [
-        { id: 'w1', nome: 'Ultra White B' },
-        { id: 'w2', nome: 'Ultra White C' },
-        { id: 'w3', nome: 'Ultra White D' },
-        { id: 'w4', nome: 'Ultra White E' }, // 4 = soglia: resta a 2 parole
+        // 4 = soglia: resta a 2 parole.
+        ...variants([
+          ['w1', 'Ultra White B'],
+          ['w2', 'Ultra White C'],
+          ['w3', 'Ultra White D'],
+          ['w4', 'Ultra White E'],
+        ]),
         { id: 'r1', nome: 'Ultra Red A' }, // 1 parola in comune, 2 parole diverse → escluso
       ],
       expectedIds: ['w1', 'w2', 'w3', 'w4'],
@@ -106,10 +116,7 @@ describe('sameLineupPool', () => {
       desc: 'preferisce nome a 2 parole + stessa nazione quando basta',
       target: { id: 't', nome: 'Hydro Mean Green', lingua: 'USA' },
       others: [
-        { id: 'us1', nome: 'Hydro Mean Green', lingua: 'USA' },
-        { id: 'us2', nome: 'Hydro Mean Green', lingua: 'USA' },
-        { id: 'us3', nome: 'Hydro Mean Green', lingua: 'USA' },
-        { id: 'us4', nome: 'Hydro Mean Green', lingua: 'USA' }, // 4 = soglia
+        ...named('Hydro Mean Green', ['us1', 'us2', 'us3', 'us4'], { lingua: 'USA' }), // 4 = soglia
         { id: 'uk1', nome: 'Hydro Mean Green', lingua: 'UK' }, // stesso nome, altra nazione → escluso
       ],
       expectedIds: ['us1', 'us2', 'us3', 'us4'],
@@ -121,10 +128,16 @@ describe('sameLineupPool', () => {
       desc: 'rilassa la nazione solo dopo aver provato entrambe le larghezze di nome',
       target: { id: 't', nome: 'OG Nico Hischier', promo: 'YES', lingua: 'SWISS' },
       others: [
-        { id: 'ch1', nome: 'OG Ken Block', promo: 'YES', lingua: 'SWISS' },
-        { id: 'ch2', nome: 'OG First', promo: 'YES', lingua: 'SWISS' },
-        { id: 'ch3', nome: 'OG Second', promo: 'YES', lingua: 'SWISS' },
-        { id: 'ch4', nome: 'OG Third', promo: 'YES', lingua: 'SWISS' }, // 4 = soglia
+        // 4 = soglia.
+        ...variants(
+          [
+            ['ch1', 'OG Ken Block'],
+            ['ch2', 'OG First'],
+            ['ch3', 'OG Second'],
+            ['ch4', 'OG Third'],
+          ],
+          { promo: 'YES', lingua: 'SWISS' },
+        ),
         { id: 'other', nome: 'OG Nico Other', promo: 'YES', lingua: 'GERMANY' }, // escluso
       ],
       expectedIds: ['ch1', 'ch2', 'ch3', 'ch4'],
