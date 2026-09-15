@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { Can } from './types';
 import { statoBadgeClass } from './statoBadge';
 import { hasPromo } from './filterCans';
@@ -7,6 +7,7 @@ import { cloudinaryThumb } from './cloudinary';
 import { CanShare } from './CanShare';
 import { Lightbox } from './Lightbox';
 import { CanGrid } from './CanGrid';
+import { pickRelated, lineupKey } from './relatedCans';
 
 // Pannello di dettaglio completo (struttura/classi del vecchio): immagine
 // principale + miniature, tutti i campi, opening, descrizione. Lightbox con
@@ -58,10 +59,26 @@ export function CanDetail({
     .map((v) => v.trim())
     .filter(Boolean);
 
-  // "Other cans from this country": stesso lingua/paese, esclusa se stessa, max 8.
-  const relatedCans = allCans
-    ? allCans.filter((c) => c.id !== can.id && c.lingua && c.lingua === can.lingua).slice(0, 8)
-    : [];
+  // "Other cans from this country": stesso lingua/paese, esclusa se stessa, a
+  // caso preferendo quelle con foto — memoizzato sull'id così non rimescola a
+  // ogni render (es. cambio foto principale) ma solo aprendo un'altra can.
+  const relatedCans = useMemo(() => {
+    if (!allCans) return [];
+    const sameCountry = allCans.filter(
+      (c) => c.id !== can.id && c.lingua && c.lingua === can.lingua,
+    );
+    return pickRelated(sameCountry, 8);
+  }, [can.id, allCans]);
+
+  // "Cans from the same lineup": stesse prime due parole del nome (es.
+  // "ABSOLUTELY ZERO ..." → stessa linea, varianti diverse). Stessa logica
+  // random + preferenza foto di sopra.
+  const lineupCans = useMemo(() => {
+    if (!allCans) return [];
+    const key = lineupKey(can.nome);
+    const sameLineup = allCans.filter((c) => c.id !== can.id && lineupKey(c.nome) === key);
+    return pickRelated(sameLineup, 8);
+  }, [can.id, allCans]);
 
   return (
     <aside className="detail-panel open">
@@ -241,6 +258,12 @@ export function CanDetail({
           <section className="detail-related" aria-label="Other cans from this country">
             <h3 className="detail-related-title">Other cans from this country</h3>
             <CanGrid cans={relatedCans} showPrice={showPrice} onSelect={onSelect} />
+          </section>
+        )}
+        {lineupCans.length > 0 && (
+          <section className="detail-related" aria-label="Cans from the same lineup">
+            <h3 className="detail-related-title">Cans from the same lineup</h3>
+            <CanGrid cans={lineupCans} showPrice={showPrice} onSelect={onSelect} />
           </section>
         )}
       </div>
