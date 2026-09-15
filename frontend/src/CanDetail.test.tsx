@@ -142,6 +142,20 @@ test('non mostra la sezione "other cans" senza allCans', () => {
   expect(screen.queryByRole('region', { name: /other cans from this country/i })).toBeNull();
 });
 
+test('mostra le lattine della stessa linea (prime due parole del nome)', () => {
+  const target: Can = { id: '1', nome: 'Absolutely Zero Dark BF1' };
+  const allCans: Can[] = [
+    target,
+    { id: '2', nome: 'Absolutely Zero Blue Text 355' },
+    { id: '3', nome: 'absolutely zero euro' }, // case diverso, stessa linea
+    { id: '4', nome: 'Ultra White (New)' }, // linea diversa
+  ];
+  render(<CanDetail can={target} onClose={() => {}} allCans={allCans} onSelect={() => {}} />);
+  const section = screen.getByRole('region', { name: /cans from the same lineup/i });
+  expect(section.querySelectorAll('.card').length).toBe(2);
+  expect(screen.queryByText('Ultra White (New)')).toBeNull();
+});
+
 test('naviga le foto con le frecce e mostra il contatore', async () => {
   const user = userEvent.setup();
   const multiPhotoCan: Can = {
