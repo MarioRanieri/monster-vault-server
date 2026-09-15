@@ -587,6 +587,7 @@ function App() {
             onToggleCompare={() => toggleCompare(selected.id)}
             onToast={showToast}
             allCans={cans}
+            navCans={visible}
             onSelect={selectCan}
           />
         ))}
