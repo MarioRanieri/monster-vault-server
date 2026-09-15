@@ -1,3 +1,8 @@
-# Dipendenze del monitor (gira su GitHub Actions). Install: pip install -r requirements.txt
+# Dipendenze del monitor. Install: pip install -r requirements.txt
+# requests/pymongo: sweep (ebay_monitor.py, GitHub Actions). flask/gunicorn: webhook comandi
+# (webhook_app.py, servizio Render separato) — vedi docs/superpowers/specs/2026-09-15-ebay-
+# monitor-telegram-webhook-design.md.
 requests==2.32.3
 pymongo>=4.6
+flask==3.1.0
+gunicorn==23.0.0
