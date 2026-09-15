@@ -106,10 +106,6 @@ body.light .detail-header {
   background: #ffffff;
   border-bottom: 1px solid rgba(15, 23, 42, 0.08);
 }
-body.light .detail-field {
-  background: #ffffff;
-  border: 1px solid rgba(15, 23, 42, 0.07);
-}
 body.light .detail-note {
   background: #ffffff;
   border: 1px solid rgba(15, 23, 42, 0.07);
@@ -939,10 +935,18 @@ body.public-mode .public-banner {
     grid-template-columns: 1fr;
   }
 }
+/* Foto a tutta altezza disponibile + miniature in colonna laterale (prima:
+   miniature in riga sotto la foto, sprecava lo spazio a fianco). Frecce sx/dx
+   sull'immagine principale + contatore "N / M" sotto — le miniature restano
+   comunque cliccabili, la navigazione è ridondante ma a costo zero. */
 .detail-photos {
   display: flex;
-  flex-direction: column;
   gap: 10px;
+}
+.detail-main-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 .detail-main-img {
   width: 100%;
@@ -962,9 +966,38 @@ body.public-mode .public-banner {
   justify-content: center;
   color: var(--text3);
 }
-.detail-thumbs-row {
+.detail-photo-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 5;
+}
+.detail-photo-nav-prev {
+  left: 8px;
+}
+.detail-photo-nav-next {
+  right: 8px;
+}
+.detail-photo-counter {
+  font-size: 11px;
+  color: var(--text3);
+  text-align: center;
+  margin-top: 4px;
+}
+.detail-thumbs-col {
   display: flex;
+  flex-direction: column;
   gap: 8px;
+  flex: 0 0 72px;
 }
 .detail-thumb {
   width: 72px;
@@ -1007,16 +1040,30 @@ body.public-mode .public-banner {
   gap: 6px;
   margin-top: 4px;
 }
+/* Lista pulita al posto dei 6 box grigi identici: etichetta piccola in Space
+   Mono, valore grande, nessun riquadro — solo un separatore sottile tra le
+   righe (var(--border), come il resto dell'UI). */
 .detail-fields {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 .detail-field {
-  background: var(--bg3);
-  border-radius: 8px;
-  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
 }
+.detail-field:last-child {
+  border-bottom: none;
+}
+/* Base condivisa da .detail-fields / .detail-note / .detail-description
+   (Opening/More Info si appoggiano a questa per le proprietà che non
+   ridichiarano — vedi le loro regole più sotto). NON toccata dal redesign C. */
 .detail-field-lbl {
   font-size: 10px;
   color: var(--text3);
@@ -1027,6 +1074,20 @@ body.public-mode .public-banner {
 .detail-field-val {
   font-size: 14px;
   font-weight: 500;
+}
+/* Override solo dentro .detail-fields: etichetta in Space Mono, valore grande
+   allineato a destra — specificità (0,2,0) batte la base (0,1,0) sopra. */
+.detail-fields .detail-field-lbl {
+  font-family: 'Space Mono', monospace;
+  letter-spacing: 0.5px;
+  margin-bottom: 0;
+  flex: 0 0 auto;
+}
+.detail-fields .detail-field-val {
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--text);
+  text-align: right;
 }
 .detail-field-top .detail-field-lbl {
   color: inherit;
@@ -1647,6 +1708,25 @@ body.light .filter-select option {
   display: flex;
   gap: 10px;
   margin-top: 18px;
+}
+/* "Other cans from this country": recupera lo spazio libero sotto la foto/
+   campi con altre lattine dello stesso paese. Riusa .grid di CanGrid, solo
+   con colonne più piccole per stare nella colonna info del detail panel. */
+.detail-related {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.detail-related-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: var(--section-title-size);
+  letter-spacing: var(--section-title-tracking);
+  color: var(--text2);
+  margin: 0 0 12px;
+}
+.detail-related .grid {
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
 }
 
 /* Stats: grafico a ciambella + legenda (React) */
@@ -3798,6 +3878,16 @@ input.field-invalid {
   }
   .detail-tap-zoom {
     display: block;
+  }
+  /* Colonna laterale delle miniature troppo stretta su mobile: torna sotto la
+     foto, in riga orizzontale scrollabile — come prima del redesign desktop. */
+  .detail-photos {
+    flex-direction: column;
+  }
+  .detail-thumbs-col {
+    flex-direction: row;
+    flex: 0 0 auto;
+    overflow-x: auto;
   }
   /* Lightbox mobile */
   .lb-hint-kb {

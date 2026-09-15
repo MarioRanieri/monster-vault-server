@@ -102,3 +102,61 @@ test('col prezzo attivo (showPrice) mostra Est. Value', () => {
   );
   expect(screen.getByText('€20')).toBeTruthy();
 });
+
+test('i campi sono una lista pulita, non box grigi identici', () => {
+  const fullCan: Can = {
+    id: '1',
+    nome: 'Alpha',
+    sku: 'SKU-1',
+    produttore: 'Monster',
+    lingua: 'ITALY',
+    size: '500ml',
+    top: 'Silver',
+    stato: 'OK',
+  };
+  render(<CanDetail can={fullCan} onClose={() => {}} />);
+  const list = screen.getByRole('list', { name: /can details/i });
+  expect(list.querySelectorAll('li').length).toBeGreaterThanOrEqual(6);
+});
+
+test('mostra fino a 8 altre lattine dello stesso paese, non se stessa', () => {
+  const target: Can = { id: '1', nome: 'Alpha', lingua: 'ITALY' };
+  const allCans: Can[] = [
+    target,
+    ...Array.from({ length: 10 }, (_, i) => ({
+      id: `other-${i}`,
+      nome: `Other ${i}`,
+      lingua: 'ITALY',
+    })),
+    { id: 'diff', nome: 'Different country', lingua: 'GERMANY' },
+  ];
+  render(<CanDetail can={target} onClose={() => {}} allCans={allCans} onSelect={() => {}} />);
+  const section = screen.getByRole('region', { name: /other cans from this country/i });
+  expect(section.querySelectorAll('.card').length).toBe(8);
+  expect(screen.queryByText('Different country')).toBeNull();
+});
+
+test('non mostra la sezione "other cans" senza allCans', () => {
+  const target: Can = { id: '1', nome: 'Alpha', lingua: 'ITALY' };
+  render(<CanDetail can={target} onClose={() => {}} />);
+  expect(screen.queryByRole('region', { name: /other cans from this country/i })).toBeNull();
+});
+
+test('naviga le foto con le frecce e mostra il contatore', async () => {
+  const user = userEvent.setup();
+  const multiPhotoCan: Can = {
+    id: '1',
+    nome: 'Alpha',
+    p1: 'https://res.cloudinary.com/x/image/upload/a.jpg',
+    p2: 'https://res.cloudinary.com/x/image/upload/b.jpg',
+    p3: 'https://res.cloudinary.com/x/image/upload/c.jpg',
+  };
+  render(<CanDetail can={multiPhotoCan} onClose={() => {}} />);
+  expect(screen.getByText('1 / 3')).toBeTruthy();
+
+  await user.click(screen.getByRole('button', { name: /next photo/i }));
+  expect(screen.getByText('2 / 3')).toBeTruthy();
+
+  await user.click(screen.getByRole('button', { name: /previous photo/i }));
+  expect(screen.getByText('1 / 3')).toBeTruthy();
+});
