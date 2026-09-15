@@ -83,86 +83,104 @@ export function CanDetail({
         )}
       </div>
       <div className="detail-body">
-        <div className="detail-photos">
-          {main ? (
-            <>
-              <div className="detail-main-wrap">
-                {photos.length > 1 && (
-                  <button
-                    type="button"
-                    className="detail-photo-nav detail-photo-nav-prev"
-                    aria-label="Previous photo"
-                    onClick={() => setMainIdx((i) => (i - 1 + photos.length) % photos.length)}
-                  >
-                    ‹
-                  </button>
-                )}
-                <img
-                  className="detail-main-img"
-                  src={cloudinaryThumb(main, 800, 800)}
-                  alt={can.nome}
-                  tabIndex={0}
-                  onClick={() => setLbIdx(mainIdx)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      setLbIdx(mainIdx);
-                    }
-                  }}
-                />
-                {photos.length > 1 && (
-                  <button
-                    type="button"
-                    className="detail-photo-nav detail-photo-nav-next"
-                    aria-label="Next photo"
-                    onClick={() => setMainIdx((i) => (i + 1) % photos.length)}
-                  >
-                    ›
-                  </button>
-                )}
-              </div>
-              <div className="detail-tap-zoom">tap to zoom</div>
-              {photos.length > 1 && (
-                <div className="detail-photo-counter">
-                  {mainIdx + 1} / {photos.length}
+        {/* Riga 1: foto a sinistra, nome/badge + altre lattine a destra.
+            align-items:start (vedi CSS) impedisce alle due colonne di stirarsi
+            per matchare l'altezza l'una dell'altra — prima la colonna foto si
+            allungava fino all'altezza della lista campi (molto più alta,
+            specie con "Other cans" sotto), lasciando nero vuoto sotto la foto. */}
+        <div className="detail-top-row">
+          <div className="detail-photos">
+            {main ? (
+              <>
+                <div className="detail-main-wrap">
+                  {photos.length > 1 && (
+                    <button
+                      type="button"
+                      className="detail-photo-nav detail-photo-nav-prev"
+                      aria-label="Previous photo"
+                      onClick={() => setMainIdx((i) => (i - 1 + photos.length) % photos.length)}
+                    >
+                      ‹
+                    </button>
+                  )}
+                  <img
+                    className="detail-main-img"
+                    src={cloudinaryThumb(main, 800, 800)}
+                    alt={can.nome}
+                    tabIndex={0}
+                    onClick={() => setLbIdx(mainIdx)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setLbIdx(mainIdx);
+                      }
+                    }}
+                  />
+                  {photos.length > 1 && (
+                    <button
+                      type="button"
+                      className="detail-photo-nav detail-photo-nav-next"
+                      aria-label="Next photo"
+                      onClick={() => setMainIdx((i) => (i + 1) % photos.length)}
+                    >
+                      ›
+                    </button>
+                  )}
                 </div>
-              )}
-              {photos.length > 1 && (
-                <div className="detail-thumbs-col">
-                  {photos.map((url, i) => (
-                    <img
-                      key={url}
-                      className={'detail-thumb' + (i === mainIdx ? ' active' : '')}
-                      src={cloudinaryThumb(url, 80, 80)}
-                      alt={can.nome}
-                      tabIndex={0}
-                      onClick={() => setMainIdx(i)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          setMainIdx(i);
-                        }
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="detail-main-img-ph" />
-          )}
-        </div>
-        <div className="detail-info">
-          <h2 className="detail-name">{can.nome || '—'}</h2>
-          <div className="detail-sku">SKU {can.sku || '—'}</div>
-          <div className="detail-badges">
-            {can.size && <span className="badge badge-size">{can.size}</span>}
-            {hasPromo(can.promo) && <span className="badge badge-promo">{can.promo}</span>}
-            {can.stato && (
-              <span className={`badge ${statoBadgeClass(can.stato)}`}>{can.stato}</span>
+                <div className="detail-tap-zoom">tap to zoom</div>
+                {photos.length > 1 && (
+                  <div className="detail-photo-counter">
+                    {mainIdx + 1} / {photos.length}
+                  </div>
+                )}
+                {photos.length > 1 && (
+                  <div className="detail-thumbs-col">
+                    {photos.map((url, i) => (
+                      <img
+                        key={url}
+                        className={'detail-thumb' + (i === mainIdx ? ' active' : '')}
+                        src={cloudinaryThumb(url, 80, 80)}
+                        alt={can.nome}
+                        tabIndex={0}
+                        onClick={() => setMainIdx(i)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setMainIdx(i);
+                          }
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="detail-main-img-ph" />
             )}
-            {photos.length > 0 && <span className="badge badge-photo">{photos.length} photo</span>}
           </div>
+          <div className="detail-info">
+            <h2 className="detail-name">{can.nome || '—'}</h2>
+            <div className="detail-sku">SKU {can.sku || '—'}</div>
+            <div className="detail-badges">
+              {can.size && <span className="badge badge-size">{can.size}</span>}
+              {hasPromo(can.promo) && <span className="badge badge-promo">{can.promo}</span>}
+              {can.stato && (
+                <span className={`badge ${statoBadgeClass(can.stato)}`}>{can.stato}</span>
+              )}
+              {photos.length > 0 && (
+                <span className="badge badge-photo">{photos.length} photo</span>
+              )}
+            </div>
+            {relatedCans.length > 0 && (
+              <section className="detail-related" aria-label="Other cans from this country">
+                <h3 className="detail-related-title">Other cans from this country</h3>
+                <CanGrid cans={relatedCans} showPrice={showPrice} onSelect={onSelect} />
+              </section>
+            )}
+          </div>
+        </div>
+        {/* Riga 2: pannello campi a tutta larghezza, sotto foto/altre lattine. */}
+        <div className="detail-fields-row">
           <ul className="detail-fields" aria-label="Can details">
             {shown.map((f) => {
               if (f.isTop) {
@@ -220,12 +238,6 @@ export function CanDetail({
                 </button>
               )}
             </div>
-          )}
-          {relatedCans.length > 0 && (
-            <section className="detail-related" aria-label="Other cans from this country">
-              <h3 className="detail-related-title">Other cans from this country</h3>
-              <CanGrid cans={relatedCans} showPrice={showPrice} onSelect={onSelect} />
-            </section>
           )}
         </div>
       </div>
