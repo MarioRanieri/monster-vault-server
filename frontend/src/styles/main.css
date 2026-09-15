@@ -46,6 +46,11 @@
      accanto al lime. --full-rgb per comporre le rgba con alpha variabile. */
   --full-rgb: 43, 212, 255;
   --full: rgb(var(--full-rgb));
+  /* Sezione F: titoli di sezione più decisi (dimensione/tracking a tokens,
+     non sparsi per regola) + colore della texture da griglia sottile. */
+  --section-title-size: 13px;
+  --section-title-tracking: 1.5px;
+  --texture-line: rgba(255, 255, 255, 0.025);
 }
 body.light {
   --bg: #f1f5f9;
@@ -62,6 +67,7 @@ body.light {
   /* "Full" cyan scurito per contrasto su fondo chiaro */
   --full-rgb: 2, 132, 199;
   --full: rgb(var(--full-rgb));
+  --texture-line: rgba(15, 23, 42, 0.035);
 }
 body.light .header {
   background: rgba(255, 255, 255, 0.97);
@@ -2330,12 +2336,26 @@ button.view-save {
 .chart-section {
   margin-bottom: 1.5rem;
 }
+/* Titoli di sezione (chart/help/import): stessa identità decisa — Bebas Neue,
+   dimensione/tracking a tokens invece di valori sparsi per regola — più una
+   texture a griglia sottile, opacity bassissima, statica (nessuna animazione
+   da spegnere per prefers-reduced-motion). Leggono come un'intestazione
+   d'archivio, non una riga di tabella qualunque. */
 .chart-title {
-  font-size: 12px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: var(--section-title-size);
+  letter-spacing: var(--section-title-tracking);
   text-transform: uppercase;
-  letter-spacing: 1px;
   color: var(--text3);
-  margin-bottom: 10px;
+  margin: 0 -8px 10px;
+  padding: 5px 8px;
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--texture-line) 0px,
+    var(--texture-line) 1px,
+    transparent 1px,
+    transparent 8px
+  );
 }
 .tl-tabs {
   display: inline-flex;
@@ -2860,11 +2880,20 @@ input.field-invalid {
   padding: 8px 12px;
 }
 .import-new-list-title {
-  font-size: 11px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: var(--section-title-size);
+  letter-spacing: var(--section-title-tracking);
   text-transform: uppercase;
-  letter-spacing: 1px;
   color: var(--text3);
-  margin-bottom: 6px;
+  margin: 0 -8px 6px;
+  padding: 5px 8px;
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--texture-line) 0px,
+    var(--texture-line) 1px,
+    transparent 1px,
+    transparent 8px
+  );
 }
 .import-new-item {
   font-size: 12px;
@@ -3000,15 +3029,23 @@ input.field-invalid {
   padding: 1rem 1.25rem;
 }
 .help-section-title {
-  font-size: 12px;
-  font-weight: 700;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: var(--section-title-size);
+  letter-spacing: var(--section-title-tracking);
   text-transform: uppercase;
-  letter-spacing: 1px;
   color: var(--green);
-  margin-bottom: 10px;
+  margin: 0 -8px 10px;
+  padding: 5px 8px;
   display: flex;
   align-items: center;
   gap: 6px;
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--texture-line) 0px,
+    var(--texture-line) 1px,
+    transparent 1px,
+    transparent 8px
+  );
 }
 .help-steps {
   list-style: none;
