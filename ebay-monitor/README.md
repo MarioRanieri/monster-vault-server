@@ -1,30 +1,35 @@
 # Monster Energy — eBay Monitor 🥤📡
 
 Radar che avvisa su **Telegram** quando spunta un **nuovo annuncio eBay** di una lattina
-Monster che ti interessa, su **più mercati**. Gira **in cloud, gratis** su GitHub Actions,
-con lo stato su **MongoDB Atlas** — nessun PC da tenere acceso. Il workflow parte **ogni 5 min**
-(per eseguire in fretta i comandi Telegram), ma la **ricerca eBay** è limitata a **~ogni 2h**.
+Monster che ti interessa, su **più mercati**. Due parti separate, gratis, nessun PC da
+tenere acceso:
 
-Vive in `ebay-monitor/` dentro il repo del sito, ma è un tool **separato**: non fa parte
-dell'app Java deployata su Render. Il suo workflow è `.github/workflows/ebay-monitor.yml`.
+- **Ricerca eBay**: gira **in cloud su GitHub Actions**, **ogni ora**, stato su
+  **MongoDB Atlas**. Workflow: `.github/workflows/ebay-monitor.yml`.
+- **Comandi Telegram** (`/add /list /market /delete`): gira su un **secondo Web Service
+  Render**, separato dal sito principale — riceve un **webhook** da Telegram e risponde
+  **istantaneamente**, niente attesa di un giro cron. Codice: `webhook_app.py`.
+
+Vivono entrambi in `ebay-monitor/` dentro il repo del sito, ma sono tool **separati**: non
+fanno parte dell'app Java deployata su Render (root directory diversa, deploy indipendente).
 
 ---
 
 ## Come funziona
 
-Ogni 5 min il workflow lancia `ebay_monitor.py`, che fa **un giro solo** ed esce:
+**Ricerca eBay** (`ebay_monitor.py`, GitHub Actions, ogni ora): un giro solo ed esce.
 
-1. **Connette MongoDB** (stato anti-duplicati + blacklist dinamica). Se il DB è irraggiungibile,
-   **salta il giro** e avvisa su Telegram (non processa nulla, per non rifare la baseline).
-2. **Drena i comandi Telegram** (`/add`, `/list`, `/delete`) — **a ogni giro** (ogni ~5 min),
-   così i comandi rispondono in fretta.
-3. **Solo se** sono passate ~2h dall'ultima ricerca (`SWEEP_INTERVAL_SECONDS`, timestamp su Mongo):
-   per ogni `SEARCH_QUERIES` × `EBAY_MARKETPLACES` cerca gli annunci **appena listati** e notifica i
-   **nuovi** su Telegram. Altrimenti il giro fa solo il punto 2 ed esce (niente chiamate eBay).
+1. **Connette MongoDB** (stato anti-duplicati). Se il DB è irraggiungibile, **salta il giro** e
+   avvisa su Telegram (non processa nulla, per non rifare la baseline).
+2. **Solo se** è passata ~1h dall'ultima ricerca (`SWEEP_INTERVAL_SECONDS`, timestamp su Mongo,
+   gate di sicurezza — il cron è già orario): per ogni `SEARCH_QUERIES` × `EBAY_MARKETPLACES`
+   cerca gli annunci **appena listati** e notifica i **nuovi** su Telegram.
 
-Perché così: i comandi devono rispondere in fretta (5 min), ma la ricerca eBay va tenuta a ~2h per
-non sforare il budget chiamate. Il repo è **pubblico** → i minuti GitHub Actions sono gratis, quindi
-girare ogni 5 min non costa nulla.
+**Comandi Telegram** (`webhook_app.py`, servizio Render separato, sempre in ascolto): Telegram
+chiama l'endpoint `/telegram-webhook` **nell'istante** in cui arriva un comando — niente attesa
+di un giro cron. Unico limite: come il sito, il servizio gratuito Render si addormenta se
+inattivo, quindi il primissimo comando dopo una pausa lunga ha un cold-start di ~30-50s prima
+della risposta (Telegram ritenta la consegna finché non risponde).
 
 Ricerca **per NOME**: ogni query è `monster energy <keyword>` (eBay matcha tutte le parole in
 qualsiasi ordine, non la frase esatta) → esce solo Monster Energy, non Pokémon / Monster High.
@@ -33,10 +38,10 @@ Niente confronto foto: il riconoscimento immagine (CLIP/DINOv2/OCR **e** VLM) è
 
 ## ⏱️ Finestra temporale
 
-`MAX_LISTING_AGE_HOURS = 3.5` → eBay manda solo gli annunci listati nelle ultime ~3,5h. La ricerca
-gira ~ogni 2h, quindi c'è ~1,5h di margine: serve perché **i cron di GitHub Actions non partono
-all'orario esatto** (slittano di minuti, a volte saltano un giro). Il margine assorbe i ritardi;
-gli eventuali duplicati sono già filtrati dallo stato su Mongo.
+`MAX_LISTING_AGE_HOURS = 2` → eBay manda solo gli annunci listati nelle ultime ~2h. La ricerca
+gira ogni 1h, quindi c'è ~1h di margine per il drift naturale dei cron GitHub Actions (minuti,
+non più le ore osservate col vecchio schedule `*/5 * * * *` — vedi lo spec di design). Gli
+eventuali duplicati residui sono comunque filtrati dallo stato su Mongo.
 
 ## Anti-rumore: la blacklist
 
@@ -54,9 +59,9 @@ contiene entrambe (eBay non fa un AND stretto).
 
 ## 🤖 Comandi Telegram
 
-Vengono eseguiti al **giro successivo** (~5–15 min: i cron di GitHub slittano, non c'è un processo
-sempre acceso). Un **messaggio fissato** in cima alla chat lo ricorda; è protetto dal `/delete` e si
-rigenera da solo se sparisce. I comandi sono idempotenti.
+Rispondono **istantaneamente** (webhook, vedi sopra) — eccetto il primissimo comando dopo una
+pausa lunga, che ha un cold-start di ~30-50s (servizio Render gratuito). I comandi sono
+idempotenti.
 
 - **`/add parola`** — aggiunge `parola` alla blacklist dinamica (Mongo). Guardia: rifiuta vuoto,
   parole <2 caratteri e le parole obbligatorie (`monster`/`energy`, che accecherebbero il radar).
@@ -75,15 +80,17 @@ rigenera da solo se sparisce. I comandi sono idempotenti.
 ## ⚠️ Budget chiamate eBay
 
 ```
-chiamate/giorno ≈ n_query × n_mercati × (24 / 2h) = 26 × 6 × 12 ≈ 1.870/giorno
+chiamate/giorno ≈ n_query × n_mercati × (24 / 1h) = 26 × 6 × 24 ≈ 3.744/giorno
 ```
-Sotto il limite tipico (~5.000/giorno della Browse API). Se aggiungi query o mercati, ricontrolla.
+Sotto il limite tipico (~5.000/giorno della Browse API, verificato 2026), ma più vicino al tetto
+di prima (era ~1.870/giorno a sweep ogni 2h) — se aggiungi query o mercati, ricontrolla con più
+margine di prima.
 
 ---
 
 ## Setup (una tantum)
 
-Il monitor gira su GitHub Actions e legge i segreti dalle **Secrets del repo**
+**Ricerca eBay** (GitHub Actions) legge i segreti dalle **Secrets del repo**
 (*Settings → Secrets and variables → Actions*). Servono 5 Secret:
 
 | Secret | Cos'è |
@@ -92,23 +99,41 @@ Il monitor gira su GitHub Actions e legge i segreti dalle **Secrets del repo**
 | `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | Bot Telegram (token da @BotFather + chat id) |
 | `MONGODB_URI` | URI di MongoDB Atlas (stesso cluster del sito; il monitor usa collection dedicate `ebay_seen`/`ebay_blacklist`/`ebay_meta`, **non** tocca `cans`) |
 
-Nessun altro setup: il workflow installa le dipendenze e parte da solo ogni 5 min.
+Nessun altro setup lato GitHub: il workflow installa le dipendenze e parte da solo ogni ora.
+
+**Comandi Telegram** (secondo Web Service Render, separato dal sito):
+
+1. Crea un nuovo Web Service su Render, root directory `ebay-monitor/`, start command
+   `gunicorn webhook_app:app --bind 0.0.0.0:$PORT`.
+2. Env vars sul servizio: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `MONGODB_URI` (stessi valori
+   dei Secret GitHub sopra — store separati, vanno copiati) + `TELEGRAM_WEBHOOK_SECRET` (nuovo,
+   generato una tantum, es. `openssl rand -hex 32`).
+3. Una volta deployato, registra il webhook su Telegram (una tantum):
+   ```
+   curl https://api.telegram.org/bot<TOKEN>/setWebhook \
+     -d url=https://<nome-servizio>.onrender.com/telegram-webhook \
+     -d secret_token=<TELEGRAM_WEBHOOK_SECRET>
+   ```
 
 ## Uso
 
-- **Automatico**: ogni 5 min via `schedule` (drain comandi); la ricerca eBay scatta ~ogni 2h. Al
-  **primo giro** con Mongo vuoto fa la **baseline** (segna gli annunci già online come "visti", senza
-  notificarli) → poi notifica solo i nuovi.
+- **Automatico**: la ricerca eBay scatta ogni ora via `schedule`. Al **primo giro** con Mongo
+  vuoto fa la **baseline** (segna gli annunci già online come "visti", senza notificarli) → poi
+  notifica solo i nuovi. I comandi Telegram rispondono da soli, istantaneamente, appena scrivi in
+  chat (nessuna azione da fare su GitHub per quelli).
 - **Test on-demand**: *Actions → eBay Monitor → Run workflow*. Spunta **`send_now`** per farti
   mandare subito gli annunci attuali (ignora i già-visti), altrimenti fa un giro normale.
 
 ## Test / sviluppo locale
 
 ```bash
-py test_ebay_monitor.py     # logica pura (blacklist, filtri, comandi) — niente rete/Mongo
+py test_ebay_monitor.py     # logica sweep pura (blacklist, filtro titoli) — niente rete/Mongo
+py test_bot_logic.py        # logica comandi pura (parsing, mercati, budget) — niente rete/Mongo
+py test_webhook_app.py      # handler webhook (Flask test client) — Store e Telegram mockati
 ```
-Per un giro reale in locale: crea `config.py` con i 5 segreti (è gitignored) ed esporta le stesse
-variabili d'ambiente prima di lanciare `py ebay_monitor.py --send-now 5`.
+Per un giro reale in locale: crea `config.py` con i segreti (è gitignored) ed esporta le stesse
+variabili d'ambiente prima di lanciare `py ebay_monitor.py --send-now 5`. Per il webhook in
+locale: `py webhook_app.py` (dev server Flask su `:5000`).
 
 ---
 
@@ -116,11 +141,15 @@ variabili d'ambiente prima di lanciare `py ebay_monitor.py --send-now 5`.
 
 | File | Ruolo |
 |------|-------|
-| `ebay_monitor.py` | Logica: Mongo + Browse API + filtri + Telegram + comandi. |
-| `settings.py` | Config **non-segreta** versionata (query, mercati, finestra). |
+| `ebay_monitor.py` | Sweep: Mongo + Browse API + filtri + notifica Telegram. GitHub Actions, ogni ora. |
+| `webhook_app.py` | Comandi Telegram via webhook, istantanei. Servizio Render separato. |
+| `bot_logic.py` | Condiviso da entrambi: `Store` (Mongo) + logica comandi/mercati pura. |
+| `settings.py` | Config **non-segreta** versionata (query, mercati, finestra, cadenza sweep). |
 | `blacklist.txt` | Blacklist di base (versionata). Le aggiunte `/add` vivono su Mongo. |
-| `test_ebay_monitor.py` | Test della logica pura + canary spazi blacklist. |
-| `requirements.txt` | Dipendenze (`requests`, `pymongo`). |
+| `test_ebay_monitor.py` | Test della logica sweep pura + canary spazi blacklist. |
+| `test_bot_logic.py` | Test della logica comandi/mercati pura. |
+| `test_webhook_app.py` | Test dell'handler webhook (Flask test client, Mongo/Telegram mockati). |
+| `requirements.txt` | Dipendenze (`requests`, `pymongo`, `flask`, `gunicorn`). |
 | `config.py` | **Solo locale** (gitignored): segreti per i test manuali. |
 
 ## Note tecniche
