@@ -185,6 +185,41 @@ test('una promo con gemella in un’altra nazione mostra la fascia senza sottoti
   expect(within(section).getByText('ULTRA WHITE THAR')).toBeTruthy();
 });
 
+test('le frecce ← → passano alla lattina precedente/successiva di navCans', async () => {
+  const a: Can = { id: '1', nome: 'Alpha' };
+  const b: Can = { id: '2', nome: 'Beta' };
+  const c: Can = { id: '3', nome: 'Gamma' };
+  const onSelect = vi.fn();
+  render(
+    <CanDetail
+      can={b}
+      onClose={() => {}}
+      navCans={[a, b, c]}
+      allCans={[a, b, c]}
+      onSelect={onSelect}
+    />,
+  );
+
+  await userEvent.keyboard('{ArrowRight}');
+  expect(onSelect).toHaveBeenCalledWith(c);
+
+  await userEvent.keyboard('{ArrowLeft}');
+  expect(onSelect).toHaveBeenCalledWith(a);
+});
+
+test('con la lightbox aperta le frecce scorrono le foto, non la lattina', async () => {
+  const a: Can = { id: '1', nome: 'Alpha', p1: 'a.jpg', p2: 'b.jpg' };
+  const b: Can = { id: '2', nome: 'Beta' };
+  const onSelect = vi.fn();
+  render(<CanDetail can={a} onClose={() => {}} navCans={[a, b]} onSelect={onSelect} />);
+
+  await userEvent.click(screen.getAllByRole('img', { name: 'Alpha' })[0]);
+  expect(screen.getByRole('dialog')).toBeTruthy();
+
+  await userEvent.keyboard('{ArrowRight}');
+  expect(onSelect).not.toHaveBeenCalled();
+});
+
 test('naviga le foto con le frecce e mostra il contatore', async () => {
   const user = userEvent.setup();
   const multiPhotoCan: Can = {

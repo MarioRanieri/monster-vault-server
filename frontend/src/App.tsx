@@ -127,23 +127,15 @@ function App() {
   }, [light]);
 
   // Deep-link condiviso: al mount rilegge i filtri dalla URL e salta la landing.
-  // Senza parametri condivisi, ripristina gli ultimi filtri usati (mv_filters).
+  // I filtri non persistono più tra sessioni (chiusura/riapertura app, login,
+  // logout devono sempre ripartire da zero) — solo uno share link li applica.
   useEffect(() => {
     const shared = parseShareUrl(globalThis.location.search);
-    const fromUrl = Object.keys(shared).length > 0;
-    let f = shared;
-    if (!fromUrl) {
-      try {
-        f = (JSON.parse(localStorage.getItem('mv_filters') || 'null') as ShareFilters) ?? {};
-      } catch {
-        f = {};
-      }
-    }
-    if (Object.keys(f).length === 0) return;
-    const { sort: s, ...rest } = f;
+    if (Object.keys(shared).length === 0) return;
+    const { sort: s, ...rest } = shared;
     setFilters((prev) => ({ ...prev, ...rest }));
     if (s != null) setSort(s as SortKey);
-    if (fromUrl) setView('collection');
+    setView('collection');
   }, []);
 
   const numOrUndef = (s: string) => (s === '' ? undefined : Number(s));
@@ -205,17 +197,7 @@ function App() {
     ymax: filters.ymax,
     sort,
   };
-  // Persistenza filtri come il vecchio saveFilters (chiave mv_filters): scritti
-  // a ogni cambio, saltando il primo render (non sovrascrivere prima del restore).
   const filtersJson = JSON.stringify(currentFilters);
-  const persistReady = useRef(false);
-  useEffect(() => {
-    // I filtri sono dati dell'utente riletti solo come stato React (mai come HTML): localStorage
-    // non esegue codice, quindi non è una sink XSS. Falso positivo verificato. NOSONAR
-    if (persistReady.current)
-      localStorage.setItem('mv_filters', filtersJson); // NOSONAR
-    else persistReady.current = true;
-  }, [filtersJson]);
   // Render incrementale: monta le prime PAGE card, poi cresce quando l'utente
   // arriva in fondo (IntersectionObserver sul sentinel) → evita ~1866 nodi al
   // primo paint. Riparte da capo quando cambiano filtri/sort o i dati.
@@ -329,7 +311,10 @@ function App() {
 
   const handleLogin = async (u: string, p: string) => {
     await login(u, p);
-    if (useAuthStore.getState().isAdmin) setShowLogin(false);
+    if (useAuthStore.getState().isAdmin) {
+      setShowLogin(false);
+      resetFilters();
+    }
   };
 
   if (view === 'landing') {
@@ -356,6 +341,7 @@ function App() {
         isAdmin={isAdmin}
         onSignOut={() => {
           logout();
+          resetFilters();
           setView('landing');
         }}
         onLogoHome={() => setView('landing')}
@@ -601,6 +587,7 @@ function App() {
             onToggleCompare={() => toggleCompare(selected.id)}
             onToast={showToast}
             allCans={cans}
+            navCans={visible}
             onSelect={selectCan}
           />
         ))}

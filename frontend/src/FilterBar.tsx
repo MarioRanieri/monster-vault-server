@@ -119,6 +119,11 @@ export function FilterBar({
         Filters
         {activeCount > 0 && <span className="chip-count">{activeCount}</span>}
       </button>
+      {onReset && (
+        <button type="button" className="btn btn-ghost filter-reset-btn" onClick={onReset}>
+          Reset
+        </button>
+      )}
       <div className={`filter-advanced${showFilters ? ' open' : ''}`}>
         {selects.map((s) => (
           <select
@@ -170,13 +175,6 @@ export function FilterBar({
             />
           </div>
         ))}
-        <div className="filter-tools">
-          {onReset && (
-            <button type="button" className="btn btn-ghost" onClick={onReset}>
-              Reset
-            </button>
-          )}
-        </div>
       </div>
       {/* View toggle + sort: fuori dal collasso "Filters", sempre visibili sopra
           la griglia (riga a tutta larghezza in fondo alla filter-bar). */}

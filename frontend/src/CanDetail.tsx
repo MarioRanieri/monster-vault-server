@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Can } from './types';
 import { statoBadgeClass } from './statoBadge';
 import { hasPromo } from './filterCans';
@@ -23,6 +23,7 @@ export function CanDetail({
   onToggleCompare,
   onToast,
   allCans,
+  navCans,
   onSelect,
 }: Readonly<{
   can: Can;
@@ -35,6 +36,7 @@ export function CanDetail({
   onToggleCompare?: () => void;
   onToast?: (msg: string) => void;
   allCans?: Can[];
+  navCans?: Can[];
   onSelect?: (can: Can) => void;
 }>) {
   const photos = [can.p1, can.p2, can.p3, can.p4].filter((url): url is string => Boolean(url));
@@ -83,6 +85,22 @@ export function CanDetail({
     if (!allCans) return [];
     return sameLineupGroups(allCans, can);
   }, [can.id, allCans]);
+
+  // Frecce ← → scorrono alla lattina precedente/successiva della lista corrente
+  // (stesso ordine/filtri della griglia da cui si è aperto il pannello) — non i
+  // pulsanti ‹ › della foto, che restano dedicati alle foto della lattina.
+  // Disattivate mentre la lightbox è aperta: lì ← → scorrono le sue foto.
+  useEffect(() => {
+    if (!navCans || navCans.length < 2 || !onSelect || lbIdx !== null) return;
+    const idx = navCans.findIndex((c) => c.id === can.id);
+    if (idx === -1) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') onSelect(navCans[(idx - 1 + navCans.length) % navCans.length]);
+      else if (e.key === 'ArrowRight') onSelect(navCans[(idx + 1) % navCans.length]);
+    };
+    globalThis.addEventListener('keydown', onKey);
+    return () => globalThis.removeEventListener('keydown', onKey);
+  }, [navCans, can.id, onSelect, lbIdx]);
 
   return (
     <aside className="detail-panel open">
