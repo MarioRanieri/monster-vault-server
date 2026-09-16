@@ -2,10 +2,80 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-07-10 (rev 48 — audit guest COMPLETO: +refactor filtri, render incrementale)  
-**Branch:** main (lavoro su `feat/react-migration`, mergiato a `main`)  
+**Updated:** 2026-09-16 (rev 54 — eBay monitor: webhook Telegram istantaneo, deployato e live)  
+**Branch:** main  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
+
+> **2026-09-16 — eBay monitor: comandi Telegram via webhook (rev 54, in produzione).** Il bot
+> (`ebay-monitor/`, GitHub Actions + Mongo, separato dal sito) aveva un problema di fondo: girava
+> su cron GitHub **ogni 5 min**, ma GitHub **non lo rispettava** su questa repo (run reali distanziate
+> di 2-6 ore, non minuti) — comandi lentissimi, raffiche di notifiche dopo pause lunghe, rischio di
+> annunci persi tra uno sweep e l'altro. **Fix architetturale** (spec + piano + esecuzione via
+> `subagent-driven-development`, 6 task + review finale con 1 giro di fix): split in due processi
+> indipendenti — `ebay-monitor/bot_logic.py` (nuovo, `Store` Mongo + logica comandi/mercati
+> condivisa), `ebay_monitor.py` ridotto a **solo sweep eBay**, ora su cron GitHub Actions dedicato
+> **ogni ora** (`7 * * * *`, non più `*/5 * * * *`); `webhook_app.py` (nuovo, Flask) per i comandi
+> `/add /list /market /delete`, **istantanei**, su un **secondo Web Service Render separato**
+> (`monster-vault-ebay-webhook`, root `ebay-monitor/`, non tocca il sito Java). Fix di sicurezza in
+> review: i controlli auth (secret Telegram + chat autorizzata) fallivano "aperti" se le env var non
+> erano configurate — corretti per fallire "chiusi". Altri fix dalla review finale: gate dello sweep
+> con tolleranza 10% (altrimenti il jitter normale di GitHub avrebbe dimezzato la cadenza oraria),
+> `gunicorn --threads 4 --timeout 120` (il default non reggerebbe `/delete` su molti messaggi). 41
+> test Python (19+12+10), tutti verdi. **Deploy completato** (con accesso Render API + token bot
+> forniti dall'utente in chat): servizio creato, 4 env var impostate (`TELEGRAM_BOT_TOKEN/CHAT_ID`,
+> `MONGODB_URI` riusato dal sito, nuovo `TELEGRAM_WEBHOOK_SECRET`), `setWebhook` registrato,
+> verificato end-to-end (`/add test123` → arrivato su Mongo → ripulito), vecchio banner "~2h" e
+> descrizione bot obsoleti rimossi, servizio spostato nello stesso ambiente Render del sito
+> ("My project" → environment "Production") via API `POST /environments/{id}/resources`. ⚠️
+> **Limite noto, non affrontato**: annunci eBay ri-listati con `itemId` nuovo passano come "nuovi"
+> (niente confronto immagini, già scartato per inaffidabilità — vedi rev 2026-07-09 sotto).
+> Spec: `docs/superpowers/specs/2026-09-15-ebay-monitor-telegram-webhook-design.md`. Piano:
+> `docs/superpowers/plans/2026-09-15-ebay-monitor-telegram-webhook.md`.
+>
+> **Backlog idee Telegram (proposte, NON implementate — priorità tutta aperta, l'utente ha scelto
+> "tutta la lista" in fase di brainstorming, nessun ordine deciso ancora):**
+> - **Parole/blacklist**: `/remove <parola>` (inverso di `/add`, oggi va tolta a mano da Mongo);
+>   `/export`/`/import` blacklist come file in chat (editing bulk senza toccare Git/Mongo);
+>   whitelist di eccezione (forza un annuncio a passare anche se una parola lo bloccherebbe).
+> - **Comandi**: `/status` (ultimo sweep, prossimo ETA, quanti annunci visti — oggi solo nei log
+>   GitHub Actions); `/pause`/`/resume` (ferma temporaneamente sweep+notifiche senza toccare
+>   secrets/workflow); `/query add|remove|list` (gestisci le keyword `_KEYWORDS` in `settings.py`
+>   dalla chat, stesso pattern già usato da `/market` per i mercati — niente più deploy per una
+>   nuova keyword); `/help` (elenco comandi, anche fuori dal menu "/"); `/price max <valore>`
+>   (tetto prezzo dinamico, oggi `MAX_PRICE_EUR=None` fisso).
+> - **Personalizzazioni**: notifiche su più chat/gruppi (oggi un solo `TELEGRAM_CHAT_ID`); digest
+>   periodico invece di un messaggio per annuncio se il volume cresce; "snooze" temporaneo di una
+>   query specifica senza cancellarla.
+> - **Ottimizzazioni**: riepilogo settimanale automatico (quanti trovati, quali query rendono di
+>   più); alert Telegram sui crash imprevisti del workflow (oggi avvisa solo Mongo-giù e "radar
+>   quasi cieco"); `/health` più ricco (legge l'ultimo sweep da Mongo, per un monitor esterno tipo
+>   UptimeRobot, già usato sul sito, che rilevi se il radar si blocca silenziosamente).
+>
+> Prossima sessione: leggere questa voce + la spec/piano linkati sopra per il contesto completo
+> prima di scegliere quali voci del backlog implementare.
+
+> **2026-09-15 — "Cans from the same lineup" (matching lattine correlate) + filtri/navigazione
+> UI (rev 49-53, PR #13-21).** Sessione lunga sul sito: **(1) Sicurezza** — Swagger/api-docs non
+> più pubblici (PR #10), npm audit fix (PR #11), CVE xlsx risolta (PR #12). **(2) Saved Views
+> rimossa** (PR #13): mai usata, aveva un bug di overflow. **(3) UI polish round** (PR #14-17):
+> header deduplicato, pannello filtri sempre dietro un toggle "Filters" anche desktop, placeholder
+> SVG per lattine senza foto, testo/titoli sezione con più carattere visivo, dettaglio lattina
+> ridisegnato (foto+nome sopra, campi sotto a tutta larghezza, "altre lattine" in fondo non più in
+> cima — richiesta esplicita utente sull'ordine). **(4) "Cans from the same lineup"** (PR #18-20):
+> nuova sezione nel dettaglio che mostra lattine della stessa "linea" — algoritmo validato sui dati
+> reali della collezione (1867+ lattine via `/api/cans`): promo e non-promo non si mischiano mai
+> (hard filter), match adattivo nome a 2 parole→1 parola se il gruppo a 2 è troppo piccolo
+> (soglia 4), nazione-first cascade per lattine normali; per le promo invece 3 fasce concatenate
+> (stesso item ovunque → altre promo stessa nazione → altre promo rare), perché per una promo la
+> "linea" è la campagna/oggetto, non il mercato. Logica in `frontend/src/relatedCans.ts`. **(5)
+> Filtri e navigazione** (PR #21): i filtri/ricerca NON persistono più tra sessioni (prima
+> restavano in `localStorage` anche a login/logout — richiesta esplicita utente, "deve partire da
+> 0"), bottone Reset spostato fuori dal pannello collassabile (sempre cliccabile), frecce ← →
+> nel dettaglio lattina scorrono ora alla lattina precedente/successiva nella lista filtrata
+> corrente (i pulsanti ‹ › restano dedicati alle foto). Tutte le PR con SonarCloud gate verde
+> (alcune hanno richiesto 2-4 tentativi per duplicazione codice/security hotspot — pattern noto:
+> il CPD di SonarCloud confronta la FORMA strutturale dei test, non solo il testo letterale).
 
 > **2026-07-10 — Audit esperienza guest (prime 5 voci).** Analisi del sito live in modalità
 > guest + `docs/AUDIT.md` (shortlist prioritizzata di 11 voci). Implementate le 5 a più alto
