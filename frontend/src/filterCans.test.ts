@@ -189,6 +189,25 @@ test('filterOptions tiene visibile il valore attivo anche su una combinazione or
   expect(opts.tops).toContain('SILVER');
 });
 
+test('query "ultra" riduce il risultato alle sole lattine che matchano, non torna tutta la lista', () => {
+  // Riproduce il sospetto della segnalazione: un pool con più di 60 lattine dove
+  // solo poche contengono "ultra" nel nome. Se il filtro fosse rotto (o applicato
+  // dopo l'impaginazione) il risultato resterebbe grande quanto il pool.
+  const pool: Can[] = [
+    ...Array.from({ length: 58 }, (_, i) => ({ id: `p${i}`, nome: `Piraña ${i}` })),
+    { id: 'u1', nome: 'Ultra Violet' },
+    { id: 'u2', nome: 'Ultra Sunrise' },
+  ];
+  const result = filterCans(pool, { query: 'ultra' });
+  expect(result.map((c) => c.nome)).toEqual(['Ultra Violet', 'Ultra Sunrise']);
+  expect(result.length).toBeLessThan(pool.length);
+});
+
+test('query senza corrispondenze ritorna lista vuota', () => {
+  const pool: Can[] = Array.from({ length: 60 }, (_, i) => ({ id: `p${i}`, nome: `Piraña ${i}` }));
+  expect(filterCans(pool, { query: 'zzz-non-esiste-zzz' })).toEqual([]);
+});
+
 test('filtra per stato (match esatto, dalle stats)', () => {
   const cans = [
     { id: '1', nome: 'A', stato: 'Damaged' },

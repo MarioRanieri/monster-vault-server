@@ -3713,6 +3713,23 @@ input.field-invalid {
   .filter-chip {
     padding: 5px 10px;
     font-size: 10px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* Bersaglio di tocco >=44px (soglia accessibilità mobile): il testo resta
+     piccolo, ma l'area cliccabile del bottone cresce con min-height. */
+  .share-view-btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .stats-btn,
+  .header-right .btn,
+  .filter-toggle {
+    min-height: 44px;
   }
   /* iOS: font-size >=16px sui campi di testo evita lo zoom automatico del viewport al focus */
   .auth-input,
