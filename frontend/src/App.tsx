@@ -91,13 +91,17 @@ function App() {
   const setFilter = <K extends keyof Filters>(k: K, v: Filters[K]) =>
     setFilters((f) => ({ ...f, [k]: v }));
   const [sort, setSort] = useState<SortKey>('added-desc');
-  // Chi è già entrato una volta (mv_seen_landing) salta la splash e va dritto in
-  // collection; la landing resta raggiungibile dal logo dell'header.
+  // Chi ha già fatto login su questo browser (mv_auth) salta sempre la splash,
+  // anche a sessione nuova. Un guest la salta solo per la sessione corrente
+  // (sessionStorage: sopravvive a un refresh ma si azzera chiudendo la tab/app
+  // per davvero) — la landing resta comunque raggiungibile dal logo dell'header.
   const [view, setView] = useState<'landing' | 'collection'>(() =>
-    localStorage.getItem('mv_seen_landing') ? 'collection' : 'landing',
+    localStorage.getItem('mv_auth') || sessionStorage.getItem('mv_seen_landing')
+      ? 'collection'
+      : 'landing',
   );
   const enterCollection = () => {
-    localStorage.setItem('mv_seen_landing', '1');
+    sessionStorage.setItem('mv_seen_landing', '1');
     setView('collection');
   };
   const [showLogin, setShowLogin] = useState(false);

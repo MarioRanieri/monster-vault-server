@@ -8,6 +8,7 @@ beforeEach(() => {
   useCansStore.setState({ cans: [], loading: false, error: null });
   useAuthStore.setState({ accessToken: null, isAdmin: false, error: null });
   localStorage.clear(); // evita che l'hint di sessione (mv_auth) trapeli fra i test
+  sessionStorage.clear(); // idem per mv_seen_landing (ora sessionStorage, non più localStorage)
   vi.stubGlobal(
     'fetch',
     vi.fn().mockResolvedValue({

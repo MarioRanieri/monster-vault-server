@@ -8,6 +8,7 @@ beforeEach(() => {
   useCansStore.setState({ cans: [], loading: false, error: null, warming: false, updatedAt: null });
   useAuthStore.setState({ accessToken: null, isAdmin: false, error: null, sessionExpired: false });
   localStorage.clear(); // la cache offline inquinerebbe i test successivi
+  sessionStorage.clear();
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [] }));
 });
 
@@ -202,12 +203,30 @@ test('login, poi "Esci" riporta alla landing', async () => {
   expect(await screen.findByRole('button', { name: /admin access/i })).toBeTruthy();
 });
 
-test('chi ha già visto la landing entra dritto nella collection', async () => {
-  localStorage.setItem('mv_seen_landing', '1');
+test('guest che ha già visto la landing in questa sessione entra dritto nella collection', async () => {
+  sessionStorage.setItem('mv_seen_landing', '1');
   render(<App />);
   // niente splash: nessun "enter the collection", siamo già nella collection
   expect(screen.queryByRole('button', { name: /enter the collection/i })).toBeNull();
   expect(await screen.findByRole('searchbox')).toBeTruthy();
+});
+
+test('un mv_seen_landing residuo in localStorage (vecchio meccanismo) non basta più a saltare la landing', () => {
+  localStorage.setItem('mv_seen_landing', '1');
+  render(<App />);
+  expect(screen.getByRole('button', { name: /enter the collection/i })).toBeTruthy();
+});
+
+test('admin già loggato su questo browser (mv_auth) salta la landing anche a sessione nuova', async () => {
+  localStorage.setItem('mv_auth', '1');
+  render(<App />);
+  expect(screen.queryByRole('button', { name: /enter the collection/i })).toBeNull();
+  expect(await screen.findByRole('searchbox')).toBeTruthy();
+  // mv_auth fa scattare un refresh() fire-and-forget dall'effect di mount (App.tsx):
+  // va aspettato qui, altrimenti la sua promise resta pendente e "ruba" una
+  // risposta mock al test successivo (refreshing è un singleton a livello di
+  // modulo in authStore.ts, non viene resettato dal beforeEach).
+  await useAuthStore.getState().refresh();
 });
 
 test('il logo torna alla landing restando admin; ADMIN ACCESS rientra senza password', async () => {
@@ -572,11 +591,12 @@ test('admin: carica una foto durante la modifica', async () => {
   // la catena async (save → upload → re-render) può superare il default di 1s
   // quando la suite intera gira in parallelo sotto carico — sotto la CI di
   // SonarQube (istrumentata per la coverage, molto più lenta) 4000ms non
-  // bastava ancora, osservato in produzione (run 35074807861).
+  // bastava, poi osservato superare anche i 10000ms in locale sotto carico
+  // macchina — margine alzato ulteriormente invece di rincorrere il numero.
   expect(
-    (await screen.findAllByRole('img', { name: 'Alpha' }, { timeout: 10000 })).length,
+    (await screen.findAllByRole('img', { name: 'Alpha' }, { timeout: 20000 })).length,
   ).toBeGreaterThan(0);
-}, 20000); // la catena async è lenta sotto carico/coverage: alza il testTimeout
+}, 25000); // la catena async è lenta sotto carico/coverage: alza il testTimeout
 
 // Il backend non invia mai il prezzo (valore) al guest (redatto server-side): il
 // filtro min/max era comunque un side-channel che permetteva di dedurlo per
@@ -630,7 +650,7 @@ test('guest: un vmin residuo da una share URL admin non svuota la griglia', asyn
 });
 
 test('skip-link punta al contenitore principale della griglia', async () => {
-  localStorage.setItem('mv_seen_landing', '1');
+  sessionStorage.setItem('mv_seen_landing', '1');
   render(<App />);
   await screen.findByRole('searchbox');
 
