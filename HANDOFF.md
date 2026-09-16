@@ -2,10 +2,40 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-09-16 (rev 56 — backlog migliorie sito COMPLETO: 8/8 issue #22-#29 chiuse)  
+**Updated:** 2026-09-16 (rev 57 — landing page session-scoped + fix CI reale post-rev56)  
 **Branch:** main  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
+
+> **2026-09-16 — Landing page session-scoped + CI davvero verde (rev 57).** Utente segnalava:
+> chiudendo la PWA o con hard refresh (Ctrl+Shift+R) la landing non ricompare mai più — era
+> voluto (`localStorage['mv_seen_landing']` persiste per sempre), ma non era quello che voleva.
+> Brainstorming (`/superpowers:brainstorming`) → design approvato: **admin già loggato su questo
+> browser** (hint `mv_auth`, riusato) salta sempre la landing; **guest** la salta solo per la
+> sessione corrente (`sessionStorage` invece di `localStorage` — sopravvive a un refresh, si
+> azzera chiudendo davvero la tab/app). Diff minimo in `App.tsx` (~4 righe).
+>
+> **TDD ha beccato un bug vero mentre scrivevo il test admin**: pre-impostare `mv_auth` prima del
+> mount fa scattare un `refresh()` fire-and-forget dall'effect di mount, mai atteso dal test — la
+> sua promise resta pendente oltre il test (`refreshing` in `authStore.ts` è un singleton a
+> livello di modulo, il `beforeEach` non lo resetta) e "ruba" una risposta mock al test successivo
+> in coda, facendo fallire un test diverso e apparentemente casuale ad ogni run. Fix: drenare
+> esplicitamente la promise a fine test. Nello stesso giro trovato lo stesso buco
+> (`sessionStorage.clear()` mancante nel `beforeEach`) anche in `AppChrome.test.tsx`.
+>
+> **Fix CI residuo da rev 56** (il push di quella sessione non era stato verificato verde per
+> davvero, solo bypassato): un errore Prettier reale in `api.test.ts` + causa vera della
+> flakiness intermittente — il job SonarQube gira i test con coverage v8 su **Node 22**, in
+> locale è Node 24, e sotto quella combinazione i timeout di default (1s RTL / 5s vitest) non
+> bastavano, con un test diverso a fallire ogni run. Riprodotto scaricando Node 22 in locale,
+> risolto alzando `asyncUtilTimeout`/`testTimeout`/`hookTimeout` globalmente invece di rincorrere
+> singoli test. **Da ricordare per il futuro**: dopo un push, controllare sempre `gh run list` —
+> il bypass delle branch protection rules su questo repo nasconde un CI rossa se non la si
+> guarda esplicitamente.
+>
+> 294 test frontend (era 292) + 125 backend verdi, CI verificata verde su GitHub Actions (non solo
+> bypassata), deploy Render live verificato (bundle JS confrontato via hash + grep sulle stringhe
+> nuove).
 
 > **2026-09-16 — Bot eBay: menu comandi Telegram, wording + ordine (rev 56).** Il menu "/" su
 > Telegram non si aggiornava: `setMyCommands` è idempotente lato processo (si registra solo al
