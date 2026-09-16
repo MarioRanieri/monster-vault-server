@@ -40,9 +40,13 @@
 > Python: 85 (26 bot_logic + 18 ebay_monitor + 36 webhook_app + 5 weekly_summary)**, tutti verdi
 > (era 41 a fine rev 54). Commit locale, **non ancora pushato** — un solo push finale per tutta la
 > sessione, su richiesta utente.
-> ⚠️ **Non verificato end-to-end in produzione**: tutti i nuovi comandi sono testati via TDD
-> (Flask test client + Mongo/Telegram mockati) ma non ancora provati dal vivo su Telegram dopo il
-> deploy — da fare alla prossima sessione utile dopo il push.
+> ⚠️ ~~Non verificato end-to-end in produzione~~ — **Update 2026-09-16 (stessa giornata):** il
+> push era in realtà già avvenuto (merge PR #45, commit `6275892` su `main`). Confermato via API:
+> deploy Render `monster-vault-ebay-webhook` `live` esattamente su quel commit, webhook Telegram
+> registrato correttamente (`getWebhookInfo`, 0 update in coda). **Resta da fare**: un test manuale
+> dal vivo di un comando (es. `/help` o `/status`) direttamente su Telegram — non eseguibile da
+> qui perché richiede `TELEGRAM_CHAT_ID`/`TELEGRAM_WEBHOOK_SECRET` e leggere le env var da Render
+> è bloccato dal classificatore di sicurezza (contengono segreti).
 
 > **2026-09-16 — eBay monitor: comandi Telegram via webhook (rev 54, in produzione).** Il bot
 > (`ebay-monitor/`, GitHub Actions + Mongo, separato dal sito) aveva un problema di fondo: girava
