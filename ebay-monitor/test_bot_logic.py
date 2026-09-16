@@ -1,5 +1,6 @@
 """Test della logica pura condivisa (bot_logic.py) — comandi, mercati, budget.
 Niente rete/Mongo. Esegui:  py test_bot_logic.py   (compatibile anche con pytest)."""
+import os
 import sys
 
 try:
@@ -8,6 +9,32 @@ except Exception:
     pass
 
 import bot_logic as bl
+
+
+# ─── _chat_ids (multi-chat/gruppo) ─────────────────────────────────────────────
+
+def _with_chat_id(value, fn):
+    orig = os.environ.get("TELEGRAM_CHAT_ID")
+    os.environ["TELEGRAM_CHAT_ID"] = value
+    try:
+        return fn()
+    finally:
+        if orig is not None:
+            os.environ["TELEGRAM_CHAT_ID"] = orig
+        else:
+            os.environ.pop("TELEGRAM_CHAT_ID", None)
+
+def test_chat_ids_single_value():
+    assert _with_chat_id("12345", bl._chat_ids) == ["12345"]
+
+def test_chat_ids_splits_comma_separated():
+    assert _with_chat_id("111,222,333", bl._chat_ids) == ["111", "222", "333"]
+
+def test_chat_ids_strips_whitespace_and_drops_empty():
+    assert _with_chat_id(" 111 , , 222 ,", bl._chat_ids) == ["111", "222"]
+
+def test_chat_ids_empty_env_is_empty_list():
+    assert _with_chat_id("", bl._chat_ids) == []
 
 
 # ─── parse_command ────────────────────────────────────────────────────────────
@@ -49,6 +76,19 @@ def test_add_accepts_normal_word():
 # ─── mercati: resolve / effective / apply (comando /market) ───────────────────
 
 DEF = ["EBAY_IT", "EBAY_DE", "EBAY_GB"]
+
+def test_prune_expired_snoozes_drops_only_expired():
+    snoozes = {"khaos": 1000, "rare": 2000}
+    assert bl.prune_expired_snoozes(snoozes, now=1500) == {"rare": 2000}
+
+def test_prune_expired_snoozes_keeps_all_when_none_expired():
+    snoozes = {"khaos": 5000}
+    assert bl.prune_expired_snoozes(snoozes, now=1000) == {"khaos": 5000}
+
+def test_prune_expired_snoozes_handles_empty_and_none():
+    assert bl.prune_expired_snoozes({}, now=1000) == {}
+    assert bl.prune_expired_snoozes(None, now=1000) == {}
+
 
 def test_resolve_marketplace_friendly_and_full():
     assert bl.resolve_marketplace("uk") == "EBAY_GB"

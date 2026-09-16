@@ -58,6 +58,29 @@ def test_leading_space_avoids_substring_false_positive():
     assert m.title_passes("Monster Energy that rare can", REQ, [" hat"])
     assert not m.title_passes("Monster Energy trucker hat", REQ, [" hat"])
 
+def test_whitelist_overrides_exclude_match():
+    assert m.title_passes("Monster Energy Khaos felpa promo", REQ, ["felpa"], whitelist=["khaos"])
+
+def test_whitelist_does_not_bypass_require_words():
+    assert not m.title_passes("Scooby Doo Khaos felpa", REQ, ["felpa"], whitelist=["khaos"])
+
+def test_no_whitelist_match_still_excludes():
+    assert not m.title_passes("Monster Energy Khaos felpa promo", REQ, ["felpa"], whitelist=["rare"])
+
+
+# ─── build_digest_text (digest quando il giro trova molti annunci) ────────────
+
+def test_build_digest_text_includes_count_and_all_items():
+    items = [
+        {"title": "Monster Khaos", "price": "10", "currency": "EUR", "url": "https://a", "site": "EBAY_IT"},
+        {"title": "Monster Rare", "price": "20", "currency": "EUR", "url": "https://b", "site": "EBAY_DE"},
+    ]
+    text = m.build_digest_text(items)
+    assert "2" in text.split("\n", 1)[0]   # intestazione con il conteggio
+    for it in items:
+        assert it["title"] in text
+        assert it["url"] in text
+
 
 # ─── sweep_due (gate ricerca eBay ogni 1h) ────────────────
 
@@ -74,6 +97,46 @@ def test_sweep_due_too_soon():
 
 def test_sweep_due_elapsed():
     assert m.sweep_due(1000, 1000 + INT, INT) is True     # passate 2h → sweep
+
+
+# ─── run_once_safe (alert Telegram sui crash imprevisti) ──────────────────────
+
+def test_run_once_safe_alerts_and_reraises_on_crash():
+    alerts = []
+    orig_run_once = m.run_once
+    orig_tg_text = m._tg_text
+    m.run_once = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom"))
+    m._tg_text = lambda t: alerts.append(t)
+    try:
+        raised = False
+        try:
+            m.run_once_safe()
+        except RuntimeError:
+            raised = True
+        assert raised, "run_once_safe deve rilanciare l'eccezione (il job resta 'failed')"
+        assert alerts and "boom" in alerts[-1]
+    finally:
+        m.run_once = orig_run_once
+        m._tg_text = orig_tg_text
+
+
+def test_run_once_safe_lets_keyboard_interrupt_through_without_alert():
+    alerts = []
+    orig_run_once = m.run_once
+    orig_tg_text = m._tg_text
+    m.run_once = lambda *a, **k: (_ for _ in ()).throw(KeyboardInterrupt())
+    m._tg_text = lambda t: alerts.append(t)
+    try:
+        raised = False
+        try:
+            m.run_once_safe()
+        except KeyboardInterrupt:
+            raised = True
+        assert raised
+        assert not alerts, "Ctrl+C non è un crash: nessun alert"
+    finally:
+        m.run_once = orig_run_once
+        m._tg_text = orig_tg_text
 
 
 if __name__ == "__main__":

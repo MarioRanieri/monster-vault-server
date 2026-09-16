@@ -16,13 +16,19 @@ def _tg_token(): return os.environ.get("TELEGRAM_BOT_TOKEN", "")
 def _chat_id():  return os.environ.get("TELEGRAM_CHAT_ID", "")
 def _tg_url():   return f"https://api.telegram.org/bot{_tg_token()}"
 
+def _chat_ids():
+    """TELEGRAM_CHAT_ID può contenere più chat separate da virgola (multi-chat/gruppo).
+    Puro: nessun accesso a Mongo. Ordine preservato, vuoti scartati."""
+    return [c.strip() for c in _chat_id().split(",") if c.strip()]
+
 def _tg_text(text):
-    """Messaggio di servizio (testo semplice) nella chat."""
-    try:
-        requests.post(f"{_tg_url()}/sendMessage",
-                      data={"chat_id": _chat_id(), "text": text}, timeout=15)
-    except Exception:
-        pass
+    """Messaggio di servizio (testo semplice), a TUTTE le chat configurate."""
+    for chat_id in _chat_ids():
+        try:
+            requests.post(f"{_tg_url()}/sendMessage",
+                          data={"chat_id": chat_id, "text": text}, timeout=15)
+        except Exception:
+            pass
 
 
 # ─── MONGODB (stato: anti-duplicati sweep + blacklist/mercati dinamici) ───────
@@ -38,6 +44,7 @@ class Store:
         self.db.command("ping")
         self.seen = self.db["ebay_seen"]
         self.blacklist = self.db["ebay_blacklist"]
+        self.whitelist = self.db["ebay_whitelist"]
 
     def seen_count(self):
         return self.seen.estimated_document_count()
@@ -45,7 +52,9 @@ class Store:
     def already_seen(self, item_id):
         return self.seen.find_one({"_id": item_id}, {"_id": 1}) is not None
 
-    def mark_seen(self, item_id, title, price, currency, url, site, query):
+    def mark_seen(self, item_id, title, price, currency, url, site, query, notified=False):
+        """notified=True SOLO per gli annunci davvero notificati (singolo o digest) — usato
+        dal riepilogo settimanale per non contare anche gli scartati/baseline."""
         try:
             price_val = float(price or 0)
         except (TypeError, ValueError):
@@ -53,9 +62,14 @@ class Store:
         self.seen.update_one(
             {"_id": item_id},
             {"$setOnInsert": {"title": title, "price": price_val, "currency": currency,
-                              "url": url, "site": site, "query": query,
+                              "url": url, "site": site, "query": query, "notified": notified,
                               "seen_at": datetime.now(timezone.utc)}},
             upsert=True)
+
+    def notified_since(self, since_dt):
+        """Annunci notificati (notified=True) da since_dt in poi — per il riepilogo settimanale."""
+        return list(self.seen.find({"notified": True, "seen_at": {"$gte": since_dt}},
+                                    {"query": 1, "_id": 0}))
 
     def blacklist_additions(self):
         return [d["_id"] for d in self.blacklist.find({}, {"_id": 1})]
@@ -66,6 +80,23 @@ class Store:
             {"_id": word},
             {"$setOnInsert": {"added_at": datetime.now(timezone.utc)}},
             upsert=True)
+
+    def remove_blacklist_word(self, word):
+        """Rimuove una parola dinamica. True se c'era, False se non trovata (inverso di /add)."""
+        return self.blacklist.delete_one({"_id": word}).deleted_count > 0
+
+    def whitelist_words(self):
+        return [d["_id"] for d in self.whitelist.find({}, {"_id": 1})]
+
+    def add_whitelist_word(self, word):
+        """Upsert idempotente, stesso pattern di add_blacklist_word."""
+        self.whitelist.update_one(
+            {"_id": word},
+            {"$setOnInsert": {"added_at": datetime.now(timezone.utc)}},
+            upsert=True)
+
+    def remove_whitelist_word(self, word):
+        return self.whitelist.delete_one({"_id": word}).deleted_count > 0
 
     def get_meta(self, key, default=None):
         d = self.db["ebay_meta"].find_one({"_id": key})
@@ -102,6 +133,12 @@ def validate_add_word(word, require_words):
 
 
 # ─── MERCATI: risoluzione + override dinamico (comando /market) ───────────────
+
+def prune_expired_snoozes(snoozes, now):
+    """Rimuove le keyword (/snooze) il cui timer è scaduto — riattivazione automatica.
+    Puro: nessun accesso a Mongo. {keyword: expiry_epoch_seconds} -> stesso shape, filtrato."""
+    return {k: exp for k, exp in (snoozes or {}).items() if exp > now}
+
 
 def resolve_marketplace(text):
     """'uk'/'UK' -> 'EBAY_GB', 'EBAY_DE'/'ebay_fr' -> se stesso se valido. Ignoto -> None."""

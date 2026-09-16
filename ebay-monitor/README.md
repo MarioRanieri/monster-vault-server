@@ -6,7 +6,7 @@ tenere acceso:
 
 - **Ricerca eBay**: gira **in cloud su GitHub Actions**, **ogni ora**, stato su
   **MongoDB Atlas**. Workflow: `.github/workflows/ebay-monitor.yml`.
-- **Comandi Telegram** (`/add /list /market /delete`): gira su un **secondo Web Service
+- **Comandi Telegram** (`/add /remove /list /market /query /delete /help /status /pause /resume`): gira su un **secondo Web Service
   Render**, separato dal sito principale — riceve un **webhook** da Telegram e risponde
   **istantaneamente**, niente attesa di un giro cron. Codice: `webhook_app.py`.
 
@@ -31,6 +31,10 @@ di un giro cron. Unico limite: come il sito, il servizio gratuito Render si addo
 inattivo, quindi il primissimo comando dopo una pausa lunga ha un cold-start di ~30-50s prima
 della risposta (Telegram ritenta la consegna finché non risponde).
 
+**`GET /health`** (JSON, nessuna auth — pensato per un monitor esterno tipo UptimeRobot):
+`{"last_sweep_at": ..., "seen_count": ..., "paused": ...}`. Distinto da `GET /` (che resta il
+liveness check leggero di Render, senza toccare Mongo).
+
 Ricerca **per NOME**: ogni query è `monster energy <keyword>` (eBay matcha tutte le parole in
 qualsiasi ordine, non la frase esatta) → esce solo Monster Energy, non Pokémon / Monster High.
 Niente confronto foto: il riconoscimento immagine (CLIP/DINOv2/OCR **e** VLM) è stato testato e
@@ -42,6 +46,14 @@ Niente confronto foto: il riconoscimento immagine (CLIP/DINOv2/OCR **e** VLM) è
 gira ogni 1h, quindi c'è ~1h di margine per il drift naturale dei cron GitHub Actions (minuti,
 non più le ore osservate col vecchio schedule `*/5 * * * *` — vedi lo spec di design). Gli
 eventuali duplicati residui sono comunque filtrati dallo stato su Mongo.
+
+## 📦 Digest (giri con molti annunci)
+
+Sotto `settings.DIGEST_THRESHOLD` (default **5**) annunci-da-notificare nello stesso giro:
+un messaggio Telegram per annuncio, come sempre. Da `DIGEST_THRESHOLD` in su: **un unico
+messaggio digest** (`build_digest_text` + `send_telegram_digest`) invece di una raffica di N
+notifiche. `mark_seen` avviene comunque per ognuno, digest o no — non cambia cosa viene
+considerato "già visto".
 
 ## Anti-rumore: la blacklist
 
@@ -57,6 +69,14 @@ La blacklist è **base statica + aggiunte dinamiche**, unite a runtime:
 Le parole obbligatorie sono `REQUIRE_WORDS = ["monster", "energy"]`: un annuncio passa solo se le
 contiene entrambe (eBay non fa un AND stretto).
 
+## 👥 Multi-chat/gruppo
+
+`TELEGRAM_CHAT_ID` accetta **una o più chat separate da virgola** (`_chat_ids()` in
+`bot_logic.py`). Tutte le chat configurate ricevono tutte le notifiche/conferme e possono tutte
+mandare comandi (simmetrico, nessun permesso differenziato). Unica eccezione: **`/delete`** resta
+scoperto sulla chat che ha mandato il comando (i `message_id` di Telegram sono una sequenza per
+chat — cancellare lo stesso range in un'altra chat colpirebbe messaggi a caso).
+
 ## 🤖 Comandi Telegram
 
 Rispondono **istantaneamente** (webhook, vedi sopra) — eccetto il primissimo comando dopo una
@@ -66,6 +86,9 @@ idempotenti.
 - **`/add parola`** — aggiunge `parola` alla blacklist dinamica (Mongo). Guardia: rifiuta vuoto,
   parole <2 caratteri e le parole obbligatorie (`monster`/`energy`, che accecherebbero il radar).
   Conferma in chat: *"✅ aggiunto 'camicia' (ora N parole dinamiche)"*.
+- **`/remove parola`** — inverso di `/add`: rimuove `parola` dalla blacklist dinamica (mai da
+  `blacklist.txt`, che è statica). Se non è tra le dinamiche risponde con un avviso esplicito,
+  non in silenzio.
 - **`/list`** — stampa le parole aggiunte con `/add`. Per versionarle, incollale a mano in fondo a
   `blacklist.txt` (il sync file↔Mongo è **manuale**, per scelta).
 - **`/market`** — gestisce i mercati eBay cercati, con stato dinamico su Mongo (default in
@@ -75,7 +98,34 @@ idempotenti.
     `EBAY_GB`). Rifiuta la rimozione dell'ultimo mercato.
   - **`/market add fr`** — aggiunge un mercato tra quelli validi per la Browse API
     (vedi `settings.MARKET_ALIASES`). Riattivare un default rimosso: stesso comando.
+- **`/query`** — stesso pattern di `/market` (riusa `effective_markets`/`apply_market_change`),
+  ma sulle keyword di ricerca (`settings._KEYWORDS`) invece dei mercati: `/query` o `/query list`
+  elenca le attive, `/query add <parola>` / `/query remove <parola>` modificano l'override
+  (Mongo, `query_override`). Niente più deploy per aggiungere/togliere una keyword; lo sweep
+  legge le keyword attive ad ogni giro (come già fa per i mercati).
+- **`/snooze <parola> <ore>`** — esclude temporaneamente una keyword dalle ricerche (es.
+  `/snooze khaos 24`). Scadenza salvata su Mongo (`snoozes`); lo sweep stesso la riattiva al
+  primo giro utile dopo la scadenza (`prune_expired_snoozes`, puro) — nessun job separato.
+- **`/price`** — tetto prezzo dinamico: `/price` mostra il tetto attuale, `/price max 40` lo
+  imposta (EUR), `/price max none` lo rimuove. Persistito su Mongo (`max_price_eur`), letto ad
+  ogni sweep e applicato al filtro `MAX_PRICE_EUR` della ricerca eBay.
+- **`/export`** — manda la blacklist dinamica come file `.txt` (una parola per riga). Vuota →
+  messaggio informativo invece di un file vuoto.
+- **`/import`** — allega un file `.txt` **con didascalia `/import`** (nessuno stato lato server:
+  tutto in un solo messaggio). **Merge, mai sostituzione**: ogni riga passa dalla stessa guardia
+  di `/add`; il report finale conta aggiunte/ignorate (vuote, non valide, già presenti).
+- **`/whitelist`** — collection Mongo gemella della blacklist dinamica (`ebay_whitelist`), stessa
+  forma di comandi (`list` · `add <parola>` · `remove <parola>`). In `title_passes`: se il titolo
+  matcha una parola whitelist, il check blacklist viene **saltato** (whitelist vince sempre); i
+  `REQUIRE_WORDS` restano comunque obbligatori.
 - **`/delete`** — cancella i messaggi del bot (Telegram permette solo i **propri**, < 48h).
+- **`/help`** — elenco comandi, generato dalla stessa lista usata per il menu "/" di Telegram
+  (`BOT_COMMANDS`): un'unica fonte, nessun rischio di disallineamento.
+- **`/status`** — ultimo sweep (data/ora), ETA del prossimo giro, quanti annunci visti in totale,
+  stato pausa (vedi `/pause` `/resume`).
+- **`/pause`** / **`/resume`** — sospendono/riattivano lo sweep (flag `paused` su Mongo,
+  controllato a inizio `run_once`, prima di token/ricerche). Non tocca il webhook comandi: puoi
+  sempre `/resume` anche a monitor in pausa.
 
 ## ⚠️ Budget chiamate eBay
 
@@ -143,14 +193,32 @@ locale: `py webhook_app.py` (dev server Flask su `:5000`).
 |------|-------|
 | `ebay_monitor.py` | Sweep: Mongo + Browse API + filtri + notifica Telegram. GitHub Actions, ogni ora. |
 | `webhook_app.py` | Comandi Telegram via webhook, istantanei. Servizio Render separato. |
-| `bot_logic.py` | Condiviso da entrambi: `Store` (Mongo) + logica comandi/mercati pura. |
-| `settings.py` | Config **non-segreta** versionata (query, mercati, finestra, cadenza sweep). |
+| `weekly_summary.py` | Riepilogo settimanale (annunci notificati per query). Cron GitHub Actions separato, ogni lunedì. |
+| `bot_logic.py` | Condiviso da tutti e tre: `Store` (Mongo) + logica comandi/mercati pura. |
+| `settings.py` | Config **non-segreta** versionata (query, mercati, finestra, cadenza sweep, soglia digest). |
 | `blacklist.txt` | Blacklist di base (versionata). Le aggiunte `/add` vivono su Mongo. |
 | `test_ebay_monitor.py` | Test della logica sweep pura + canary spazi blacklist. |
 | `test_bot_logic.py` | Test della logica comandi/mercati pura. |
 | `test_webhook_app.py` | Test dell'handler webhook (Flask test client, Mongo/Telegram mockati). |
+| `test_weekly_summary.py` | Test della logica pura del riepilogo (raggruppamento/testo). |
 | `requirements.txt` | Dipendenze (`requests`, `pymongo`, `flask`, `gunicorn`). |
 | `config.py` | **Solo locale** (gitignored): segreti per i test manuali. |
+
+## 📈 Riepilogo settimanale
+
+`weekly_summary.py`, cron **separato** dallo sweep (`.github/workflows/ebay-monitor-weekly-
+summary.yml`, ogni lunedì 08:00 UTC): quanti annunci **notificati** (mai i baseline/scartati)
+negli ultimi 7 giorni, raggruppati per query — quali keyword rendono di più. Richiede il campo
+`notified` su `ebay_seen` (scritto da `mark_seen(..., notified=True)` solo per gli annunci
+davvero inviati, singoli o digest).
+
+## 🔥 Alert Telegram di servizio
+
+Oltre alle notifiche annunci, il bot avvisa su Telegram quando qualcosa non va: **Mongo
+irraggiungibile** (giro saltato), **radar quasi cieco** (>50% ricerche fallite in un giro,
+`_search_stats`), e **crash imprevisti** del workflow (`run_once_safe`: cattura qualunque
+eccezione non gestita altrove, avvisa, poi **rilancia** — il job GitHub Actions resta comunque
+"failed" e visibile in rosso, l'alert non lo maschera).
 
 ## Note tecniche
 
