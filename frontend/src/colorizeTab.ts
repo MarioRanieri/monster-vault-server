@@ -47,8 +47,11 @@ const BG: Record<string, string> = {
 };
 
 const TEXT_COLOR: Record<string, string> = {
-  black: '#000',
-  nero: '#000',
+  // Testo su sfondo scuro (nessun chip qui, a differenza di BG): nero puro
+  // sarebbe illeggibile, quindi riusa --text3 (già tarato WCAG AA per tema
+  // scuro/chiaro) invece di un altro grigio inventato.
+  black: 'var(--text3)',
+  nero: 'var(--text3)',
   white: '#fff',
   bianco: '#fff',
   silver: '#c0c0c0',

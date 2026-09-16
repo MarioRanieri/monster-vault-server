@@ -23,3 +23,10 @@ test('primo colore senza sfondo (silver) → parti colorate nel testo', () => {
 test('vuoto → nessuna parte', () => {
   expect(colorizeTab('').parts).toEqual([]);
 });
+
+test('black come seconda parte (Silver/Black) non è illeggibile su sfondo scuro', () => {
+  const r = colorizeTab('SILVER/BLACK');
+  const color = r.parts[1].color;
+  expect(color).toBeTruthy();
+  expect(color).not.toBe('#000');
+});
