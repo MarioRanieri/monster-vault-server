@@ -274,22 +274,22 @@ def _handle_command(store, cmd, arg, msg_id, document=None, chat_id=None):
         return True
     if cmd == "pause":
         store.set_meta("paused", True)
-        _tg_text("⏸️ Sweep e notifiche in pausa. Riprendi con /resume.")
+        _tg_text("⏸️ Controllo eBay e notifiche in pausa. Riprendi con /resume.")
         print("  [/pause] attivata")
         return True
     if cmd == "resume":
         store.set_meta("paused", False)
-        _tg_text("▶️ Sweep e notifiche riattivati.")
+        _tg_text("▶️ Controllo eBay e notifiche riattivati.")
         print("  [/resume] disattivata")
         return True
     if cmd == "status":
         last = store.get_meta("last_sweep_at")
         if last is None:
-            sweep_line = "🕐 Ultimo sweep: mai eseguito"
+            sweep_line = "🕐 Ultimo controllo eBay: mai eseguito"
         else:
             last_dt = datetime.fromtimestamp(last, tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
             eta_min = max(0, int((settings.SWEEP_INTERVAL_SECONDS - (time.time() - last)) / 60))
-            sweep_line = f"🕐 Ultimo sweep: {last_dt}\n⏳ Prossimo giro: ~{eta_min} min"
+            sweep_line = f"🕐 Ultimo controllo eBay: {last_dt}\n⏳ Prossimo giro: ~{eta_min} min"
         paused = "sì" if store.get_meta("paused", False) else "no"
         _tg_text(f"📡 Stato monitor\n{sweep_line}\n👀 Annunci visti: {store.seen_count()}\n"
                  f"⏸️ In pausa: {paused}")
@@ -348,7 +348,12 @@ def _handle_command(store, cmd, arg, msg_id, document=None, chat_id=None):
 # ─── menu comandi "/" (registrato una volta per processo, idempotente) ────────
 
 BOT_COMMANDS = [
+    {"command": "delete", "description": "Cancella i messaggi inviati dal bot"},
     {"command": "add",    "description": "Aggiungi una parola alla blacklist"},
+    {"command": "help",   "description": "Elenco comandi disponibili"},
+    {"command": "status", "description": "Stato: ultimo controllo eBay, prossimo giro, annunci visti"},
+    {"command": "pause",  "description": "Sospendi temporaneamente il controllo eBay e le notifiche"},
+    {"command": "resume", "description": "Riattiva il controllo eBay e le notifiche"},
     {"command": "remove", "description": "Rimuovi una parola dalla blacklist dinamica"},
     {"command": "list",   "description": "Mostra le parole aggiunte con /add"},
     {"command": "market", "description": "Mercati eBay: /market · add <paese> · remove <paese>"},
@@ -358,11 +363,6 @@ BOT_COMMANDS = [
     {"command": "import", "description": "Importa parole da un file (allegalo con questa didascalia)"},
     {"command": "whitelist", "description": "Eccezioni blacklist: list · add <parola> · remove <parola>"},
     {"command": "snooze", "description": "Sospendi una keyword: /snooze <parola> <ore>"},
-    {"command": "delete", "description": "Cancella i messaggi inviati dal bot"},
-    {"command": "status", "description": "Stato: ultimo sweep, prossimo giro, annunci visti"},
-    {"command": "pause",  "description": "Sospendi temporaneamente sweep e notifiche"},
-    {"command": "resume", "description": "Riattiva sweep e notifiche"},
-    {"command": "help",   "description": "Elenco comandi disponibili"},
 ]
 
 def register_commands_menu():
