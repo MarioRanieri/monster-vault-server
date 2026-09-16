@@ -2,10 +2,61 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-09-16 (rev 55 — backlog Telegram COMPLETO: 14/14 ticket wayfinder implementati)  
+**Updated:** 2026-09-16 (rev 56 — backlog migliorie sito COMPLETO: 8/8 issue #22-#29 chiuse)  
 **Branch:** main  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
+
+> **2026-09-16 — Bot eBay: menu comandi Telegram, wording + ordine (rev 56).** Il menu "/" su
+> Telegram non si aggiornava: `setMyCommands` è idempotente lato processo (si registra solo al
+> primo comando autenticato ricevuto da quel processo, non all'avvio) — nessun comando era ancora
+> arrivato dopo il deploy del backlog. Registrato a mano una volta via Bot API (token locale, non
+> serve toccare secrets Render). Colto anche: **"sweep"** (gergo interno) sostituito con
+> "controllo eBay" nei messaggi `/status`/`/pause`/`/resume` — l'utente non capiva il termine.
+> **Ordine del menu** riordinato su richiesta esplicita: `delete, add, help, status, pause,
+> resume` in cima (i più usati), poi il resto — Telegram mostra i comandi nell'ordine di
+> `BOT_COMMANDS` in `webhook_app.py`, non alfabetico. Chiarito all'utente (non nel codice, la
+> risposta bot restava invariata): `/pause`/`/resume` controllano solo se il bot stesso cerca
+> annunci e manda messaggi — **non** hanno relazione con il silenziamento della chat su Telegram,
+> quello resta un'impostazione del client sul telefono dell'utente, invisibile/non toccabile via
+> Bot API.
+>
+> **Backlog migliorie sito, 8/8 (issue #22-#29, aperte a fine rev 55, tutte chiuse in questa
+> sessione, un solo commit `1ff1a0a` per tutto il backlog su richiesta esplicita dell'utente —
+> deve uscire, nessun checkpoint intermedio possibile).** TDD per ognuna, **292 test frontend
+> (era 223) + 125 backend**, tutti verdi; build/tsc/lint puliti; deploy Render verificato live sul
+> commit e smoke-test 200 su `/` e `/api/cans`.
+> - **#23** `PUT /api/cans/{id}` ora ha `@Valid` come `create()` (prima un edit poteva salvare
+>   stato inconsistente che create rifiuterebbe). Il test esistente mandava un body senza `id`
+>   (irrealistico: il frontend spedisce sempre l'intero oggetto `Can`, id incluso) — corretto.
+> - **#29** `uploadPhotoFromUrl` rifiuta con 400 qualunque URL non `https://` prima di passarlo al
+>   remote-fetch di Cloudinary (endpoint admin-only, difesa in profondità).
+> - **#22** `CanDetail`: Escape chiude il pannello (disattivato mentre la lightbox è aperta — lì
+>   Escape chiude prima quella), focus spostato dentro il pannello all'apertura e restituito al
+>   trigger alla chiusura. **Nota**: il ticket affermava che tutti gli altri overlay (HelpModal,
+>   StatsModal, ValueCalc, LoginForm, ComparePanel, AccountPanel, CanEditForm, PhotoCrop) avessero
+>   già Escape+focus trap — verificato leggendo ognuno: **falso**, solo Lightbox aveva Escape,
+>   nessuno aveva un vero focus-restore. Premessa del ticket imprecisa, ma il fix qui è comunque
+>   corretto e testato; gli altri overlay restano scoperti (non nello scope di questo ticket).
+> - **#28** Skip-link "Skip to cans" (visibile solo al focus tastiera) verso un nuovo
+>   `#main-content` che avvolge l'area risultati (loading/error/griglia-lista-wall).
+> - **#24** `filterCans`/`sortCans`/`filterOptions` in `App.tsx` avvolti in `useMemo` (prima
+>   ricalcolavano su tutte le ~1864 lattine ad ogni render, mascherato solo dal render
+>   incrementale a 60 card). Nessun cambio di comportamento.
+> - **#25** Toast di errore al salvataggio ora distinguono validazione (400 → "Invalid data"),
+>   conflitto (409) e rete/altro, invece del testo fisso "Could not save changes" — usa lo status
+>   HTTP reale già portato dall'`Error("HTTP <status>")` lanciato da `store.ts`.
+> - **#26** `authFetch` (api.ts), quando un 401 sopravvive al tentativo di refresh, ora chiama
+>   `logout()` e imposta `sessionExpired` (nuovo campo in `authStore.ts`) che `App.tsx` osserva
+>   per riaprire da sola il form di login — prima restava solo il toast generico, l'utente doveva
+>   accorgersi da sé della sessione scaduta.
+> - **#27** Nessuna modifica: il ticket stesso lo classificava basso rischio/da monitorare (max 8
+>   correlate oggi) — windowing/IntersectionObserver anche lì sarebbe complessità non richiesta;
+>   commentato e chiuso, si riapre se il numero di correlate cresce.
+>
+> Tutti i fix valgono sia per guest che admin (dove applicabile — #25/#26 sono admin-only, il
+> resto è condiviso) e su mobile: SPA singola e responsive, nessuna diramazione per device è
+> stata necessaria né aggiunta.
 
 > **2026-09-16 — Backlog Telegram del bot eBay completo, 14/14 (rev 55).** Verificato il deploy
 > del webhook `monster-vault-ebay-webhook` (stato `live`) e ri-registrato `setWebhook` su
