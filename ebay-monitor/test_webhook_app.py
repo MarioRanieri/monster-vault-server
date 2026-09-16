@@ -22,17 +22,30 @@ class _FakeStore:
     def __init__(self):
         self._meta = {}
         self._blacklist = set()
+        self._whitelist = set()
+        self._seen_count = 0
     def get_meta(self, k, d=None):
         return self._meta.get(k, d)
     def set_meta(self, k, v):
         self._meta[k] = v
     def blacklist_additions(self):
         return list(self._blacklist)
+    def seen_count(self):
+        return self._seen_count
     def add_blacklist_word(self, word):
         self._blacklist.add(word)
     def remove_blacklist_word(self, word):
         if word in self._blacklist:
             self._blacklist.discard(word)
+            return True
+        return False
+    def whitelist_words(self):
+        return list(self._whitelist)
+    def add_whitelist_word(self, word):
+        self._whitelist.add(word)
+    def remove_whitelist_word(self, word):
+        if word in self._whitelist:
+            self._whitelist.discard(word)
             return True
         return False
 
@@ -54,6 +67,27 @@ def _post(client, text, chat_id="12345", secret="test-secret", msg_id=1):
     )
 
 
+def test_health_endpoint_returns_json_status():
+    store = _FakeStore()
+    store.set_meta("last_sweep_at", 1234567890.0)
+    store.set_meta("paused", True)
+    store._seen_count = 99
+    client = _client(store)
+    r = client.get("/health")
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data == {"last_sweep_at": 1234567890.0, "seen_count": 99, "paused": True}
+
+
+def test_health_endpoint_handles_never_run_state():
+    client = _client(_FakeStore())
+    r = client.get("/health")
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data["last_sweep_at"] is None
+    assert data["paused"] is False
+
+
 def test_missing_secret_is_rejected():
     client = _client()
     r = _post(client, "/list", secret="")
@@ -64,6 +98,22 @@ def test_wrong_secret_is_rejected():
     client = _client()
     r = _post(client, "/list", secret="not-the-secret")
     assert r.status_code == 401
+
+
+def test_multi_chat_authorizes_any_configured_chat():
+    orig_chat_id = os.environ.get("TELEGRAM_CHAT_ID")
+    os.environ["TELEGRAM_CHAT_ID"] = "12345,67890"
+    try:
+        store = _FakeStore()
+        client = _client(store)
+        r = _post(client, "/add camicia", chat_id="67890")
+        assert r.status_code == 200
+        assert "camicia" in store.blacklist_additions()   # seconda chat configurata: autorizzata
+    finally:
+        if orig_chat_id is not None:
+            os.environ["TELEGRAM_CHAT_ID"] = orig_chat_id
+        else:
+            os.environ.pop("TELEGRAM_CHAT_ID", None)
 
 
 def test_wrong_chat_id_is_ignored():
@@ -119,6 +169,347 @@ def test_remove_command_reports_missing_word():
         w._tg_text = orig_tg_text
 
 
+def test_help_command_lists_all_registered_commands():
+    sent = []
+    orig_tg_text = w._tg_text
+    w._tg_text = lambda t: sent.append(t)
+    try:
+        client = _client()
+        r = _post(client, "/help")
+        assert r.status_code == 200
+        assert sent
+        text = sent[-1]
+        for entry in w.BOT_COMMANDS:
+            assert f"/{entry['command']}" in text
+            assert entry["description"] in text
+    finally:
+        w._tg_text = orig_tg_text
+
+
+def test_status_command_reports_never_run_state():
+    sent = []
+    orig_tg_text = w._tg_text
+    w._tg_text = lambda t: sent.append(t)
+    try:
+        store = _FakeStore()
+        store._seen_count = 42
+        client = _client(store)
+        r = _post(client, "/status")
+        assert r.status_code == 200
+        text = sent[-1]
+        assert "mai eseguito" in text
+        assert "42" in text
+        assert "In pausa: no" in text
+    finally:
+        w._tg_text = orig_tg_text
+
+
+def test_status_command_reports_last_sweep_and_eta():
+    import time
+    sent = []
+    orig_tg_text = w._tg_text
+    w._tg_text = lambda t: sent.append(t)
+    try:
+        store = _FakeStore()
+        store.set_meta("last_sweep_at", time.time() - 600)   # 10 min fa
+        store.set_meta("paused", True)
+        store._seen_count = 7
+        client = _client(store)
+        r = _post(client, "/status")
+        assert r.status_code == 200
+        text = sent[-1]
+        assert "mai eseguito" not in text
+        assert "7" in text
+        assert "In pausa: sì" in text
+    finally:
+        w._tg_text = orig_tg_text
+
+
+def test_pause_command_sets_paused_flag():
+    sent = []
+    orig_tg_text = w._tg_text
+    w._tg_text = lambda t: sent.append(t)
+    try:
+        store = _FakeStore()
+        client = _client(store)
+        r = _post(client, "/pause")
+        assert r.status_code == 200
+        assert store.get_meta("paused") is True
+        assert sent and sent[-1].startswith("⏸️")
+    finally:
+        w._tg_text = orig_tg_text
+
+
+def test_resume_command_clears_paused_flag():
+    sent = []
+    orig_tg_text = w._tg_text
+    w._tg_text = lambda t: sent.append(t)
+    try:
+        store = _FakeStore()
+        store.set_meta("paused", True)
+        client = _client(store)
+        r = _post(client, "/resume")
+        assert r.status_code == 200
+        assert store.get_meta("paused") is False
+        assert sent and sent[-1].startswith("▶️")
+    finally:
+        w._tg_text = orig_tg_text
+
+
+def test_query_command_lists_active_keywords():
+    sent = []
+    orig_tg_text = w._tg_text
+    w._tg_text = lambda t: sent.append(t)
+    try:
+        client = _client()
+        r = _post(client, "/query")
+        assert r.status_code == 200
+        assert sent and "khaos" in sent[-1]
+    finally:
+        w._tg_text = orig_tg_text
+
+
+def test_query_add_persists_override():
+    sent = []
+    orig_tg_text = w._tg_text
+    w._tg_text = lambda t: sent.append(t)
+    try:
+        store = _FakeStore()
+        client = _client(store)
+        r = _post(client, "/query add supercross")
+        assert r.status_code == 200
+        assert sent and sent[-1].startswith("✅")
+        active = bot_logic.effective_markets(w.settings._KEYWORDS, store.get_meta("query_override"))
+        assert "supercross" in active
+    finally:
+        w._tg_text = orig_tg_text
+
+
+def test_query_remove_persists_override():
+    sent = []
+    orig_tg_text = w._tg_text
+    w._tg_text = lambda t: sent.append(t)
+    try:
+        store = _FakeStore()
+        client = _client(store)
+        existing = w.settings._KEYWORDS[0]
+        r = _post(client, f"/query remove {existing}")
+        assert r.status_code == 200
+        assert sent and sent[-1].startswith("✅")
+        active = bot_logic.effective_markets(w.settings._KEYWORDS, store.get_meta("query_override"))
+        assert existing not in active
+    finally:
+        w._tg_text = orig_tg_text
+
+
+def test_price_command_shows_no_cap_by_default():
+    sent = []
+    orig_tg_text = w._tg_text
+    w._tg_text = lambda t: sent.append(t)
+    try:
+        client = _client()
+        r = _post(client, "/price")
+        assert r.status_code == 200
+        assert sent and "nessun tetto" in sent[-1]
+    finally:
+        w._tg_text = orig_tg_text
+
+
+def test_price_max_sets_cap():
+    sent = []
+    orig_tg_text = w._tg_text
+    w._tg_text = lambda t: sent.append(t)
+    try:
+        store = _FakeStore()
+        client = _client(store)
+        r = _post(client, "/price max 40")
+        assert r.status_code == 200
+        assert store.get_meta("max_price_eur") == 40.0
+        assert sent and sent[-1].startswith("✅")
+    finally:
+        w._tg_text = orig_tg_text
+
+
+def test_price_max_none_clears_cap():
+    sent = []
+    orig_tg_text = w._tg_text
+    w._tg_text = lambda t: sent.append(t)
+    try:
+        store = _FakeStore()
+        store.set_meta("max_price_eur", 40.0)
+        client = _client(store)
+        r = _post(client, "/price max none")
+        assert r.status_code == 200
+        assert store.get_meta("max_price_eur") is None
+        assert sent and sent[-1].startswith("✅")
+    finally:
+        w._tg_text = orig_tg_text
+
+
+def test_price_max_rejects_invalid_value():
+    sent = []
+    orig_tg_text = w._tg_text
+    w._tg_text = lambda t: sent.append(t)
+    try:
+        store = _FakeStore()
+        client = _client(store)
+        r = _post(client, "/price max abc")
+        assert r.status_code == 200
+        assert store.get_meta("max_price_eur") is None
+        assert sent and sent[-1].startswith("⚠️")
+    finally:
+        w._tg_text = orig_tg_text
+
+
+def test_export_command_sends_document_with_dynamic_words():
+    sent_docs = []
+    orig_send_doc = w._tg_send_document
+    w._tg_send_document = lambda filename, content, caption=None: sent_docs.append((filename, content, caption))
+    try:
+        store = _FakeStore()
+        store.add_blacklist_word("felpa")
+        store.add_blacklist_word("camicia rossa")
+        client = _client(store)
+        r = _post(client, "/export")
+        assert r.status_code == 200
+        assert sent_docs
+        filename, content, caption = sent_docs[-1]
+        text = content.decode("utf-8")
+        assert "felpa" in text and "camicia rossa" in text
+    finally:
+        w._tg_send_document = orig_send_doc
+
+
+def test_export_command_with_empty_blacklist_sends_info_message():
+    sent = []
+    orig_tg_text = w._tg_text
+    w._tg_text = lambda t: sent.append(t)
+    try:
+        client = _client()
+        r = _post(client, "/export")
+        assert r.status_code == 200
+        assert sent and "nessuna parola" in sent[-1].lower()
+    finally:
+        w._tg_text = orig_tg_text
+
+
+def test_import_command_merges_words_from_document():
+    sent = []
+    orig_tg_text = w._tg_text
+    orig_download = w._tg_download_document
+    w._tg_text = lambda t: sent.append(t)
+    w._tg_download_document = lambda file_id: b"felpa\ncamicia rossa\n\n"
+    try:
+        store = _FakeStore()
+        client = _client(store)
+        r = client.post(
+            "/telegram-webhook",
+            json={"message": {"chat": {"id": "12345"}, "caption": "/import",
+                              "document": {"file_id": "abc123"}, "message_id": 1}},
+            headers={"X-Telegram-Bot-Api-Secret-Token": "test-secret"},
+        )
+        assert r.status_code == 200
+        assert "felpa" in store.blacklist_additions()
+        assert "camicia rossa" in store.blacklist_additions()
+        assert sent and sent[-1].startswith("✅")
+    finally:
+        w._tg_text = orig_tg_text
+        w._tg_download_document = orig_download
+
+
+def test_import_command_without_document_prompts_for_attachment():
+    sent = []
+    orig_tg_text = w._tg_text
+    w._tg_text = lambda t: sent.append(t)
+    try:
+        client = _client()
+        r = _post(client, "/import")
+        assert r.status_code == 200
+        assert sent and sent[-1].startswith("⚠️")
+    finally:
+        w._tg_text = orig_tg_text
+
+
+def test_whitelist_add_persists_word():
+    sent = []
+    orig_tg_text = w._tg_text
+    w._tg_text = lambda t: sent.append(t)
+    try:
+        store = _FakeStore()
+        client = _client(store)
+        r = _post(client, "/whitelist add khaos")
+        assert r.status_code == 200
+        assert "khaos" in store.whitelist_words()
+        assert sent and sent[-1].startswith("✅")
+    finally:
+        w._tg_text = orig_tg_text
+
+
+def test_whitelist_remove_word():
+    sent = []
+    orig_tg_text = w._tg_text
+    w._tg_text = lambda t: sent.append(t)
+    try:
+        store = _FakeStore()
+        store.add_whitelist_word("khaos")
+        client = _client(store)
+        r = _post(client, "/whitelist remove khaos")
+        assert r.status_code == 200
+        assert "khaos" not in store.whitelist_words()
+        assert sent and sent[-1].startswith("✅")
+    finally:
+        w._tg_text = orig_tg_text
+
+
+def test_whitelist_list_shows_words():
+    sent = []
+    orig_tg_text = w._tg_text
+    w._tg_text = lambda t: sent.append(t)
+    try:
+        store = _FakeStore()
+        store.add_whitelist_word("khaos")
+        client = _client(store)
+        r = _post(client, "/whitelist list")
+        assert r.status_code == 200
+        assert sent and "khaos" in sent[-1]
+    finally:
+        w._tg_text = orig_tg_text
+
+
+def test_snooze_command_persists_expiry():
+    import time
+    sent = []
+    orig_tg_text = w._tg_text
+    w._tg_text = lambda t: sent.append(t)
+    try:
+        store = _FakeStore()
+        client = _client(store)
+        before = time.time()
+        r = _post(client, "/snooze khaos 24")
+        assert r.status_code == 200
+        snoozes = store.get_meta("snoozes", {})
+        assert "khaos" in snoozes
+        assert snoozes["khaos"] > before + 23 * 3600   # ~24h da ora
+        assert sent and sent[-1].startswith("✅")
+    finally:
+        w._tg_text = orig_tg_text
+
+
+def test_snooze_command_rejects_invalid_hours():
+    sent = []
+    orig_tg_text = w._tg_text
+    w._tg_text = lambda t: sent.append(t)
+    try:
+        store = _FakeStore()
+        client = _client(store)
+        r = _post(client, "/snooze khaos abc")
+        assert r.status_code == 200
+        assert store.get_meta("snoozes", {}) == {}
+        assert sent and sent[-1].startswith("⚠️")
+    finally:
+        w._tg_text = orig_tg_text
+
+
 def test_list_command_reports_dynamic_words():
     sent = []
     orig_tg_text = w._tg_text
@@ -156,14 +547,16 @@ def test_market_command_persists_override():
 def test_delete_command_calls_delete_bot_messages():
     calls = []
     orig_delete = w.delete_bot_messages
-    w.delete_bot_messages = lambda up_to_id, protected=(): (calls.append((up_to_id, protected)) or 3)
+    w.delete_bot_messages = lambda up_to_id, protected=(), chat_id=None: (
+        calls.append((up_to_id, protected, chat_id)) or 3)
     orig_delete_one = w._delete_one
-    w._delete_one = lambda mid: True
+    w._delete_one = lambda mid, chat_id: True
     try:
         client = _client()
         r = _post(client, "/delete", msg_id=42)
         assert r.status_code == 200
         assert calls and calls[0][0] == 42
+        assert calls[0][2] == "12345"   # scoperto sulla chat che ha mandato il comando
     finally:
         w.delete_bot_messages = orig_delete
         w._delete_one = orig_delete_one

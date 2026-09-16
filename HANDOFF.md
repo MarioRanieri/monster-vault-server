@@ -2,27 +2,47 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-09-16 (rev 55 — mappa wayfinder backlog Telegram + `/remove` implementato)  
+**Updated:** 2026-09-16 (rev 55 — backlog Telegram COMPLETO: 14/14 ticket wayfinder implementati)  
 **Branch:** main  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
 
-> **2026-09-16 — Mappa wayfinder backlog Telegram + `/remove` (rev 55).** Verificato il deploy
+> **2026-09-16 — Backlog Telegram del bot eBay completo, 14/14 (rev 55).** Verificato il deploy
 > del webhook `monster-vault-ebay-webhook` (stato `live`) e ri-registrato `setWebhook` su
 > Telegram (era già impostato, confermato con `getWebhookInfo`: 0 update in coda). **Migliorie
 > sito**: 8 findings da una scansione mirata del codice (accessibilità/validazione/performance/
 > error-handling, non design) aperte come issue GitHub singole `enhancement` (#22-#29), nessuna
-> mappa — sono fix concreti senza decisioni aperte. **Backlog Telegram**: il backlog "priorità
-> tutta aperta" della rev 54 è stato caricato su una **mappa wayfinder** (`/mattpocock-skills:wayfinder`)
-> — issue #30 su GitHub con 14 ticket figli #31-#44 (sub-issue native), raggruppati per priorità
-> (quick win → core → nice-to-have → osservabilità). Primo ticket risolto e chiuso: **`/remove
-> <parola>`** (#31, simmetrico esatto di `/add`/`/list` — rimuove solo dalla blacklist dinamica
-> Mongo, mai da `blacklist.txt`; messaggio esplicito se la parola non è tra le dinamiche, nessuna
-> conferma extra). Implementato TDD: `Store.remove_blacklist_word` in `bot_logic.py`, handler in
-> `webhook_app.py`, registrato nel menu comandi. **+2 test webhook → 43 test Python totali
-> (19+12+12)**, tutti verdi. README aggiornato. Restano 13 ticket aperti sulla mappa (#32-#44) —
-> prossima sessione: `/mattpocock-skills:wayfinder` sull'issue #30 per il prossimo ticket in
-> frontiera (`/help`, poi `/status`).
+> mappa — sono fix concreti senza decisioni aperte, non ancora implementati.
+>
+> **Backlog Telegram** (il backlog "priorità tutta aperta" della rev 54): caricato su una **mappa
+> wayfinder** (`/mattpocock-skills:wayfinder`, issue #30, 14 ticket figli #31-#44 come sub-issue
+> native) e, su richiesta esplicita dell'utente, risolto e **implementato per intero** in
+> un'unica sessione (deroga alla regola wayfinder "un ticket per sessione", annotata nelle Notes
+> della mappa) — tutti e 14 i ticket chiusi, mappa #30 chiusa. Nuovi comandi Telegram: **`/remove`**
+> (inverso di `/add`), **`/help`**, **`/status`** (ultimo sweep/ETA/annunci visti/pausa),
+> **`/pause`**/**`/resume`**, **`/query add|remove|list`** (keyword di ricerca dinamiche su Mongo,
+> stesso pattern riusato di `/market` — `_KEYWORDS` non è più statico), **`/price max <valore>`**
+> (tetto prezzo dinamico), **`/export`**/**`/import`** blacklist (file in chat, merge-only, mai
+> distruttivo), **`/whitelist`** (eccezioni che forzano il passaggio anche su un hit blacklist),
+> **`/snooze <parola> <ore>`** (esclusione temporanea con riattivazione automatica allo scadere).
+> **Multi-chat/gruppo**: `TELEGRAM_CHAT_ID` ora comma-separated, tutte le chat ricevono
+> tutto/comandano (eccetto `/delete`, resta scoperto sulla chat richiedente — i `message_id`
+> Telegram sono per-chat). **Digest**: da `DIGEST_THRESHOLD` annunci in su nello stesso giro, un
+> unico messaggio invece di N. **Alert crash**: `run_once_safe` cattura qualunque eccezione non
+> gestita, avvisa su Telegram, poi rilancia (il job GitHub Actions resta "failed"). **`/health`**:
+> nuova route JSON (separata da `/`, che resta il liveness check leggero di Render) per un
+> monitor esterno. **Riepilogo settimanale**: nuovo workflow GitHub Actions separato
+> (`ebay-monitor-weekly-summary.yml`, cron lunedì 08:00 UTC, nuovo `weekly_summary.py`) — richiesto
+> un nuovo campo `notified` su `ebay_seen` (`mark_seen` lo traccia solo per gli annunci davvero
+> inviati, mai su baseline/scartati).
+>
+> Tutto implementato **TDD** (red→green per ogni ticket), README aggiornato via via. **Test
+> Python: 85 (26 bot_logic + 18 ebay_monitor + 36 webhook_app + 5 weekly_summary)**, tutti verdi
+> (era 41 a fine rev 54). Commit locale, **non ancora pushato** — un solo push finale per tutta la
+> sessione, su richiesta utente.
+> ⚠️ **Non verificato end-to-end in produzione**: tutti i nuovi comandi sono testati via TDD
+> (Flask test client + Mongo/Telegram mockati) ma non ancora provati dal vivo su Telegram dopo il
+> deploy — da fare alla prossima sessione utile dopo il push.
 
 > **2026-09-16 — eBay monitor: comandi Telegram via webhook (rev 54, in produzione).** Il bot
 > (`ebay-monitor/`, GitHub Actions + Mongo, separato dal sito) aveva un problema di fondo: girava

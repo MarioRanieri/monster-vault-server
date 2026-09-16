@@ -33,7 +33,7 @@ from datetime import timedelta, timezone, datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import settings
-from bot_logic import Store, effective_markets, _tg_text, _tg_url, _chat_id
+from bot_logic import Store, effective_markets, prune_expired_snoozes, _tg_text, _tg_url, _chat_id, _chat_ids
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -88,15 +88,27 @@ def merge_blacklist(base, additions):
     return out
 
 
-def title_passes(title, require_words, exclude_words):
+def title_passes(title, require_words, exclude_words, whitelist=()):
     """True se l'annuncio va notificato: contiene TUTTE le require_words e NESSUNA
-    exclude_word (confronto case-insensitive)."""
+    exclude_word (confronto case-insensitive) — a meno che il titolo non matchi anche
+    una parola whitelist, che forza il passaggio anche su un hit della blacklist
+    (i require_words restano comunque obbligatori)."""
     t = (title or "").lower()
     if not all(w.lower() in t for w in require_words):
         return False
+    if any(w.lower() in t for w in whitelist):
+        return True
     if any(w.lower() in t for w in exclude_words):
         return False
     return True
+
+
+def build_digest_text(items):
+    """Testo di UN messaggio digest per N annunci (sopra DIGEST_THRESHOLD, invece di un
+    messaggio per annuncio). Puro: nessun accesso a rete/Mongo."""
+    lines = [f"• <b>{it['title']}</b> — {it['price']} {it['currency']} ({it['site']})\n  {it['url']}"
+             for it in items]
+    return f"📦 <b>{len(items)} nuovi annunci</b>\n\n" + "\n\n".join(lines)
 
 
 def sweep_due(last_sweep_at, now, interval, send_now=False):
@@ -209,27 +221,55 @@ def parse_summary(item):
 # ─── TELEGRAM ─────────────────────────────────────────────────────────────────
 
 def send_telegram(title, price, currency, url, image_url, site, reason):
+    """Manda la notifica a TUTTE le chat configurate (TELEGRAM_CHAT_ID, multi-chat/gruppo).
+    True se è andata a buon fine su ALMENO una chat."""
     caption = f"⚡ <b>{title}</b>\n💰 {price} {currency}\n🌍 {site}  |  {reason}\n{url}"
     api = _tg_url()
-    try:
-        if image_url:
-            r = requests.post(f"{api}/sendPhoto",
-                              data={"chat_id": _chat_id(), "photo": image_url,
-                                    "caption": caption, "parse_mode": "HTML"}, timeout=25)
-            if not (r.ok and r.json().get("ok")):
+    ok = False
+    for chat_id in _chat_ids():
+        try:
+            if image_url:
+                r = requests.post(f"{api}/sendPhoto",
+                                  data={"chat_id": chat_id, "photo": image_url,
+                                        "caption": caption, "parse_mode": "HTML"}, timeout=25)
+                if not (r.ok and r.json().get("ok")):
+                    r = requests.post(f"{api}/sendMessage",
+                                      data={"chat_id": chat_id, "text": caption,
+                                            "parse_mode": "HTML"}, timeout=25)
+            else:
                 r = requests.post(f"{api}/sendMessage",
-                                  data={"chat_id": _chat_id(), "text": caption,
+                                  data={"chat_id": chat_id, "text": caption,
                                         "parse_mode": "HTML"}, timeout=25)
-        else:
-            r = requests.post(f"{api}/sendMessage",
-                              data={"chat_id": _chat_id(), "text": caption,
-                                    "parse_mode": "HTML"}, timeout=25)
-        ok = r.ok and r.json().get("ok")
-        print(("  ✅ " if ok else "  ❌ ") + f"{title[:50]}" + ("" if ok else f"  Telegram: {r.text[:120]}"))
-        return ok
-    except Exception as exc:
-        print(f"  ❌ Errore Telegram: {exc}")
-        return False
+            chat_ok = r.ok and r.json().get("ok")
+            ok = ok or chat_ok
+            if not chat_ok:
+                print(f"  ❌ {title[:50]}  Telegram ({chat_id}): {r.text[:120]}")
+        except Exception as exc:
+            print(f"  ❌ Errore Telegram ({chat_id}): {exc}")
+    if ok:
+        print(f"  ✅ {title[:50]}")
+    return ok
+
+
+def send_telegram_digest(items):
+    """UN unico messaggio per tutti gli annunci del giro (sopra DIGEST_THRESHOLD), a
+    tutte le chat configurate. True se andato a buon fine su ALMENO una chat."""
+    text = build_digest_text(items)
+    ok = False
+    for chat_id in _chat_ids():
+        try:
+            r = requests.post(f"{_tg_url()}/sendMessage",
+                              data={"chat_id": chat_id, "text": text, "parse_mode": "HTML",
+                                    "disable_web_page_preview": True}, timeout=25)
+            chat_ok = r.ok and r.json().get("ok")
+            ok = ok or chat_ok
+            if not chat_ok:
+                print(f"  ❌ digest Telegram ({chat_id}): {r.text[:120]}")
+        except Exception as exc:
+            print(f"  ❌ Errore Telegram digest ({chat_id}): {exc}")
+    if ok:
+        print(f"  ✅ digest inviato ({len(items)} annunci)")
+    return ok
 
 
 
@@ -240,12 +280,14 @@ def _reset_search_stats():
         _search_stats["fail"] = 0
         _search_stats["last"] = None
 
-def _report_search_stats(markets=None):
+def _report_search_stats(markets=None, queries=None):
     """A fine giro: se è fallita PIÙ DELLA METÀ delle ricerche, allarme Telegram
     (radar quasi/completamente cieco)."""
     if markets is None:
         markets = settings.EBAY_MARKETPLACES
-    total = len(markets) * len(settings.SEARCH_QUERIES)
+    if queries is None:
+        queries = settings.SEARCH_QUERIES
+    total = len(markets) * len(queries)
     with _stats_lock:
         fail, last = _search_stats["fail"], _search_stats["last"]
     if not fail:
@@ -255,13 +297,15 @@ def _report_search_stats(markets=None):
         _tg_text(f"⚠️ eBay Monitor: {fail}/{total} ricerche FALLITE in questo giro — "
                  f"il radar è quasi cieco. Controlla chiavi/quota eBay. Ultimo errore: {last}")
 
-def gather_listings(token, markets=None):
+def gather_listings(token, markets=None, queries=None):
     """Tutte le ricerche (mercati × query) IN PARALLELO → lista (mercato, query, item).
     A fine giro segnala i fallimenti."""
     if markets is None:
         markets = settings.EBAY_MARKETPLACES
+    if queries is None:
+        queries = settings.SEARCH_QUERIES
     _reset_search_stats()
-    tasks = [(mk, q) for mk in markets for q in settings.SEARCH_QUERIES]
+    tasks = [(mk, q) for mk in markets for q in queries]
     total = len(tasks)
     workers = max(1, getattr(settings, "PARALLEL_WORKERS", 8))
     results, done = [], 0
@@ -277,22 +321,24 @@ def gather_listings(token, markets=None):
             except Exception as exc:
                 _note_search_failure(exc)
     print(f"\r  ricerche {total}/{total} completate ✓{' ' * 18}")
-    _report_search_stats(markets)
+    _report_search_stats(markets, queries)
     return results
 
 
 # ─── PROCESSO PRINCIPALE ──────────────────────────────────────────────────────
 
-def process(store, token, exclude_words, notify_all=False, cap_per_query=None, markets=None):
+def process(store, token, exclude_words, notify_all=False, cap_per_query=None, markets=None,
+            queries=None, whitelist=()):
     """notify_all=False → notifica solo i NUOVI. notify_all=True → manda anche i già visti
     (test --send-now). cap_per_query limita gli invii per ricerca (test)."""
     sent_ids, per_query = set(), {}
     examined = sent = 0
-    for mk, q, item in gather_listings(token, markets):
+    to_notify = []
+    for mk, q, item in gather_listings(token, markets, queries):
         item_id, title, price, currency, url, image = parse_summary(item)
         if not item_id or item_id in sent_ids:
             continue
-        if not title_passes(title, settings.REQUIRE_WORDS, exclude_words):
+        if not title_passes(title, settings.REQUIRE_WORDS, exclude_words, whitelist):
             if not notify_all:
                 store.mark_seen(item_id, title, price, currency, url, mk, q)
             continue
@@ -302,18 +348,30 @@ def process(store, token, exclude_words, notify_all=False, cap_per_query=None, m
             store.mark_seen(item_id, title, price, currency, url, mk, q)
             continue
         examined += 1
-        print()  # a capo: stacca la notifica dalla riga di avanzamento
-        send_telegram(title, price, currency, url, image, mk, f"ricerca: {q}")
-        store.mark_seen(item_id, title, price, currency, url, mk, q)
+        to_notify.append({"title": title, "price": price, "currency": currency, "url": url,
+                          "image": image, "site": mk, "query": q})
+        store.mark_seen(item_id, title, price, currency, url, mk, q, notified=True)
         sent_ids.add(item_id); sent += 1
         per_query[q] = per_query.get(q, 0) + 1
-        time.sleep(0.4)
+
+    # Sotto soglia: un messaggio per annuncio (com'era). Da soglia in su: UN digest —
+    # eviterebbe una raffica di N notifiche quando il giro trova molti annunci insieme.
+    threshold = getattr(settings, "DIGEST_THRESHOLD", 5)
+    if to_notify and len(to_notify) >= threshold:
+        print()
+        send_telegram_digest(to_notify)
+    else:
+        for it in to_notify:
+            print()  # a capo: stacca la notifica dalla riga di avanzamento
+            send_telegram(it["title"], it["price"], it["currency"], it["url"], it["image"],
+                         it["site"], f"ricerca: {it['query']}")
+            time.sleep(0.4)
     return examined, sent
 
 
-def establish_baseline(store, token, markets=None):
+def establish_baseline(store, token, markets=None, queries=None):
     total = 0
-    for mk, q, item in gather_listings(token, markets):
+    for mk, q, item in gather_listings(token, markets, queries):
         item_id, title, price, currency, url, _ = parse_summary(item)
         if item_id and not store.already_seen(item_id):
             store.mark_seen(item_id, title, price, currency, url, mk, q)
@@ -338,6 +396,10 @@ def run_once(send_now=False, cap_per_query=None):
         _tg_text(f"⚠️ eBay Monitor: MongoDB irraggiungibile, giro saltato. {type(exc).__name__}")
         return
 
+    if store.get_meta("paused", False):
+        print("  ⏸️  Monitor in pausa (/resume da Telegram per riattivare). Giro saltato.")
+        return
+
     # Ricerca eBay: solo se sono passati ≥ SWEEP_INTERVAL_SECONDS dall'ultimo sweep (o test).
     # I comandi Telegram non passano più di qui: li gestisce webhook_app.py (Render), istantanei.
     now = time.time()
@@ -352,22 +414,51 @@ def run_once(send_now=False, cap_per_query=None):
         print("⚠️  Niente token eBay — vedi il messaggio [ERRORE]/[RETE] sopra."); return
 
     exclude_words = merge_blacklist(load_base_blacklist(), store.blacklist_additions())
+    whitelist = store.whitelist_words()
     markets = effective_markets(settings.EBAY_MARKETPLACES, store.get_meta("market_override"))
     if not markets:                       # override corrotto (es. edit manuale) → non restare cieco
         markets = settings.EBAY_MARKETPLACES
     print(f"  Mercati attivi ({len(markets)}): {', '.join(markets)}")
 
+    settings.MAX_PRICE_EUR = store.get_meta("max_price_eur", settings.MAX_PRICE_EUR)
+
+    active_keywords = effective_markets(settings._KEYWORDS, store.get_meta("query_override"))
+    if not active_keywords:               # override corrotto → non restare cieco
+        active_keywords = settings._KEYWORDS
+    raw_snoozes = store.get_meta("snoozes", {})
+    snoozes = prune_expired_snoozes(raw_snoozes, now)
+    if snoozes != raw_snoozes:             # qualche snooze è scaduto: riattivazione automatica
+        store.set_meta("snoozes", snoozes)
+    active_keywords = [kw for kw in active_keywords if kw not in snoozes]
+    queries = [f"monster energy {kw}".strip() for kw in active_keywords]
+    print(f"  Keyword attive ({len(queries)}).")
+
     if not send_now and store.seen_count() == 0:
         print("Primo avvio: baseline (gli annunci già online non vengono notificati).")
-        establish_baseline(store, token, markets)
+        establish_baseline(store, token, markets, queries)
         store.set_meta("last_sweep_at", now)
         return
 
-    examined, sent = process(store, token, exclude_words,
-                             notify_all=send_now, cap_per_query=cap_per_query, markets=markets)
+    examined, sent = process(store, token, exclude_words, notify_all=send_now,
+                             cap_per_query=cap_per_query, markets=markets, queries=queries,
+                             whitelist=whitelist)
     if not send_now:                                # il test --send-now non altera la cadenza reale
         store.set_meta("last_sweep_at", now)
     print(f"  → {examined} candidati, {sent} notificati.")
+
+
+def run_once_safe(*args, **kwargs):
+    """Wrapper di run_once: su un crash imprevisto (non gestito dai try/except già presenti
+    per Mongo/eBay/Telegram) avvisa su Telegram, poi RILANCIA — il job GitHub Actions resta
+    'failed' e visibile, non lo mascheriamo mai. Ctrl+C passa senza alert (non è un crash)."""
+    try:
+        run_once(*args, **kwargs)
+    except KeyboardInterrupt:
+        raise
+    except Exception as exc:
+        print(f"⚠️  CRASH: {type(exc).__name__}: {exc}")
+        _tg_text(f"🔥 eBay Monitor: crash imprevisto ({type(exc).__name__}): {exc}")
+        raise
 
 
 if __name__ == "__main__":
@@ -382,8 +473,8 @@ if __name__ == "__main__":
                     print("⚠️  --hours richiede un numero (es. --hours 72). Ignorato.")
             i = args.index("--send-now")
             cap = int(args[i + 1]) if i + 1 < len(args) and args[i + 1].isdigit() else 10
-            run_once(send_now=True, cap_per_query=cap)
+            run_once_safe(send_now=True, cap_per_query=cap)
         else:
-            run_once()
+            run_once_safe()
     except KeyboardInterrupt:
         print("\nMonitor fermato.")

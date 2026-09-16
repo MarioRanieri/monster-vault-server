@@ -1,0 +1,31 @@
+name: eBay Monitor — Weekly Summary
+
+# Riepilogo settimanale (quanti annunci notificati, quali query rendono di più): cron
+# separato dallo sweep orario (ebay-monitor.yml) — stesso pattern già usato per separare
+# sweep e webhook comandi. Segreti in Settings → Secrets → Actions (condivisi con lo sweep).
+on:
+  schedule:
+    - cron: '0 8 * * 1'   # ogni lunedì, 08:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  weekly-summary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install deps
+        run: pip install -r ebay-monitor/requirements.txt
+
+      - name: Run weekly summary
+        working-directory: ebay-monitor
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          MONGODB_URI:        ${{ secrets.MONGODB_URI }}
+        run: python weekly_summary.py
