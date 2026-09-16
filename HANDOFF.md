@@ -2,10 +2,41 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-09-16 (rev 57 — landing page session-scoped + fix CI reale post-rev56)  
+**Updated:** 2026-09-16 (rev 58 — bug prezzo admin + Esc su Stats/Value + CI davvero stabile)  
 **Branch:** main  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
+
+> **2026-09-16 — Bug segnalato dall'utente: da admin il Value calculator/stats mostravano 0
+> (rev 58).** Root cause vera (systematic-debugging, test rosso prima di toccare codice):
+> `store.ts` chiamava `fetch('/api/cans')` invece di `authFetch` — il backend redige `valore` per
+> chiunque non mandi un Bearer token, quindi la lista principale non aveva **mai** prezzi reali,
+> a prescindere dal login (il toggle "Show price" e i controlli `isAdmin` erano corretti, ma il
+> dato sotto era sempre vuoto). Due fix: **(1)** `loadCans()` ora usa `authFetch` (drop-in, aggiunge
+> l'header solo se c'è un token — nessun cambio per i guest). **(2)** il token non è disponibile
+> finché `refresh()` non risolve, quindi l'effect di mount ora aspetta `refresh()` prima di
+> `loadCans()` invece di lanciarli in parallelo (altrimenti la race restava anche col fix 1); un
+> login esplicito ora richiama `loadCans()` per sostituire lo snapshot redatto caricato da guest.
+> 14 test con `loginAsAdmin()` sono stati controllati, 7 modificati per il fetch extra dopo login.
+> **Bonus richiesto**: Esc ora chiude anche `StatsModal` e `ValueCalc` (stesso buco già trovato su
+> `CanDetail` nel #22 — solo Lightbox aveva un vero handler).
+>
+> **CI: la lezione di rev 56/57 non era ancora imparata del tutto.** Un push successivo (fix Esc)
+> è tornato rosso sullo stesso test noto (`admin: carica una foto durante la modifica`), **2 volte
+> di fila**, fallendo dopo 20 secondi pieni — non "lento", **appeso**. Rincorrere il timeout una
+> quarta volta violava la regola di systematic-debugging (3+ fix falliti → rivedi l'architettura,
+> non il numero): la vera causa era il `loadCans()` post-login (nuovo, fix del prezzo) che
+> condivide la coda posizionale di mock (`mockResolvedValueOnce` in sequenza) con save/upload in
+> quel test, senza garanzia sull'ordine reale delle chiamate. Riscritto il mock per instradare per
+> URL/metodo invece che per ordine — deterministico, timeout tornato al default. **297 test
+> frontend, tutti verdi, CI verificata verde su GitHub Actions per 2 run consecutive**, deploy
+> live verificato (bundle confrontato via hash + grep).
+>
+> **Nota di processo** (richiamo esplicito dell'utente): formattare Prettier subito dopo ogni
+> modifica a un file frontend, non a fine sessione — salvato in memoria
+> (`prettier-formatting-discipline`). Il checkout Windows (`core.autocrlf`) rende `prettier --check`
+> inutile sul file grezzo (ogni riga risulta "diversa" per via del CRLF): va normalizzato a LF
+> prima del check.
 
 > **2026-09-16 — Landing page session-scoped + CI davvero verde (rev 57).** Utente segnalava:
 > chiudendo la PWA o con hard refresh (Ctrl+Shift+R) la landing non ricompare mai più — era
