@@ -1,4 +1,10 @@
 import '@testing-library/jest-dom';
+import { configure } from '@testing-library/react';
+
+// Default (1000ms) troppo stretto: sotto Node 22 (CI) le query async
+// (findBy*, waitFor) sono misurabilmente più lente che sotto Node 24 (locale) —
+// osservato con timeout intermittenti su test diversi a ogni run in CI.
+configure({ asyncUtilTimeout: 5000 });
 
 // jsdom non implementa gli object URL: stub minimo per i componenti che li usano
 // (es. l'editor di crop delle foto).

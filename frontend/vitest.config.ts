@@ -10,6 +10,12 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     environment: 'jsdom',
     setupFiles: './src/setupTests.ts',
+    // Default vitest (5000ms) troppo stretto per la CI di SonarQube: coverage v8
+    // instrumentata + Node 22 (vs Node 24 in locale) fanno scattare timeout su
+    // test diversi ad ogni run, non sempre lo stesso — non un bug di un singolo
+    // test ma margine insufficiente sotto quel carico specifico.
+    testTimeout: 15000,
+    hookTimeout: 15000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
