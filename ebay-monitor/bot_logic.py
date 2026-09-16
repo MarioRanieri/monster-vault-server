@@ -67,6 +67,10 @@ class Store:
             {"$setOnInsert": {"added_at": datetime.now(timezone.utc)}},
             upsert=True)
 
+    def remove_blacklist_word(self, word):
+        """Rimuove una parola dinamica. True se c'era, False se non trovata (inverso di /add)."""
+        return self.blacklist.delete_one({"_id": word}).deleted_count > 0
+
     def get_meta(self, key, default=None):
         d = self.db["ebay_meta"].find_one({"_id": key})
         return d["value"] if d else default

@@ -85,6 +85,16 @@ def _handle_command(store, cmd, arg, msg_id):
             _tg_text(f"⚠️ '{arg.strip()}' ignorato: {reason}")
             print(f"  [/add] rifiutato '{arg.strip()}': {reason}")
         return True
+    if cmd == "remove":
+        word = arg.strip().lower()
+        if store.remove_blacklist_word(word):
+            tot = len(store.blacklist_additions())
+            _tg_text(f"✅ rimossa '{word}' dalla blacklist (ora {tot} parole dinamiche)")
+            print(f"  [/remove] '{word}' rimossa ({tot} dinamiche)")
+        else:
+            _tg_text(f"⚠️ '{word}' non è nella blacklist dinamica")
+            print(f"  [/remove] '{word}' non trovata")
+        return True
     if cmd == "list":
         words = sorted(store.blacklist_additions())
         if words:
@@ -134,6 +144,7 @@ def _handle_command(store, cmd, arg, msg_id):
 
 BOT_COMMANDS = [
     {"command": "add",    "description": "Aggiungi una parola alla blacklist"},
+    {"command": "remove", "description": "Rimuovi una parola dalla blacklist dinamica"},
     {"command": "list",   "description": "Mostra le parole aggiunte con /add"},
     {"command": "market", "description": "Mercati eBay: /market · add <paese> · remove <paese>"},
     {"command": "delete", "description": "Cancella i messaggi inviati dal bot"},
@@ -190,7 +201,7 @@ def telegram_webhook():
     _ensure_commands_registered()
 
     cmd, arg = parse_command(msg.get("text") or "")
-    if cmd in ("add", "list", "delete", "market"):
+    if cmd in ("add", "remove", "list", "delete", "market"):
         try:
             _handle_command(get_store(), cmd, arg, msg.get("message_id", 0))
         except Exception as exc:

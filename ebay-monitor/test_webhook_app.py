@@ -30,6 +30,11 @@ class _FakeStore:
         return list(self._blacklist)
     def add_blacklist_word(self, word):
         self._blacklist.add(word)
+    def remove_blacklist_word(self, word):
+        if word in self._blacklist:
+            self._blacklist.discard(word)
+            return True
+        return False
 
 
 def _client(store=None):
@@ -80,6 +85,36 @@ def test_add_command_writes_to_store():
         assert r.status_code == 200
         assert "camicia rossa" in store.blacklist_additions()
         assert sent and sent[-1].startswith("✅")
+    finally:
+        w._tg_text = orig_tg_text
+
+
+def test_remove_command_deletes_existing_word():
+    sent = []
+    orig_tg_text = w._tg_text
+    w._tg_text = lambda t: sent.append(t)
+    try:
+        store = _FakeStore()
+        store.add_blacklist_word("felpa")
+        client = _client(store)
+        r = _post(client, "/remove felpa")
+        assert r.status_code == 200
+        assert "felpa" not in store.blacklist_additions()
+        assert sent and sent[-1].startswith("✅")
+    finally:
+        w._tg_text = orig_tg_text
+
+
+def test_remove_command_reports_missing_word():
+    sent = []
+    orig_tg_text = w._tg_text
+    w._tg_text = lambda t: sent.append(t)
+    try:
+        store = _FakeStore()
+        client = _client(store)
+        r = _post(client, "/remove felpa")
+        assert r.status_code == 200
+        assert sent and sent[-1].startswith("⚠️") and "felpa" in sent[-1]
     finally:
         w._tg_text = orig_tg_text
 

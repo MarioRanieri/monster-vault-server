@@ -6,7 +6,7 @@ tenere acceso:
 
 - **Ricerca eBay**: gira **in cloud su GitHub Actions**, **ogni ora**, stato su
   **MongoDB Atlas**. Workflow: `.github/workflows/ebay-monitor.yml`.
-- **Comandi Telegram** (`/add /list /market /delete`): gira su un **secondo Web Service
+- **Comandi Telegram** (`/add /remove /list /market /delete`): gira su un **secondo Web Service
   Render**, separato dal sito principale — riceve un **webhook** da Telegram e risponde
   **istantaneamente**, niente attesa di un giro cron. Codice: `webhook_app.py`.
 
@@ -66,6 +66,9 @@ idempotenti.
 - **`/add parola`** — aggiunge `parola` alla blacklist dinamica (Mongo). Guardia: rifiuta vuoto,
   parole <2 caratteri e le parole obbligatorie (`monster`/`energy`, che accecherebbero il radar).
   Conferma in chat: *"✅ aggiunto 'camicia' (ora N parole dinamiche)"*.
+- **`/remove parola`** — inverso di `/add`: rimuove `parola` dalla blacklist dinamica (mai da
+  `blacklist.txt`, che è statica). Se non è tra le dinamiche risponde con un avviso esplicito,
+  non in silenzio.
 - **`/list`** — stampa le parole aggiunte con `/add`. Per versionarle, incollale a mano in fondo a
   `blacklist.txt` (il sync file↔Mongo è **manuale**, per scelta).
 - **`/market`** — gestisce i mercati eBay cercati, con stato dinamico su Mongo (default in

@@ -2,10 +2,27 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-09-16 (rev 54 — eBay monitor: webhook Telegram istantaneo, deployato e live)  
+**Updated:** 2026-09-16 (rev 55 — mappa wayfinder backlog Telegram + `/remove` implementato)  
 **Branch:** main  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
+
+> **2026-09-16 — Mappa wayfinder backlog Telegram + `/remove` (rev 55).** Verificato il deploy
+> del webhook `monster-vault-ebay-webhook` (stato `live`) e ri-registrato `setWebhook` su
+> Telegram (era già impostato, confermato con `getWebhookInfo`: 0 update in coda). **Migliorie
+> sito**: 8 findings da una scansione mirata del codice (accessibilità/validazione/performance/
+> error-handling, non design) aperte come issue GitHub singole `enhancement` (#22-#29), nessuna
+> mappa — sono fix concreti senza decisioni aperte. **Backlog Telegram**: il backlog "priorità
+> tutta aperta" della rev 54 è stato caricato su una **mappa wayfinder** (`/mattpocock-skills:wayfinder`)
+> — issue #30 su GitHub con 14 ticket figli #31-#44 (sub-issue native), raggruppati per priorità
+> (quick win → core → nice-to-have → osservabilità). Primo ticket risolto e chiuso: **`/remove
+> <parola>`** (#31, simmetrico esatto di `/add`/`/list` — rimuove solo dalla blacklist dinamica
+> Mongo, mai da `blacklist.txt`; messaggio esplicito se la parola non è tra le dinamiche, nessuna
+> conferma extra). Implementato TDD: `Store.remove_blacklist_word` in `bot_logic.py`, handler in
+> `webhook_app.py`, registrato nel menu comandi. **+2 test webhook → 43 test Python totali
+> (19+12+12)**, tutti verdi. README aggiornato. Restano 13 ticket aperti sulla mappa (#32-#44) —
+> prossima sessione: `/mattpocock-skills:wayfinder` sull'issue #30 per il prossimo ticket in
+> frontiera (`/help`, poi `/status`).
 
 > **2026-09-16 — eBay monitor: comandi Telegram via webhook (rev 54, in produzione).** Il bot
 > (`ebay-monitor/`, GitHub Actions + Mongo, separato dal sito) aveva un problema di fondo: girava
