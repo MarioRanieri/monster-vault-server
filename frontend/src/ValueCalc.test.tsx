@@ -23,3 +23,10 @@ test('Close chiama onClose', async () => {
   await userEvent.click(screen.getByRole('button', { name: /close/i }));
   expect(onClose).toHaveBeenCalled();
 });
+
+test('ESC chiama onClose', async () => {
+  const onClose = vi.fn();
+  render(<ValueCalc cans={[]} onClose={onClose} />);
+  await userEvent.keyboard('{Escape}');
+  expect(onClose).toHaveBeenCalled();
+});

@@ -29,6 +29,13 @@ test('Close chiama onClose', async () => {
   expect(onClose).toHaveBeenCalled();
 });
 
+test('ESC chiama onClose', async () => {
+  const onClose = vi.fn();
+  render(<StatsModal cans={[]} stats={stats} onClose={onClose} />);
+  await userEvent.keyboard('{Escape}');
+  expect(onClose).toHaveBeenCalled();
+});
+
 const richCans = [
   { id: '1', nome: 'Gold', lingua: 'USA', stato: 'Damaged', valore: '80', updatedAt: Date.now() },
   { id: '2', nome: 'Silver', lingua: 'Italy', stato: 'OK', valore: '20', updatedAt: Date.now() },
