@@ -238,3 +238,42 @@ test('naviga le foto con le frecce e mostra il contatore', async () => {
   await user.click(screen.getByRole('button', { name: /previous photo/i }));
   expect(screen.getByText('1 / 3')).toBeTruthy();
 });
+
+test('ESC chiude il pannello di dettaglio', async () => {
+  const onClose = vi.fn();
+  render(<CanDetail can={can} onClose={onClose} />);
+  await userEvent.keyboard('{Escape}');
+  expect(onClose).toHaveBeenCalled();
+});
+
+test('con la lightbox aperta ESC chiude la lightbox, non il pannello', async () => {
+  const onClose = vi.fn();
+  const withPhoto: Can = { ...can, p1: 'a.jpg' };
+  render(<CanDetail can={withPhoto} onClose={onClose} />);
+
+  await userEvent.click(screen.getByRole('img', { name: 'Alpha' }));
+  expect(screen.getByRole('dialog')).toBeTruthy();
+
+  await userEvent.keyboard('{Escape}');
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(onClose).not.toHaveBeenCalled();
+});
+
+test('il pannello riceve il focus all’apertura', () => {
+  render(<CanDetail can={can} onClose={() => {}} />);
+  expect(document.activeElement).toBe(screen.getByRole('complementary'));
+});
+
+test('alla chiusura il focus torna al trigger che ha aperto il pannello', () => {
+  const trigger = document.createElement('button');
+  document.body.appendChild(trigger);
+  trigger.focus();
+  expect(document.activeElement).toBe(trigger);
+
+  const { unmount } = render(<CanDetail can={can} onClose={() => {}} />);
+  expect(document.activeElement).not.toBe(trigger);
+
+  unmount();
+  expect(document.activeElement).toBe(trigger);
+  trigger.remove();
+});

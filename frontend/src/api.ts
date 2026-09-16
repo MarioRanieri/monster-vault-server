@@ -20,6 +20,10 @@ export async function authFetch(input: string, init: RequestInit = {}): Promise<
   const res = await send(input, init);
   if (res.status !== 401 || !hadToken) return res;
   if (await useAuthStore.getState().refresh()) return send(input, init);
-  useAuthStore.setState({ accessToken: null, isAdmin: false });
+  // Sessione non recuperabile: logout pulito (invalida anche il cookie
+  // refresh) + flag che App.tsx osserva per riaprire il login da solo,
+  // invece di lasciare l'utente con un semplice toast d'errore.
+  await useAuthStore.getState().logout();
+  useAuthStore.setState({ sessionExpired: true });
   return res;
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useCansStore } from './store';
 import { CanGrid } from './CanGrid';
 import { CanList } from './CanList';
@@ -83,6 +83,7 @@ function App() {
   const logout = useAuthStore((s) => s.logout);
   const refresh = useAuthStore((s) => s.refresh);
   const recover = useAuthStore((s) => s.recover);
+  const sessionExpired = useAuthStore((s) => s.sessionExpired);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [creating, setCreating] = useState<Can | null>(null);
@@ -138,23 +139,38 @@ function App() {
     setView('collection');
   }, []);
 
+  // JWT admin scaduto a metà sessione (authFetch non è riuscito a rinnovarlo
+  // via refresh): riapre da sola il login invece di lasciare solo un toast
+  // d'errore sul save fallito con 401.
+  useEffect(() => {
+    if (!sessionExpired) return;
+    useAuthStore.setState({ sessionExpired: false });
+    showToast('⚠ Session expired — please log in again');
+    setShowLogin(true);
+  }, [sessionExpired]);
+
   const numOrUndef = (s: string) => (s === '' ? undefined : Number(s));
   // Il backend non invia mai `valore` al guest (redatto server-side): un vmin/vmax
   // residuo (share URL o mv_filters di una sessione admin precedente) va ignorato,
   // non applicato a zero — altrimenti svuoterebbe la griglia in modo confuso.
-  const normalizedFilters = {
-    ...filters,
-    vmin: isAdmin ? numOrUndef(filters.vmin) : undefined,
-    vmax: isAdmin ? numOrUndef(filters.vmax) : undefined,
-    ymin: numOrUndef(filters.ymin),
-    ymax: numOrUndef(filters.ymax),
-  };
-  const options = filterOptions(cans, normalizedFilters);
+  const normalizedFilters = useMemo(
+    () => ({
+      ...filters,
+      vmin: isAdmin ? numOrUndef(filters.vmin) : undefined,
+      vmax: isAdmin ? numOrUndef(filters.vmax) : undefined,
+      ymin: numOrUndef(filters.ymin),
+      ymax: numOrUndef(filters.ymax),
+    }),
+    [filters, isAdmin],
+  );
+  // Ricalcolano su tutte le ~1864 lattine: memoizzati sulle dipendenze reali
+  // (prima ricalcolavano ad ogni render, mascherato solo dal render incrementale).
+  const options = useMemo(() => filterOptions(cans, normalizedFilters), [cans, normalizedFilters]);
   // Suggerimenti per l'autocomplete del form (CanEditForm): sempre sull'intera
   // collezione, non ristretti dai filtri attivi — altrimenti editare una lattina
   // mentre un filtro è attivo nasconde valori validi (es. un produttore mai
   // usato su size=750ML non verrebbe suggerito con quel filtro attivo).
-  const allOptions = filterOptions(cans);
+  const allOptions = useMemo(() => filterOptions(cans), [cans]);
   const suggestions = {
     manufacturers: allOptions.manufacturers,
     sizes: allOptions.sizes,
@@ -173,7 +189,10 @@ function App() {
       else if (u.url) await uploadPhotoFromUrl(id, u.slot, u.url);
     }
   };
-  const visible = sortCans(filterCans(cans, normalizedFilters), sort);
+  const visible = useMemo(
+    () => sortCans(filterCans(cans, normalizedFilters), sort),
+    [cans, normalizedFilters, sort],
+  );
   const hasFilters = Object.values(filters).some(Boolean);
   const resetFilters = () => setFilters(NO_FILTERS);
   const selectCan = (can: Can) => {
@@ -251,6 +270,17 @@ function App() {
   const showToast = (msg: string) => {
     setToast({ msg });
     setTimeout(() => setToast(null), 2500);
+  };
+  // saveCan/createCan lanciano `Error("HTTP <status>")` (vedi store.ts): distingue
+  // le cause più comuni invece del testo fisso "Could not save changes" per ogni
+  // errore, sia di rete che di validazione che di conflitto.
+  const saveErrorMessage = (e: unknown): string | null => {
+    const status = e instanceof Error ? /^HTTP (\d+)$/.exec(e.message)?.[1] : undefined;
+    if (status === '401') return null; // gestito dal flow di sessione scaduta
+    if (status === '400') return '⚠ Invalid data — check the fields and try again';
+    if (status === '409') return '⚠ Conflict — this can was changed elsewhere, reload and retry';
+    if (status) return `⚠ Could not save changes (server error ${status})`;
+    return '⚠ Could not save changes — check your connection';
   };
   // Soft-delete con finestra di undo di 10s, come la vecchia app: Undo → restore
   // dello snapshot; scaduto il timer → purge definitivo (DB + foto Cloudinary).
@@ -337,6 +367,9 @@ function App() {
 
   return (
     <main>
+      <a href="#main-content" className="skip-link">
+        Skip to cans
+      </a>
       <Header
         isAdmin={isAdmin}
         onSignOut={() => {
@@ -506,52 +539,54 @@ function App() {
           }}
         />
       </div>
-      {loading && (
-        <p>
-          {warming ? (
-            <>
-              Server warming up…{' '}
-              <small style={{ color: 'var(--text2)', fontSize: 11 }}>
-                Free tier cold start · usually 30–50s
-              </small>
-            </>
-          ) : (
-            'Loading…'
-          )}
-        </p>
-      )}
-      {error && <p role="alert">Error: {error}</p>}
-      {gridMode === 'grid' ? (
-        <CanGrid
-          cans={shownCans}
-          showPrice={isAdmin && showPrice}
-          onSelect={selectCan}
-          onEdit={
-            isAdmin
-              ? (can) => {
-                  setSelectedId(can.id);
-                  setEditing(true);
-                }
-              : undefined
-          }
-        />
-      ) : gridMode === 'list' ? (
-        <CanList
-          cans={shownCans}
-          showPrice={isAdmin && showPrice}
-          onSelect={selectCan}
-          globalSort={sort}
-        />
-      ) : (
-        <CanWall
-          cans={shownCans}
-          onSelect={(can) => {
-            const ph = [can.p1, can.p2, can.p3, can.p4].filter((u): u is string => Boolean(u));
-            if (ph.length) setWallPhotos({ photos: ph, alt: can.nome });
-          }}
-        />
-      )}
-      {shown < visible.length && <div ref={sentinelRef} aria-hidden="true" />}
+      <div id="main-content" tabIndex={-1}>
+        {loading && (
+          <p>
+            {warming ? (
+              <>
+                Server warming up…{' '}
+                <small style={{ color: 'var(--text2)', fontSize: 11 }}>
+                  Free tier cold start · usually 30–50s
+                </small>
+              </>
+            ) : (
+              'Loading…'
+            )}
+          </p>
+        )}
+        {error && <p role="alert">Error: {error}</p>}
+        {gridMode === 'grid' ? (
+          <CanGrid
+            cans={shownCans}
+            showPrice={isAdmin && showPrice}
+            onSelect={selectCan}
+            onEdit={
+              isAdmin
+                ? (can) => {
+                    setSelectedId(can.id);
+                    setEditing(true);
+                  }
+                : undefined
+            }
+          />
+        ) : gridMode === 'list' ? (
+          <CanList
+            cans={shownCans}
+            showPrice={isAdmin && showPrice}
+            onSelect={selectCan}
+            globalSort={sort}
+          />
+        ) : (
+          <CanWall
+            cans={shownCans}
+            onSelect={(can) => {
+              const ph = [can.p1, can.p2, can.p3, can.p4].filter((u): u is string => Boolean(u));
+              if (ph.length) setWallPhotos({ photos: ph, alt: can.nome });
+            }}
+          />
+        )}
+        {shown < visible.length && <div ref={sentinelRef} aria-hidden="true" />}
+      </div>
       {selected &&
         (editing ? (
           <CanEditForm
@@ -568,8 +603,9 @@ function App() {
                   showToast('⚠ Some photos could not be uploaded');
                 }
                 setEditing(false);
-              } catch {
-                showToast('⚠ Could not save changes');
+              } catch (e) {
+                const msg = saveErrorMessage(e);
+                if (msg) showToast(msg);
               }
             }}
             onCancel={() => setEditing(false)}
@@ -606,8 +642,9 @@ function App() {
                 showToast('⚠ Some photos could not be uploaded');
               }
               setCreating(null);
-            } catch {
-              showToast('⚠ Could not save changes');
+            } catch (e) {
+              const msg = saveErrorMessage(e);
+              if (msg) showToast(msg);
             }
           }}
           onCancel={() => setCreating(null)}

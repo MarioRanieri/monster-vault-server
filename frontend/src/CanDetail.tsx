@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Can } from './types';
 import { statoBadgeClass } from './statoBadge';
 import { hasPromo } from './filterCans';
@@ -43,6 +43,26 @@ export function CanDetail({
   const [mainIdx, setMainIdx] = useState(0);
   const [lbIdx, setLbIdx] = useState<number | null>(null);
   const main = photos[mainIdx] ?? photos[0];
+  const panelRef = useRef<HTMLElement>(null);
+
+  // All'apertura sposta il focus dentro il pannello (accessibilità tastiera);
+  // alla chiusura lo restituisce a chi l'aveva aperto (es. la card cliccata).
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    panelRef.current?.focus();
+    return () => previouslyFocused?.focus();
+  }, []);
+
+  // ESC chiude il pannello, come gli altri overlay dell'app — disattivato
+  // mentre la lightbox è aperta: lì ESC chiude prima la lightbox.
+  useEffect(() => {
+    if (lbIdx !== null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    globalThis.addEventListener('keydown', onKey);
+    return () => globalThis.removeEventListener('keydown', onKey);
+  }, [onClose, lbIdx]);
 
   const fields: { lbl: string; val?: string; isTop?: boolean }[] = [
     { lbl: 'SKU', val: can.sku },
@@ -103,7 +123,7 @@ export function CanDetail({
   }, [navCans, can.id, onSelect, lbIdx]);
 
   return (
-    <aside className="detail-panel open">
+    <aside className="detail-panel open" ref={panelRef} tabIndex={-1}>
       <div className="detail-header">
         <button type="button" className="detail-back" aria-label="Close" onClick={onClose}>
           ←

@@ -181,6 +181,23 @@ body {
     color 0.2s;
 }
 
+/* ── SKIP LINK ── */
+.skip-link {
+  position: fixed;
+  top: -100%;
+  left: 1rem;
+  z-index: 1000;
+  padding: 0.6rem 1rem;
+  background: var(--bg2);
+  color: var(--text);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  text-decoration: none;
+}
+.skip-link:focus {
+  top: 1rem;
+}
+
 /* ── AUTH ── */
 .auth-overlay {
   position: fixed;

@@ -260,7 +260,7 @@ class CanControllerTest {
         mockMvc.perform(put("/api/cans/abc")
                         .header("Authorization", bearerToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"nome\":\"Latta Aggiornata\"}"))
+                        .content("{\"id\":\"abc\",\"nome\":\"Latta Aggiornata\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("abc"))
                 .andExpect(jsonPath("$.nome").value("Latta Aggiornata"));
@@ -272,10 +272,22 @@ class CanControllerTest {
     void update_withoutAuth_returns401() throws Exception {
         mockMvc.perform(put("/api/cans/abc")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"nome\":\"Latta Aggiornata\"}"))
+                        .content("{\"id\":\"abc\",\"nome\":\"Latta Aggiornata\"}"))
                 .andExpect(status().isUnauthorized());
 
         verify(canService, never()).save(any());
+    }
+
+    @Test
+    void update_withoutId_returns400() throws Exception {
+        mockMvc.perform(put("/api/cans/abc")
+                        .header("Authorization", bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nome\":\"Latta senza ID\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.id").value("id obbligatorio"));
+
+        verify(canService, never()).update(any());
     }
 
     // --- DELETE /api/cans (deleteAll) ---
@@ -317,5 +329,54 @@ class CanControllerTest {
                 .andExpect(jsonPath("$.errors.id").value("id obbligatorio"));
 
         verify(canService, never()).save(any());
+    }
+
+    // --- POST /api/cans/{id}/photo/{slot}/from-url ---
+
+    @Test
+    void uploadPhotoFromUrl_withHttpsUrl_returns200() throws Exception {
+        when(canService.uploadPhotoFromUrl("abc", 1, "https://example.com/photo.jpg"))
+                .thenReturn("https://res.cloudinary.com/abc_1.jpg");
+
+        mockMvc.perform(post("/api/cans/abc/photo/1/from-url")
+                        .header("Authorization", bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"url\":\"https://example.com/photo.jpg\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.url").value("https://res.cloudinary.com/abc_1.jpg"));
+    }
+
+    @Test
+    void uploadPhotoFromUrl_withHttpUrl_returns400() throws Exception {
+        mockMvc.perform(post("/api/cans/abc/photo/1/from-url")
+                        .header("Authorization", bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"url\":\"http://example.com/photo.jpg\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("'url' must use https://"));
+
+        verify(canService, never()).uploadPhotoFromUrl(any(), anyInt(), any());
+    }
+
+    @Test
+    void uploadPhotoFromUrl_withNonHttpScheme_returns400() throws Exception {
+        mockMvc.perform(post("/api/cans/abc/photo/1/from-url")
+                        .header("Authorization", bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"url\":\"javascript:alert(1)\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("'url' must use https://"));
+
+        verify(canService, never()).uploadPhotoFromUrl(any(), anyInt(), any());
+    }
+
+    @Test
+    void uploadPhotoFromUrl_withoutAuth_returns401() throws Exception {
+        mockMvc.perform(post("/api/cans/abc/photo/1/from-url")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"url\":\"https://example.com/photo.jpg\"}"))
+                .andExpect(status().isUnauthorized());
+
+        verify(canService, never()).uploadPhotoFromUrl(any(), anyInt(), any());
     }
 }

@@ -67,8 +67,8 @@ test('401 concorrenti → una sola chiamata a /api/auth/refresh', async () => {
   expect(spy.mock.calls.filter((c) => c[0] === '/api/auth/refresh')).toHaveLength(1);
 });
 
-test('refresh fallito → stato azzerato, ritorna la 401 originale senza retry', async () => {
-  useAuthStore.setState({ accessToken: 'tok-old', isAdmin: true, error: null });
+test('refresh fallito → logout + sessionExpired, ritorna la 401 originale senza retry', async () => {
+  useAuthStore.setState({ accessToken: 'tok-old', isAdmin: true, error: null, sessionExpired: false });
   const original = { ok: false, status: 401 };
   const spy = vi.fn(async (url: string) =>
     url === '/api/auth/refresh' ? { ok: false, status: 401 } : original,
@@ -80,5 +80,10 @@ test('refresh fallito → stato azzerato, ritorna la 401 originale senza retry',
   expect(res).toBe(original);
   expect(useAuthStore.getState().accessToken).toBeNull();
   expect(useAuthStore.getState().isAdmin).toBe(false);
-  expect(spy.mock.calls.map((c) => c[0])).toEqual(['/api/cans/1', '/api/auth/refresh']);
+  expect(useAuthStore.getState().sessionExpired).toBe(true);
+  expect(spy.mock.calls.map((c) => c[0])).toEqual([
+    '/api/cans/1',
+    '/api/auth/refresh',
+    '/api/auth/logout',
+  ]);
 });

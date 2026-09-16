@@ -124,7 +124,7 @@ public class CanController {
      * da Cloudinary gli slot rimossi o sostituiti (logica di business in CanService — SRP).
      */
     @PutMapping("/{id}")
-    public ResponseEntity<Can> update(@PathVariable String id, @RequestBody Can can)
+    public ResponseEntity<Can> update(@PathVariable String id, @Valid @RequestBody Can can)
             throws Exception {
         can.setId(id);
         canService.update(can);
@@ -196,6 +196,9 @@ public class CanController {
         String externalUrl = body != null ? body.get("url") : null;
         if (externalUrl == null || externalUrl.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, "Missing 'url' in request body"));
+        }
+        if (!externalUrl.startsWith("https://")) {
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, "'url' must use https://"));
         }
         String url = canService.uploadPhotoFromUrl(id, slot, externalUrl);
         return ResponseEntity.ok(Map.of("url", url));

@@ -6,7 +6,7 @@ import { useAuthStore } from './authStore';
 
 beforeEach(() => {
   useCansStore.setState({ cans: [], loading: false, error: null, warming: false, updatedAt: null });
-  useAuthStore.setState({ accessToken: null, isAdmin: false, error: null });
+  useAuthStore.setState({ accessToken: null, isAdmin: false, error: null, sessionExpired: false });
   localStorage.clear(); // la cache offline inquinerebbe i test successivi
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [] }));
 });
@@ -330,6 +330,60 @@ test('admin: modifica una can dal dettaglio', async () => {
   expect((await screen.findAllByText('Beta')).length).toBeGreaterThan(0);
 });
 
+test('admin: un save rifiutato con 400 mostra un errore specifico, non quello generico', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [{ id: '1', nome: 'Alpha', sku: 'SKU-1' }],
+      })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) })
+      .mockResolvedValueOnce({ ok: false, status: 400 }),
+  );
+
+  render(<App />);
+  await loginAsAdmin();
+
+  await userEvent.click(screen.getByRole('button', { name: /alpha/i }));
+  await userEvent.click(
+    within(screen.getByRole('complementary')).getByRole('button', { name: /edit/i }),
+  );
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+  expect(await screen.findByText(/invalid data/i)).toBeTruthy();
+  expect(screen.queryByText('⚠ Could not save changes')).toBeNull();
+});
+
+test('admin: un save rifiutato con 401 riapre il login invece del solo toast generico', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [{ id: '1', nome: 'Alpha', sku: 'SKU-1' }],
+      })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) })
+      .mockResolvedValueOnce({ ok: false, status: 401 }) // save
+      .mockResolvedValueOnce({ ok: false, status: 401 }) // refresh fallito
+      .mockResolvedValueOnce({ ok: true }), // logout
+  );
+
+  render(<App />);
+  await loginAsAdmin();
+
+  await userEvent.click(screen.getByRole('button', { name: /alpha/i }));
+  await userEvent.click(
+    within(screen.getByRole('complementary')).getByRole('button', { name: /edit/i }),
+  );
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+  expect(await screen.findByRole('dialog', { name: 'Admin access' })).toBeTruthy();
+  expect(screen.getByText(/session expired/i)).toBeTruthy();
+});
+
 test('admin: Annulla chiude il form e torna al dettaglio', async () => {
   vi.stubGlobal(
     'fetch',
@@ -571,4 +625,14 @@ test('guest: un vmin residuo da una share URL admin non svuota la griglia', asyn
   render(<App />);
 
   expect(await screen.findByText('Alpha')).toBeTruthy();
+});
+
+test('skip-link punta al contenitore principale della griglia', async () => {
+  localStorage.setItem('mv_seen_landing', '1');
+  render(<App />);
+  await screen.findByRole('searchbox');
+
+  const skipLink = screen.getByText('Skip to cans');
+  expect(skipLink.getAttribute('href')).toBe('#main-content');
+  expect(document.getElementById('main-content')).toBeTruthy();
 });

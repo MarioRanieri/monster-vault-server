@@ -10,6 +10,11 @@ interface AuthState {
   isAdmin: boolean;
   error: string | null;
   loading: boolean;
+  // Impostato quando authFetch riceve un 401 non risolvibile col refresh (JWT
+  // scaduto a metà sessione): l'app lo osserva per riaprire il login invece di
+  // lasciare l'utente con un semplice toast d'errore. Va riazzerato da chi lo
+  // consuma (App.tsx), altrimenti resterebbe true per sempre.
+  sessionExpired: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<boolean>;
@@ -40,6 +45,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isAdmin: false,
   error: null,
   loading: false,
+  sessionExpired: false,
   login: async (username, password) => {
     set({ error: null, loading: true });
     try {
