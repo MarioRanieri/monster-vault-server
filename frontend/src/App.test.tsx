@@ -585,15 +585,25 @@ test('Share view mostra la conferma "link copied"', async () => {
 });
 
 test('admin: carica una foto durante la modifica', async () => {
+  // Mock per URL/metodo, non per ordine di chiamata: il loadCans() rilanciato
+  // dopo il login (autenticato, per i prezzi reali) può interleaving-are in
+  // qualunque punto rispetto a save/upload — una coda posizionale rigida ha
+  // reso questo test intermittente sotto carico (CI più lenta del locale).
   vi.stubGlobal(
     'fetch',
-    vi
-      .fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: '1', nome: 'Alpha', sku: 'S' }] }) // loadCans (guest)
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) }) // login
-      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: '1', nome: 'Alpha', sku: 'S' }] }) // loadCans (post-login)
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: '1', nome: 'Alpha' }) }) // saveCan
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ url: 'https://cdn/up.jpg' }) }), // uploadPhoto
+    vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === '/api/cans') {
+        return { ok: true, json: async () => [{ id: '1', nome: 'Alpha', sku: 'S' }] };
+      }
+      if (url === '/api/auth/login')
+        return { ok: true, json: async () => ({ accessToken: 'tok' }) };
+      if (url === '/api/cans/1' && init?.method === 'PUT') {
+        return { ok: true, json: async () => ({ id: '1', nome: 'Alpha' }) };
+      }
+      if (url === '/api/cans/1/photo/1')
+        return { ok: true, json: async () => ({ url: 'https://cdn/up.jpg' }) };
+      throw new Error(`unmocked fetch: ${url}`);
+    }),
   );
 
   render(<App />);
@@ -609,16 +619,10 @@ test('admin: carica una foto durante la modifica', async () => {
   await userEvent.upload(screen.getByLabelText('Photo 1'), file);
   await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
-  // Salvataggio + upload della foto staged → la foto compare. timeout esteso:
-  // la catena async (save → upload → re-render) può superare il default di 1s
-  // quando la suite intera gira in parallelo sotto carico — sotto la CI di
-  // SonarQube (istrumentata per la coverage, molto più lenta) 4000ms non
-  // bastava, poi osservato superare anche i 10000ms in locale sotto carico
-  // macchina — margine alzato ulteriormente invece di rincorrere il numero.
-  expect(
-    (await screen.findAllByRole('img', { name: 'Alpha' }, { timeout: 20000 })).length,
-  ).toBeGreaterThan(0);
-}, 25000); // la catena async è lenta sotto carico/coverage: alza il testTimeout
+  // Salvataggio + upload della foto staged → la foto compare (eredita
+  // l'asyncUtilTimeout globale, vedi setupTests.ts).
+  expect((await screen.findAllByRole('img', { name: 'Alpha' })).length).toBeGreaterThan(0);
+});
 
 // Il backend non invia mai il prezzo (valore) al guest (redatto server-side): il
 // filtro min/max era comunque un side-channel che permetteva di dedurlo per
