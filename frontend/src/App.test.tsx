@@ -256,13 +256,15 @@ test('admin: elimina una can dal dettaglio', async () => {
     'fetch',
     vi
       .fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: '1', nome: 'Alpha' }] })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: '1', nome: 'Alpha' }] }) // loadCans (guest)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) }) // login
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: '1', nome: 'Alpha' }] }) // loadCans (post-login)
       .mockResolvedValueOnce({ ok: true }),
   );
 
   render(<App />);
   await loginAsAdmin();
+  await screen.findByText('Alpha');
 
   await userEvent.click(screen.getByRole('button', { name: /alpha/i }));
   await userEvent.click(screen.getByRole('button', { name: /delete/i }));
@@ -273,14 +275,16 @@ test('admin: elimina una can dal dettaglio', async () => {
 test('admin: Undo dopo delete ripristina la can senza purge', async () => {
   const spy = vi
     .fn()
-    .mockResolvedValueOnce({ ok: true, json: async () => [{ id: '1', nome: 'Alpha' }] }) // loadCans
+    .mockResolvedValueOnce({ ok: true, json: async () => [{ id: '1', nome: 'Alpha' }] }) // loadCans (guest)
     .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) }) // login
+    .mockResolvedValueOnce({ ok: true, json: async () => [{ id: '1', nome: 'Alpha' }] }) // loadCans (post-login)
     .mockResolvedValueOnce({ ok: true }) // DELETE soft
     .mockResolvedValueOnce({ ok: true }); // PUT restore
   vi.stubGlobal('fetch', spy);
 
   render(<App />);
   await loginAsAdmin();
+  await screen.findByText('Alpha');
 
   await userEvent.click(screen.getByRole('button', { name: /alpha/i }));
   await userEvent.click(screen.getByRole('button', { name: /delete/i }));
@@ -325,8 +329,12 @@ test('admin: modifica una can dal dettaglio', async () => {
       .mockResolvedValueOnce({
         ok: true,
         json: async () => [{ id: '1', nome: 'Alpha', sku: 'SKU-1' }],
-      })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) })
+      }) // loadCans (guest)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) }) // login
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [{ id: '1', nome: 'Alpha', sku: 'SKU-1' }],
+      }) // loadCans (post-login)
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({ id: '1', nome: 'Beta', sku: 'SKU-1' }),
@@ -335,6 +343,7 @@ test('admin: modifica una can dal dettaglio', async () => {
 
   render(<App />);
   await loginAsAdmin();
+  await screen.findByText('Alpha');
 
   await userEvent.click(screen.getByRole('button', { name: /alpha/i }));
   await userEvent.click(
@@ -357,13 +366,18 @@ test('admin: un save rifiutato con 400 mostra un errore specifico, non quello ge
       .mockResolvedValueOnce({
         ok: true,
         json: async () => [{ id: '1', nome: 'Alpha', sku: 'SKU-1' }],
-      })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) })
+      }) // loadCans (guest)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) }) // login
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [{ id: '1', nome: 'Alpha', sku: 'SKU-1' }],
+      }) // loadCans (post-login)
       .mockResolvedValueOnce({ ok: false, status: 400 }),
   );
 
   render(<App />);
   await loginAsAdmin();
+  await screen.findByText('Alpha');
 
   await userEvent.click(screen.getByRole('button', { name: /alpha/i }));
   await userEvent.click(
@@ -383,8 +397,12 @@ test('admin: un save rifiutato con 401 riapre il login invece del solo toast gen
       .mockResolvedValueOnce({
         ok: true,
         json: async () => [{ id: '1', nome: 'Alpha', sku: 'SKU-1' }],
-      })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) })
+      }) // loadCans (guest)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) }) // login
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [{ id: '1', nome: 'Alpha', sku: 'SKU-1' }],
+      }) // loadCans (post-login)
       .mockResolvedValueOnce({ ok: false, status: 401 }) // save
       .mockResolvedValueOnce({ ok: false, status: 401 }) // refresh fallito
       .mockResolvedValueOnce({ ok: true }), // logout
@@ -392,6 +410,7 @@ test('admin: un save rifiutato con 401 riapre il login invece del solo toast gen
 
   render(<App />);
   await loginAsAdmin();
+  await screen.findByText('Alpha');
 
   await userEvent.click(screen.getByRole('button', { name: /alpha/i }));
   await userEvent.click(
@@ -434,8 +453,9 @@ test('admin: crea una nuova can', async () => {
     'fetch',
     vi
       .fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => [] }) // loadCans (guest)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) }) // login
+      .mockResolvedValueOnce({ ok: true, json: async () => [] }) // loadCans (post-login)
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({ id: 'x', nome: 'Nuova Lattina' }),
@@ -569,14 +589,16 @@ test('admin: carica una foto durante la modifica', async () => {
     'fetch',
     vi
       .fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: '1', nome: 'Alpha', sku: 'S' }] }) // loadCans
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: '1', nome: 'Alpha', sku: 'S' }] }) // loadCans (guest)
       .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) }) // login
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: '1', nome: 'Alpha', sku: 'S' }] }) // loadCans (post-login)
       .mockResolvedValueOnce({ ok: true, json: async () => ({ id: '1', nome: 'Alpha' }) }) // saveCan
       .mockResolvedValueOnce({ ok: true, json: async () => ({ url: 'https://cdn/up.jpg' }) }), // uploadPhoto
   );
 
   render(<App />);
   await loginAsAdmin();
+  await screen.findByText('Alpha');
 
   await userEvent.click(screen.getByRole('button', { name: /alpha/i }));
   await userEvent.click(

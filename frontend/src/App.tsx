@@ -121,10 +121,16 @@ function App() {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    loadCans();
     // Ripristina la sessione solo se questo browser ha già fatto login (hint
     // mv_auth): i guest non chiamano /auth/refresh → niente 401 in console.
-    if (localStorage.getItem('mv_auth')) refresh();
+    // Il refresh va aspettato PRIMA di loadCans: il backend redige il prezzo
+    // per chi non manda un Bearer token, quindi caricare i cans in parallelo
+    // (senza aspettare il token) mostrerebbe sempre valore vuoto a un admin
+    // che riapre una sessione già autenticata.
+    (async () => {
+      if (localStorage.getItem('mv_auth')) await refresh();
+      loadCans();
+    })();
   }, [loadCans, refresh]);
 
   useEffect(() => {
@@ -348,6 +354,9 @@ function App() {
     if (useAuthStore.getState().isAdmin) {
       setShowLogin(false);
       resetFilters();
+      // Il caricamento iniziale (guest) ha il prezzo redatto dal backend: va
+      // ricaricato ora col Bearer token per mostrare i valori reali.
+      loadCans();
     }
   };
 

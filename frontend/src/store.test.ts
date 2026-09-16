@@ -1,9 +1,11 @@
 import { useCansStore } from './store';
+import { useAuthStore } from './authStore';
 import type { Can } from './types';
 
 // Ogni test riparte da stato pulito; ripristina i mock di fetch dopo ognuno.
 beforeEach(() => {
   useCansStore.setState({ cans: [], loading: false, error: null, warming: false, updatedAt: null });
+  useAuthStore.setState({ accessToken: null, isAdmin: false });
   localStorage.clear();
 });
 
@@ -21,6 +23,17 @@ test('loadCans popola cans da GET /api/cans', async () => {
   expect(s.cans).toEqual(fake);
   expect(s.loading).toBe(false);
   expect(s.error).toBeNull();
+});
+
+test("loadCans manda il Bearer token quando l'admin è loggato (altrimenti il backend redige sempre i prezzi)", async () => {
+  useAuthStore.setState({ accessToken: 'tok-admin', isAdmin: true });
+  const spy = vi.fn().mockResolvedValue({ ok: true, json: async () => [] });
+  vi.stubGlobal('fetch', spy);
+
+  await useCansStore.getState().loadCans();
+
+  const headers = (spy.mock.calls[0][1]?.headers ?? {}) as Record<string, string>;
+  expect(headers.Authorization).toBe('Bearer tok-admin');
 });
 
 test('loadCans imposta error quando la fetch fallisce', async () => {

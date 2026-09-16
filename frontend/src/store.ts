@@ -27,7 +27,10 @@ function writeCache(cans: Can[]): void {
 
 // Retry sui 5xx per il cold start di Render (free tier): 3 tentativi, 2s di pausa.
 async function fetchWithRetry(attempt = 1): Promise<Can[]> {
-  const res = await fetch('/api/cans');
+  // authFetch (non fetch): il backend redige il prezzo per chi non manda un
+  // Bearer token valido — senza questo un admin loggato vedrebbe comunque
+  // valore sempre vuoto sulla lista principale.
+  const res = await authFetch('/api/cans');
   if (res.status >= 500 && attempt < 3) {
     useCansStore.setState({ warming: true });
     await new Promise((r) => setTimeout(r, 2000));
