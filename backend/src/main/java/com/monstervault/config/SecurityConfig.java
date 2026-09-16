@@ -88,10 +88,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/cans", "/api/cans/**").permitAll()
                         // Asset statici pubblici. /assets/** copre i bundle Vite (JS/CSS hashati
-                        // in sottocartella); i glob /*.ext coprono i file in root (map.html, sw.js,
-                        // manifest.json, immagini, robots.txt...). Senza /assets/** i bundle Vite
-                        // finirebbero in anyRequest() → 401 e il sito non caricherebbe.
-                        .requestMatchers("/", "/assets/**", "/*.html", "/*.js", "/*.css",
+                        // in sottocartella); /fonts/** i webfont (woff2) copiati in build; i glob
+                        // /*.ext coprono i file in root (map.html, sw.js, manifest.json, immagini,
+                        // robots.txt...). Senza queste regole i file finirebbero in anyRequest() →
+                        // 401 e il sito non caricherebbe (bundle) o userebbe font di sistema (font).
+                        .requestMatchers("/", "/assets/**", "/fonts/**", "/*.html", "/*.js", "/*.css",
                                 "/manifest.json", "/*.jpg", "/*.png", "/*.ico", "/*.svg",
                                 "/*.webmanifest", "/*.txt", "/*.xml", "/share/**").permitAll()
                         // Observability: /health (lo usa anche il health check di Render) e /info
