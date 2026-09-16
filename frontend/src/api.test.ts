@@ -68,7 +68,12 @@ test('401 concorrenti → una sola chiamata a /api/auth/refresh', async () => {
 });
 
 test('refresh fallito → logout + sessionExpired, ritorna la 401 originale senza retry', async () => {
-  useAuthStore.setState({ accessToken: 'tok-old', isAdmin: true, error: null, sessionExpired: false });
+  useAuthStore.setState({
+    accessToken: 'tok-old',
+    isAdmin: true,
+    error: null,
+    sessionExpired: false,
+  });
   const original = { ok: false, status: 401 };
   const spy = vi.fn(async (url: string) =>
     url === '/api/auth/refresh' ? { ok: false, status: 401 } : original,

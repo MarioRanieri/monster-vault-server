@@ -570,11 +570,13 @@ test('admin: carica una foto durante la modifica', async () => {
 
   // Salvataggio + upload della foto staged → la foto compare. timeout esteso:
   // la catena async (save → upload → re-render) può superare il default di 1s
-  // quando la suite intera gira in parallelo sotto carico (evita il flaky).
+  // quando la suite intera gira in parallelo sotto carico — sotto la CI di
+  // SonarQube (istrumentata per la coverage, molto più lenta) 4000ms non
+  // bastava ancora, osservato in produzione (run 35074807861).
   expect(
-    (await screen.findAllByRole('img', { name: 'Alpha' }, { timeout: 4000 })).length,
+    (await screen.findAllByRole('img', { name: 'Alpha' }, { timeout: 10000 })).length,
   ).toBeGreaterThan(0);
-}, 15000); // la catena async è lenta sotto carico/coverage: alza il testTimeout
+}, 20000); // la catena async è lenta sotto carico/coverage: alza il testTimeout
 
 // Il backend non invia mai il prezzo (valore) al guest (redatto server-side): il
 // filtro min/max era comunque un side-channel che permetteva di dedurlo per
