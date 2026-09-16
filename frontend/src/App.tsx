@@ -39,6 +39,10 @@ interface Filters {
   full: boolean;
   withPhoto: boolean;
   noPhoto: boolean;
+  // Admin-only (vedi filterCans): trova le lattine con `valore` mancante da
+  // compilare — dato che i prezzi non sono condivisibili, resta fuori da
+  // ShareFilters come `stato`.
+  noValue: boolean;
   vmin: string;
   vmax: string;
   ymin: string;
@@ -57,6 +61,7 @@ const NO_FILTERS: Filters = {
   full: false,
   withPhoto: false,
   noPhoto: false,
+  noValue: false,
   vmin: '',
   vmax: '',
   ymin: '',
@@ -546,6 +551,15 @@ function App() {
             },
           ]}
           onReset={hasFilters ? resetFilters : undefined}
+          noValueToggle={
+            isAdmin
+              ? {
+                  active: filters.noValue,
+                  count: cans.filter((c) => !c.valore).length,
+                  onToggle: () => setFilter('noValue', !filters.noValue),
+                }
+              : undefined
+          }
           view={{
             value: gridMode,
             onChange: (v) => setGridMode(v as 'grid' | 'list' | 'wall'),

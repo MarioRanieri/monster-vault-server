@@ -659,6 +659,50 @@ test('admin: vede il filtro di prezzo e l’ordinamento per valore', async () =>
   expect(screen.getAllByRole('option', { name: /value/i }).length).toBe(2);
 });
 
+test('guest: niente bottone "No value" (i prezzi non sono suoi)', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({ ok: true, json: async () => [{ id: '1', nome: 'Alpha' }] }),
+  );
+  render(<App />);
+  await enterCollection();
+  await screen.findByText('Alpha');
+
+  expect(screen.queryByRole('button', { name: /no value/i })).toBeNull();
+});
+
+test('admin: il bottone "No value" mostra il count e filtra le lattine senza valore', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) => {
+      if (url === '/api/cans') {
+        return {
+          ok: true,
+          json: async () => [
+            { id: '1', nome: 'Alpha', valore: '10' },
+            { id: '2', nome: 'Beta' },
+          ],
+        };
+      }
+      if (url === '/api/auth/login')
+        return { ok: true, json: async () => ({ accessToken: 'tok' }) };
+      throw new Error(`unmocked fetch: ${url}`);
+    }),
+  );
+
+  render(<App />);
+  await loginAsAdmin();
+  await screen.findByText('Alpha');
+
+  const btn = screen.getByRole('button', { name: /no value/i });
+  expect(btn).toHaveTextContent('1');
+
+  await userEvent.click(btn);
+
+  expect(screen.queryByText('Alpha')).toBeNull();
+  expect(screen.getByText('Beta')).toBeTruthy();
+});
+
 // Un link condiviso da un admin con un filtro di prezzo attivo (?vmin=10) aperto
 // da un guest non deve svuotare la griglia: il guest non ha `valore` da filtrare
 // (redatto dal backend), quindi il filtro va ignorato lato client, non applicato

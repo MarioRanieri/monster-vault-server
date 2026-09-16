@@ -52,6 +52,15 @@ test('noPhoto tiene solo i cans senza foto', () => {
   expect(filterCans(cans, { noPhoto: true }).map((c) => c.nome)).toEqual(['Beta', 'Gamma']);
 });
 
+test('noValue tiene solo i cans senza valore stimato', () => {
+  const withVal: Can[] = [
+    { id: '1', nome: 'Alpha', valore: '10' },
+    { id: '2', nome: 'Beta', valore: '' },
+    { id: '3', nome: 'Gamma' },
+  ];
+  expect(filterCans(withVal, { noValue: true }).map((c) => c.nome)).toEqual(['Beta', 'Gamma']);
+});
+
 test('promo tiene solo i cans in promo', () => {
   expect(filterCans(cans, { promo: true }).map((c) => c.nome)).toEqual(['Beta']);
 });

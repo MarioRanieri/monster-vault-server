@@ -39,6 +39,12 @@ export interface ViewToggle {
   onChange: (v: string) => void;
 }
 
+export interface NoValueToggle {
+  active: boolean;
+  count: number;
+  onToggle: () => void;
+}
+
 // Barra filtri (classi del vecchio): ricerca + dropdown + chip + range + sort +
 // reset. I criteri sono passati/gestiti dal genitore.
 export function FilterBar({
@@ -49,6 +55,7 @@ export function FilterBar({
   ranges = [],
   sort,
   onReset,
+  noValueToggle,
   view,
 }: Readonly<{
   query: string;
@@ -58,6 +65,7 @@ export function FilterBar({
   ranges?: Range[];
   sort?: SortControl;
   onReset?: () => void;
+  noValueToggle?: NoValueToggle;
   view?: ViewToggle;
 }>) {
   // Su mobile i filtri avanzati sono collassati dietro il bottone "Filters"
@@ -122,6 +130,17 @@ export function FilterBar({
       {onReset && (
         <button type="button" className="btn btn-ghost filter-reset-btn" onClick={onReset}>
           Reset
+        </button>
+      )}
+      {noValueToggle && (
+        <button
+          type="button"
+          className={`btn btn-ghost filter-reset-btn${noValueToggle.active ? ' active' : ''}`}
+          aria-pressed={noValueToggle.active}
+          onClick={noValueToggle.onToggle}
+        >
+          No value
+          <span className="chip-count">{noValueToggle.count}</span>
         </button>
       )}
       <div className={`filter-advanced${showFilters ? ' open' : ''}`}>

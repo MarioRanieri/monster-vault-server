@@ -89,7 +89,7 @@ test('admin: apre il pannello Account e il Value calc', async () => {
   expect(await screen.findByRole('button', { name: /generate recovery code/i })).toBeTruthy();
   await userEvent.click(screen.getByRole('button', { name: /close/i }));
 
-  await userEvent.click(screen.getByRole('button', { name: /value/i }));
+  await userEvent.click(screen.getByRole('button', { name: '💰 Value' }));
   expect(await screen.findByText(/value calculator/i)).toBeTruthy();
 });
 

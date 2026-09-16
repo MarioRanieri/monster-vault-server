@@ -107,6 +107,28 @@ test('il bottone Reset è fuori dal pannello filtri avanzati (sempre cliccabile)
   expect(reset.closest('.filter-advanced')).toBeNull();
 });
 
+test('senza noValueToggle il bottone "No value" non compare (solo admin)', () => {
+  render(<FilterBar query="" onQuery={() => {}} chips={[]} />);
+  expect(screen.queryByRole('button', { name: /no value/i })).toBeNull();
+});
+
+test('"No value" mostra il count, è fuori dal pannello filtri avanzati e chiama onToggle', async () => {
+  const onToggle = vi.fn();
+  render(
+    <FilterBar
+      query=""
+      onQuery={() => {}}
+      chips={[]}
+      noValueToggle={{ active: false, count: 7, onToggle }}
+    />,
+  );
+  const btn = screen.getByRole('button', { name: /no value/i });
+  expect(btn.closest('.filter-advanced')).toBeNull();
+  expect(btn).toHaveTextContent('7');
+  await userEvent.click(btn);
+  expect(onToggle).toHaveBeenCalled();
+});
+
 test('il pulsante Filters apre/chiude il pannello filtri avanzati', async () => {
   const user = userEvent.setup();
   render(<FilterBar query="" onQuery={() => {}} chips={[]} />);

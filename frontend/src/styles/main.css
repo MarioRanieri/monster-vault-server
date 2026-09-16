@@ -1517,6 +1517,16 @@ body.light .filter-select option {
 .filter-reset-btn {
   flex: 0 0 auto;
 }
+/* "No value" (admin-only, accanto a Reset): trova le lattine senza `valore`
+   da compilare — colore ambra, distinto dagli altri chip filtro. */
+.filter-reset-btn.active {
+  background: rgba(234, 179, 8, 0.15);
+  border-color: #eab308;
+  color: #eab308;
+}
+.filter-reset-btn.active .chip-count {
+  background: rgba(234, 179, 8, 0.2);
+}
 /* Toggle "Filters": i filtri avanzati sono sempre dietro un pannello — stesso
    pattern desktop e mobile (prima era mobile-only: su desktop restava tutto
    aperto su 3 righe prima ancora di vedere una lattina). */

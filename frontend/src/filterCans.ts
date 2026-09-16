@@ -4,6 +4,7 @@ export interface CanFilters {
   query?: string;
   withPhoto?: boolean;
   noPhoto?: boolean;
+  noValue?: boolean;
   promo?: boolean;
   full?: boolean;
   lingua?: string;
@@ -50,6 +51,7 @@ export function filterCans(cans: Can[], filters: CanFilters): Can[] {
     }
     if (filters.withPhoto && !can.p1) return false;
     if (filters.noPhoto && can.p1) return false;
+    if (filters.noValue && can.valore) return false;
     if (filters.promo && !hasPromo(can.promo)) return false;
     if (filters.full && !isFull(can)) return false;
     if (filters.lingua && can.lingua !== filters.lingua) return false;
