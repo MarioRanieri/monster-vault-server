@@ -379,4 +379,190 @@ class CanControllerTest {
 
         verify(canService, never()).uploadPhotoFromUrl(any(), anyInt(), any());
     }
+
+    // --- GET /api/cans: ETag / 304 ---
+
+    private Can canAt(String id, long updatedAt) {
+        Can c = new Can();
+        c.setId(id);
+        c.setUpdatedAt(updatedAt);
+        return c;
+    }
+
+    @Test
+    void getAll_matchingIfNoneMatch_returns304WithoutBody() throws Exception {
+        when(canService.getAll()).thenReturn(List.of(canAt("1", 123L)));
+        String etag = mockMvc.perform(get("/api/cans"))
+                .andReturn().getResponse().getHeader("ETag");
+
+        mockMvc.perform(get("/api/cans").header("If-None-Match", etag))
+                .andExpect(status().isNotModified())
+                .andExpect(header().string("ETag", etag))
+                .andExpect(content().string(""));
+    }
+
+    @Test
+    void getAll_staleIfNoneMatch_returnsFullBodyWithFreshEtag() throws Exception {
+        when(canService.getAll()).thenReturn(List.of(canAt("1", 123L)));
+
+        mockMvc.perform(get("/api/cans").header("If-None-Match", "\"stale\""))
+                .andExpect(status().isOk())
+                .andExpect(header().exists("ETag"))
+                .andExpect(jsonPath("$[0].id").value("1"));
+    }
+
+    @Test
+    void getAll_adminWithMatchingIfNoneMatch_returns304() throws Exception {
+        when(canService.getAll()).thenReturn(List.of(canAt("1", 123L)));
+        String etag = mockMvc.perform(get("/api/cans").header("Authorization", bearerToken))
+                .andReturn().getResponse().getHeader("ETag");
+
+        mockMvc.perform(get("/api/cans").header("Authorization", bearerToken).header("If-None-Match", etag))
+                .andExpect(status().isNotModified());
+    }
+
+    // --- errori del service → 500 generico (GlobalExceptionHandler) ---
+
+    @Test
+    void getAll_serviceFailure_returns500WithGenericMessage() throws Exception {
+        when(canService.getAll()).thenThrow(new com.monstervault.exception.MonsterVaultException("mongo down"));
+
+        mockMvc.perform(get("/api/cans"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.error").value("Internal server error"))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("mongo"))));
+    }
+
+    // --- POST /api/cans/batch ---
+
+    @Test
+    void batchSave_validList_returnsSavedCountAndDelegates() throws Exception {
+        mockMvc.perform(post("/api/cans/batch")
+                        .header("Authorization", bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("[{\"id\":\"a\"},{\"id\":\"b\"}]"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.saved").value(2));
+
+        verify(canService).batchSave(argThat(l -> l.size() == 2 && "a".equals(l.get(0).getId())));
+    }
+
+    @Test
+    void batchSave_emptyList_returns400() throws Exception {
+        mockMvc.perform(post("/api/cans/batch")
+                        .header("Authorization", bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("[]"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Empty list"));
+
+        verify(canService, never()).batchSave(any());
+    }
+
+    @Test
+    void batchSave_canWithoutId_returns400() throws Exception {
+        mockMvc.perform(post("/api/cans/batch")
+                        .header("Authorization", bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("[{\"id\":\"a\"},{\"nome\":\"senza id\"}]"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Every can must have a non-blank id"));
+
+        verify(canService, never()).batchSave(any());
+    }
+
+    @Test
+    void batchSave_canWithBlankId_returns400() throws Exception {
+        mockMvc.perform(post("/api/cans/batch")
+                        .header("Authorization", bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("[{\"id\":\"   \"}]"))
+                .andExpect(status().isBadRequest());
+
+        verify(canService, never()).batchSave(any());
+    }
+
+    @Test
+    void batchSave_withoutAuth_returns401() throws Exception {
+        mockMvc.perform(post("/api/cans/batch")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("[{\"id\":\"a\"}]"))
+                .andExpect(status().isUnauthorized());
+
+        verify(canService, never()).batchSave(any());
+    }
+
+    // --- DELETE /api/cans: header di conferma ---
+
+    @Test
+    void deleteAll_confirmHeaderIsCaseInsensitive() throws Exception {
+        mockMvc.perform(delete("/api/cans")
+                        .header("Authorization", bearerToken)
+                        .header("X-Confirm-Delete", "ALL"))
+                .andExpect(status().isNoContent());
+
+        verify(canService).deleteAll();
+    }
+
+    @Test
+    void deleteAll_wrongConfirmValue_returns400() throws Exception {
+        mockMvc.perform(delete("/api/cans")
+                        .header("Authorization", bearerToken)
+                        .header("X-Confirm-Delete", "yes"))
+                .andExpect(status().isBadRequest());
+
+        verify(canService, never()).deleteAll();
+    }
+
+    // --- POST /api/cans/{id}/photo/{slot} (multipart) ---
+
+    @Test
+    void uploadPhoto_withValidJwt_returnsUrlAndDelegatesWithSlot() throws Exception {
+        org.springframework.mock.web.MockMultipartFile file =
+                new org.springframework.mock.web.MockMultipartFile("file", "p.jpg", "image/jpeg", new byte[]{1, 2});
+        when(canService.uploadPhoto(eq("abc"), eq(3), any())).thenReturn("https://res.cloudinary.com/abc_3.jpg");
+
+        mockMvc.perform(multipart("/api/cans/abc/photo/3").file(file).header("Authorization", bearerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.url").value("https://res.cloudinary.com/abc_3.jpg"));
+
+        verify(canService).uploadPhoto(eq("abc"), eq(3), argThat(f -> "p.jpg".equals(f.getOriginalFilename())));
+    }
+
+    @Test
+    void uploadPhoto_withoutAuth_returns401() throws Exception {
+        org.springframework.mock.web.MockMultipartFile file =
+                new org.springframework.mock.web.MockMultipartFile("file", "p.jpg", "image/jpeg", new byte[]{1});
+
+        mockMvc.perform(multipart("/api/cans/abc/photo/1").file(file))
+                .andExpect(status().isUnauthorized());
+
+        verify(canService, never()).uploadPhoto(any(), anyInt(), any());
+    }
+
+    // --- POST /api/cans/{id}/photo/{slot}/from-url: body mancante/vuoto ---
+
+    @Test
+    void uploadPhotoFromUrl_missingUrlField_returns400() throws Exception {
+        mockMvc.perform(post("/api/cans/abc/photo/1/from-url")
+                        .header("Authorization", bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Missing 'url' in request body"));
+
+        verify(canService, never()).uploadPhotoFromUrl(any(), anyInt(), any());
+    }
+
+    @Test
+    void uploadPhotoFromUrl_blankUrl_returns400() throws Exception {
+        mockMvc.perform(post("/api/cans/abc/photo/1/from-url")
+                        .header("Authorization", bearerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"url\":\"   \"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Missing 'url' in request body"));
+
+        verify(canService, never()).uploadPhotoFromUrl(any(), anyInt(), any());
+    }
 }
