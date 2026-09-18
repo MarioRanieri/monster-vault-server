@@ -3,12 +3,21 @@ package com.monstervault.repository;
 import com.monstervault.model.Can;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.bson.Document;
+import org.mockito.ArgumentCaptor;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
+
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -83,5 +92,120 @@ class MongoCanRepositoryTest {
         Can c = can("1");
         repo.save(c);
         assertThat(c.getUpdatedAt()).isNotNull();
+    }
+
+    // ── photoAt: timbrato se almeno UNO dei 4 slot foto è presente ─────────────
+
+    @ParameterizedTest
+    @ValueSource(ints = {1, 2, 3, 4})
+    void save_anyPhotoSlot_stampsPhotoAt(int slot) {
+        Can c = can("1");
+        switch (slot) {
+            case 1 -> c.setP1("https://x/1.jpg");
+            case 2 -> c.setP2("https://x/2.jpg");
+            case 3 -> c.setP3("https://x/3.jpg");
+            default -> c.setP4("https://x/4.jpg");
+        }
+
+        repo.save(c);
+
+        assertThat(c.getPhotoAt()).isNotNull().isEqualTo(c.getUpdatedAt());
+    }
+
+    @Test
+    void save_noPhotos_leavesPhotoAtUntouched() {
+        Can c = can("1");
+        repo.save(c);
+        assertThat(c.getPhotoAt()).isNull();
+    }
+
+    @Test
+    void save_canWithoutId_isTreatedAsNewWithoutLookingItUp() {
+        Can c = can(null);
+
+        repo.save(c);
+
+        assertThat(c.getCreatedAt()).isNotNull();
+        verify(mongo, never()).findById(any(), eq(Can.class));
+    }
+
+    @Test
+    void save_persistsTheStampedCanViaUpsert() {
+        Can c = can("1");
+        repo.save(c);
+        verify(mongo).save(c);
+    }
+
+    @Test
+    void save_canAlreadyHavingCreatedAt_isNotLookedUp() {
+        Can c = can("1");
+        c.setCreatedAt(5L);
+
+        repo.save(c);
+
+        assertThat(c.getCreatedAt()).isEqualTo(5L);
+        verify(mongo, never()).findById(any(), eq(Can.class));
+    }
+
+    // ── batchSave ──────────────────────────────────────────────────────────────
+
+    @Test
+    void batchSave_stampsAndPersistsEveryCan() {
+        Can a = can("1");
+        Can b = can("2");
+        b.setP3("https://x/3.jpg");
+
+        repo.batchSave(List.of(a, b));
+
+        assertThat(a.getUpdatedAt()).isNotNull();
+        assertThat(a.getCreatedAt()).isNotNull();
+        assertThat(b.getPhotoAt()).isNotNull();
+        verify(mongo).save(a);
+        verify(mongo).save(b);
+    }
+
+    @Test
+    void batchSave_emptyList_persistsNothing() {
+        repo.batchSave(List.of());
+        verify(mongo, never()).save(any());
+    }
+
+    // ── letture ────────────────────────────────────────────────────────────────
+
+    @Test
+    void getAll_returnsEveryDocumentFromTheTemplate() {
+        List<Can> stored = List.of(can("1"), can("2"));
+        when(mongo.findAll(Can.class)).thenReturn(stored);
+
+        assertThat(repo.getAll()).isSameAs(stored);
+    }
+
+    @Test
+    void getById_delegatesToFindById() {
+        Can c = can("7");
+        when(mongo.findById("7", Can.class)).thenReturn(c);
+
+        assertThat(repo.getById("7")).isSameAs(c);
+        assertThat(repo.getById("missing")).isNull();
+    }
+
+    // ── cancellazioni ──────────────────────────────────────────────────────────
+
+    @Test
+    void delete_removesOnlyTheGivenId() {
+        repo.delete("42");
+
+        ArgumentCaptor<Query> q = ArgumentCaptor.forClass(Query.class);
+        verify(mongo).remove(q.capture(), eq(Can.class));
+        assertThat(q.getValue().getQueryObject()).isEqualTo(new Document("id", "42"));
+    }
+
+    @Test
+    void deleteAll_removesWithAnEmptyFilter() {
+        repo.deleteAll();
+
+        ArgumentCaptor<Query> q = ArgumentCaptor.forClass(Query.class);
+        verify(mongo).remove(q.capture(), eq(Can.class));
+        assertThat(q.getValue().getQueryObject()).isEmpty();
     }
 }
