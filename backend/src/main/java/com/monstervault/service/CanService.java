@@ -1,5 +1,6 @@
 package com.monstervault.service;
 
+import com.monstervault.exception.MonsterVaultException;
 import com.monstervault.model.Can;
 import com.monstervault.repository.CanRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -78,7 +79,7 @@ public class CanService {
     }
 
     /** Cerca per ID incluse le lattine soft-deleted (necessario per restore e detail view). */
-    public Can getById(String id) throws Exception {
+    public Can getById(String id) throws MonsterVaultException {
         List<Can> snap = cache.get();
         if (snap != null) {
             return snap.stream().filter(c -> id.equals(c.getId())).findFirst().orElse(null);
