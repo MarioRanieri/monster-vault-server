@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useCansStore } from './store';
-import { CanGrid } from './CanGrid';
-import { CanList } from './CanList';
-import { CanWall } from './CanWall';
 import { CanDetail } from './CanDetail';
 import { filterCans, sortCans, filterOptions, type SortKey } from './filterCans';
 import { Hero } from './Hero';
-import { FilterBar, type Range } from './FilterBar';
+import { CollectionFilterBar, type GridMode } from './CollectionFilterBar';
+import { CanViews, LoadStatus, Toast, type ToastState } from './AppParts';
+import { NO_FILTERS, type Filters } from './appFilters';
 import { computeStats, addedThisMonth } from './computeStats';
 import { useAuthStore } from './authStore';
 import { LoginForm } from './LoginForm';
@@ -25,48 +24,8 @@ import { Lightbox } from './Lightbox';
 import { AccountPanel } from './AccountPanel';
 import type { Can } from './types';
 
-// Tutti i criteri di filtro in un unico oggetto: prima erano 14 useState
-// duplicati in 5 punti (dichiarazione, restore, filtro, reset, share). `stato`
-// non è condiviso (niente in ShareFilters) e si attiva solo dalle stats.
-interface Filters {
-  query: string;
-  lingua: string;
-  size: string;
-  produttore: string;
-  top: string;
-  stato: string;
-  promo: boolean;
-  full: boolean;
-  withPhoto: boolean;
-  noPhoto: boolean;
-  // Admin-only (vedi filterCans): trova le lattine con `valore` mancante da
-  // compilare — dato che i prezzi non sono condivisibili, resta fuori da
-  // ShareFilters come `stato`.
-  noValue: boolean;
-  vmin: string;
-  vmax: string;
-  ymin: string;
-  ymax: string;
-}
 // Render incrementale: quante card montare per "pagina" (vedi shownCans).
 const PAGE = 60;
-const NO_FILTERS: Filters = {
-  query: '',
-  lingua: '',
-  size: '',
-  produttore: '',
-  top: '',
-  stato: '',
-  promo: false,
-  full: false,
-  withPhoto: false,
-  noPhoto: false,
-  noValue: false,
-  vmin: '',
-  vmax: '',
-  ymin: '',
-  ymax: '',
-};
 
 function App() {
   const cans = useCansStore((s) => s.cans);
@@ -93,8 +52,6 @@ function App() {
   const [editing, setEditing] = useState(false);
   const [creating, setCreating] = useState<Can | null>(null);
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
-  const setFilter = <K extends keyof Filters>(k: K, v: Filters[K]) =>
-    setFilters((f) => ({ ...f, [k]: v }));
   const [sort, setSort] = useState<SortKey>('added-desc');
   // Chi ha già fatto login su questo browser (mv_auth) salta sempre la splash,
   // anche a sessione nuova. Un guest la salta solo per la sessione corrente
@@ -111,8 +68,8 @@ function App() {
   };
   const [showLogin, setShowLogin] = useState(false);
   const [light, setLight] = useState(false);
-  const [gridMode, setGridMode] = useState<'grid' | 'list' | 'wall'>('grid');
-  const [toast, setToast] = useState<{ msg: string; onUndo?: () => void } | null>(null);
+  const [gridMode, setGridMode] = useState<GridMode>('grid');
+  const [toast, setToast] = useState<ToastState | null>(null);
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [showCompare, setShowCompare] = useState(false);
   const [showStats, setShowStats] = useState(false);
@@ -439,180 +396,35 @@ function App() {
           </span>
           <span className="hero-compact-count">{stats.total} cans</span>
         </div>
-        <FilterBar
-          query={filters.query}
-          onQuery={(v) => setFilter('query', v)}
-          selects={[
-            {
-              key: 'lingua',
-              allLabel: 'ALL COUNTRIES',
-              value: filters.lingua,
-              options: options.countries,
-              onChange: (v) => setFilter('lingua', v),
-            },
-            {
-              key: 'size',
-              allLabel: 'ALL SIZES',
-              value: filters.size,
-              options: options.sizes,
-              onChange: (v) => setFilter('size', v),
-            },
-            {
-              key: 'produttore',
-              allLabel: 'ALL MANUFACTURERS',
-              value: filters.produttore,
-              options: options.manufacturers,
-              onChange: (v) => setFilter('produttore', v),
-            },
-            {
-              key: 'top',
-              allLabel: 'ALL TOPS/TABS',
-              value: filters.top,
-              options: options.tops,
-              onChange: (v) => setFilter('top', v),
-            },
-          ]}
-          chips={[
-            {
-              key: 'promo',
-              label: 'Promo',
-              cls: 'filter-chip-promo',
-              active: filters.promo,
-              count: stats.promo,
-              onToggle: () => setFilter('promo', !filters.promo),
-            },
-            {
-              key: 'full',
-              label: 'FULL',
-              cls: 'filter-chip-full',
-              active: filters.full,
-              count: stats.full,
-              onToggle: () => setFilter('full', !filters.full),
-            },
-            {
-              key: 'withPhoto',
-              label: 'With photo',
-              cls: 'filter-chip-withphoto',
-              active: filters.withPhoto,
-              count: stats.withPhoto,
-              // withPhoto e noPhoto sono mutuamente esclusivi.
-              onToggle: () =>
-                setFilters((f) => ({ ...f, withPhoto: !f.withPhoto, noPhoto: false })),
-            },
-            {
-              key: 'noPhoto',
-              label: 'No photo',
-              cls: 'filter-chip-nophotos',
-              active: filters.noPhoto,
-              count: stats.total - stats.withPhoto,
-              onToggle: () => setFilters((f) => ({ ...f, noPhoto: !f.noPhoto, withPhoto: false })),
-            },
-          ]}
-          sort={{
-            value: sort,
-            options: [
-              { value: 'added-desc', label: 'RECENTLY PHOTOGRAPHED' },
-              { value: 'nome-asc', label: 'NAME A→Z' },
-              { value: 'lingua-asc', label: 'COUNTRY A→Z' },
-              // Il guest non riceve mai `valore` dal backend: ordinare per valore
-              // non farebbe nulla (tutti pari) e sarebbe solo un controllo morto.
-              ...(isAdmin
-                ? [
-                    { value: 'valore-desc', label: 'VALUE ↓' },
-                    { value: 'valore-asc', label: 'VALUE ↑' },
-                  ]
-                : []),
-            ],
-            onChange: (v) => setSort(v as SortKey),
-          }}
-          ranges={[
-            // Guest: niente filtro di prezzo — il backend non invia `valore`, e in
-            // passato il min/max permetteva di dedurlo per tentativi (bug reale).
-            ...((isAdmin
-              ? [
-                  {
-                    key: 'price',
-                    sep: '€',
-                    min: filters.vmin,
-                    max: filters.vmax,
-                    onMin: (v: string) => setFilter('vmin', v),
-                    onMax: (v: string) => setFilter('vmax', v),
-                  },
-                ]
-              : []) as Range[]),
-            {
-              key: 'year',
-              sep: '📅',
-              min: filters.ymin,
-              max: filters.ymax,
-              onMin: (v) => setFilter('ymin', v),
-              onMax: (v) => setFilter('ymax', v),
-              minPlaceholder: 'from',
-              maxPlaceholder: 'to',
-            },
-          ]}
+        <CollectionFilterBar
+          filters={filters}
+          onFilters={setFilters}
+          options={options}
+          stats={stats}
+          noValueCount={cans.filter((c) => !c.valore).length}
+          sort={sort}
+          onSort={setSort}
+          gridMode={gridMode}
+          onGridMode={setGridMode}
+          isAdmin={isAdmin}
           onReset={hasFilters ? resetFilters : undefined}
-          noValueToggle={
-            isAdmin
-              ? {
-                  active: filters.noValue,
-                  count: cans.filter((c) => !c.valore).length,
-                  onToggle: () => setFilter('noValue', !filters.noValue),
-                }
-              : undefined
-          }
-          view={{
-            value: gridMode,
-            onChange: (v) => setGridMode(v as 'grid' | 'list' | 'wall'),
-          }}
         />
       </div>
       <div id="main-content" tabIndex={-1}>
-        {loading && (
-          <p>
-            {warming ? (
-              <>
-                Server warming up…{' '}
-                <small style={{ color: 'var(--text2)', fontSize: 11 }}>
-                  Free tier cold start · usually 30–50s
-                </small>
-              </>
-            ) : (
-              'Loading…'
-            )}
-          </p>
-        )}
-        {error && <p role="alert">Error: {error}</p>}
-        {gridMode === 'grid' ? (
-          <CanGrid
-            cans={shownCans}
-            showPrice={isAdmin && showPrice}
-            onSelect={selectCan}
-            onEdit={
-              isAdmin
-                ? (can) => {
-                    setSelectedId(can.id);
-                    setEditing(true);
-                  }
-                : undefined
-            }
-          />
-        ) : gridMode === 'list' ? (
-          <CanList
-            cans={shownCans}
-            showPrice={isAdmin && showPrice}
-            onSelect={selectCan}
-            globalSort={sort}
-          />
-        ) : (
-          <CanWall
-            cans={shownCans}
-            onSelect={(can) => {
-              const ph = [can.p1, can.p2, can.p3, can.p4].filter((u): u is string => Boolean(u));
-              if (ph.length) setWallPhotos({ photos: ph, alt: can.nome });
-            }}
-          />
-        )}
+        <LoadStatus loading={loading} warming={warming} error={error} />
+        <CanViews
+          cans={shownCans}
+          mode={gridMode}
+          showPrice={isAdmin && showPrice}
+          sort={sort}
+          onSelect={selectCan}
+          canEdit={isAdmin}
+          onEdit={(can) => {
+            setSelectedId(can.id);
+            setEditing(true);
+          }}
+          onWall={setWallPhotos}
+        />
         {shown < visible.length && <div ref={sentinelRef} aria-hidden="true" />}
       </div>
       {selected &&
@@ -719,16 +531,7 @@ function App() {
           onClose={() => setWallPhotos(null)}
         />
       )}
-      {toast && (
-        <output className={toast.onUndo ? 'toast toast-undo' : 'toast'}>
-          {toast.msg}
-          {toast.onUndo && (
-            <button type="button" className="toast-undo-btn" onClick={toast.onUndo}>
-              Undo
-            </button>
-          )}
-        </output>
-      )}
+      {toast && <Toast toast={toast} />}
     </main>
   );
 }
