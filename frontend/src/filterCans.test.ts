@@ -5,7 +5,7 @@ test('hasPromo: valorizzato = promo, vuoto o "no" (legacy) = non promo', () => {
   expect(hasPromo('Yes')).toBe(true);
   expect(hasPromo('Christmas')).toBe(true);
   expect(hasPromo('')).toBe(false);
-  expect(hasPromo(undefined)).toBe(false);
+  expect(hasPromo()).toBe(false);
   expect(hasPromo('NO')).toBe(false);
   expect(hasPromo('  No ')).toBe(false);
 });

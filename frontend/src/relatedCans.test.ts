@@ -254,7 +254,7 @@ describe('sameLineupGroups', () => {
       can({ id: 'other', nome: 'ULTRA WHITE THAR', promo: 'YES', lingua: 'INDIA' }),
     ];
     const groups = sameLineupGroups(cans, target);
-    const last = groups[groups.length - 1];
+    const last = groups.at(-1)!;
     expect(last.label).toBe('Other rare promos');
     expect(last.cans.map((c) => c.id)).toEqual(['other']);
   });

@@ -17,7 +17,7 @@ if (typeof URL.revokeObjectURL !== 'function') {
 
 // jsdom non implementa IntersectionObserver: mock no-op così i sentinel (render
 // incrementale della griglia, hero sticky) creano l'observer senza errori.
-if (typeof globalThis.IntersectionObserver === 'undefined') {
+if (globalThis.IntersectionObserver === undefined) {
   globalThis.IntersectionObserver = class {
     observe() {}
     unobserve() {}

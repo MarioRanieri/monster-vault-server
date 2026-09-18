@@ -139,7 +139,7 @@ export function FilterBar({
           aria-pressed={noValueToggle.active}
           onClick={noValueToggle.onToggle}
         >
-          No value
+          <span>No value</span>
           <span className="chip-count">{noValueToggle.count}</span>
         </button>
       )}

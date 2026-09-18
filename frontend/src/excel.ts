@@ -29,6 +29,13 @@ function simpleHash(str: string): string {
   return Math.abs(h).toString(36);
 }
 
+// Testo di una cella: stringhe, numeri e booleani; oggetti/vuoti → ''.
+function cellText(v: unknown): string {
+  if (typeof v === 'string') return v.trim();
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+  return '';
+}
+
 // SheetJS è caricato on demand (chunk separato): export/import sono azioni rare
 // e il bundle principale non deve pagarne i ~400KB.
 
@@ -68,7 +75,7 @@ export async function parseXlsx(buf: ArrayBuffer): Promise<Can[]> {
     .map((r) => {
       const can = { id: '', nome: '' } as Can;
       for (const { col, i } of cols) {
-        const v = i >= 0 ? String(r[i] ?? '').trim() : '';
+        const v = i >= 0 ? cellText(r[i]) : '';
         if (v) col.set(can, v);
       }
       can.stato ??= 'OK'; // default del vecchio

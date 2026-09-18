@@ -38,8 +38,11 @@ export function CanList({
     : cans;
 
   const toggleSort = (key: SortKey) =>
-    setSort((s) => (s && s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: 1 }));
-  const arrow = (key: SortKey) => (sort?.key === key ? (sort.dir === 1 ? ' ↑' : ' ↓') : '');
+    setSort((s) => (s?.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: 1 }));
+  const arrow = (key: SortKey) => {
+    if (sort?.key !== key) return '';
+    return sort.dir === 1 ? ' ↑' : ' ↓';
+  };
   const th = (key: SortKey, label: string) => (
     <th className="sortable" onClick={() => toggleSort(key)}>
       {label}
