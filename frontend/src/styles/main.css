@@ -1203,7 +1203,7 @@ body.public-mode .public-banner {
 }
 .badge-stato-danneggiata {
   background: rgba(255, 60, 60, 0.15);
-  color: #ff3c3c;
+  color: #ff5a5a;
   border: 1px solid rgba(255, 60, 60, 0.3);
 }
 
@@ -1439,7 +1439,7 @@ body.light .filter-select option {
 .filter-chip-promo.active {
   background: rgba(255, 107, 0, 0.15);
   border-color: #ff6b00;
-  color: #ff6b00;
+  color: #ff8c42;
 }
 .filter-chip-promo.active .chip-count {
   background: rgba(255, 107, 0, 0.2);
@@ -1471,7 +1471,7 @@ body.light .filter-select option {
 .filter-chip-withphoto.active {
   background: rgba(168, 85, 247, 0.15);
   border-color: #a855f7;
-  color: #a855f7;
+  color: #c084fc;
 }
 .filter-chip-withphoto.active .chip-count {
   background: rgba(168, 85, 247, 0.2);
@@ -1487,7 +1487,7 @@ body.light .filter-select option {
 .filter-chip-nophotos.active {
   background: rgba(255, 71, 87, 0.15);
   border-color: #ff4757;
-  color: #ff4757;
+  color: #ff7b89;
 }
 .filter-chip-nophotos.active .chip-count {
   background: rgba(255, 71, 87, 0.2);
@@ -1507,6 +1507,30 @@ body.light .filter-select option {
 }
 .filter-reset-btn.active .chip-count {
   background: rgba(234, 179, 8, 0.2);
+}
+/* Tema chiaro: i toni neon dei badge/chip/messaggi (pensati per il fondo scuro)
+   scendevano a 1.6-3:1. Versioni scure, >= 4.5:1 sul fondo composto (test in
+   contrast.test.ts). I sfondi rgba restano quelli del tema scuro. */
+body.light .badge-stato-ok {
+  color: #166534;
+}
+body.light .badge-stato-bozze,
+body.light .filter-reset-btn.active {
+  color: #854d0e;
+}
+body.light .badge-stato-danneggiata,
+body.light .auth-required-msg,
+body.light .compare-slot-remove:hover {
+  color: #b91c1c;
+}
+body.light .filter-chip-nophotos.active {
+  color: #991b1b;
+}
+body.light .filter-chip-promo.active {
+  color: #9a3412;
+}
+body.light .filter-chip-withphoto.active {
+  color: #7e22ce;
 }
 /* Toggle "Filters": i filtri avanzati sono sempre dietro un pannello — stesso
    pattern desktop e mobile (prima era mobile-only: su desktop restava tutto
@@ -2097,7 +2121,7 @@ body.light .filter-select option {
 }
 .badge-promo {
   background: #ff6b00;
-  color: #fff;
+  color: #1a1a1a; /* #fff su arancio era 2.86:1 */
 }
 .badge-photo {
   background: rgba(168, 255, 0, 0.15);
@@ -3985,7 +4009,7 @@ body.comparing-active .grid-container {
 }
 .compare-slot-remove:hover {
   background: rgba(255, 60, 60, 0.25);
-  color: #ff5555;
+  color: #ff7070;
   border-color: rgba(255, 60, 60, 0.4);
 }
 .compare-bar-actions {
