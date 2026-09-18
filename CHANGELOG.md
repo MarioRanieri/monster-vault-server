@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Webfonts 401** — `/fonts/**` is now `permitAll`, so the self-hosted fonts load for guests.
 - **Mobile touch targets >= 44px** — filter chips, share/stats/header buttons, view toggle, sort select, header ⋯ menu, search field, card "Details" and logo have a 44px tappable area on phones (text and icons unchanged, desktop untouched; covered by a Playwright spec).
 - **Lightbox pan and pinch lost movement** — the delta was computed inside the `setZoom` updater, after the ref had already been updated, so a drag or pinch could collapse to zero. It is now computed before `setZoom`.
+- **Mobile ⋯ header menu covered by the hero** — on phones the header is `position: static`, so its `z-index` was ignored and its `backdrop-filter` pinned it at layer 0, below the hero: the menu items were hidden behind the hero and clicks never reached them. The header is now `position: relative` in the mobile block; covered by a Playwright test.
 - **WCAG AA contrast in both themes** — badges, active chips and messages meet 4.5:1 on the real (alpha-composited) background; the light theme gets its own darker tones instead of the neon dark-theme ones. Guarded by `contrast.test.ts`.
 
 ### Removed

@@ -20,14 +20,14 @@
 | `role="button"` su card (`CanGrid`) e slot foto (`CanEditForm`), `<img>` con i gesti (`Lightbox`) | **Restano** | Contengono altri bottoni o sono trascinabili: un `<button>` annidato è HTML non valido. L'`<img>` è la superficie dei gesti; la tastiera è coperta da frecce ed Esc. |
 | Modali, stati e foto del dettaglio | **Semantica nativa** (#56) | 9 modali `<dialog open>` (mai `showModal`, comportamento invariato), 3 stati `<output>`, foto e miniature del dettaglio `<button>`. |
 | Complessità cognitiva sopra 15 (`S3776`) | **Risolta** (#57) | `filterCans` a predicati, `csv`/`shareView` con helper, `App` spezzata in componenti. Soglia Sonar: 15. |
+| Menu ⋯ dell'header su mobile coperto dalla hero | **Risolto** | `.header` era `position: static` (hero sticky, variante A): lo z-index era ignorato e il `backdrop-filter` lo teneva a livello 0, sotto la hero. Ora `position: relative` nel blocco mobile; test in `tests/e2e/mobile-header-menu.spec.ts`. |
 | Code smell Sonar | **96 → 16** (2026-09-18, prima dei `NOSONAR`) | I 16 rimasti sono i falsi positivi e le eccezioni qui sopra (12 contrasto, 3 semantica, 1 `JwtUtil`). Mappa: issue #49. |
 
 **Note aperte** (già note, non sono novità): la barra sticky dei filtri su telefono è un po' più
 alta dopo i 44px, verificato solo l'assenza di overflow orizzontale; coverage Vitest 93,5%
 (frontend), Sonar 82,3% globale con il backend più basso, lavoro separato; il desktop resta
-com'è, ogni regola mobile sta nella media query. Da verificare: su mobile il menu ⋯ dell'header
-si apre sotto la hero e il pulsante Stats lo copre (visto in una prova, non ancora riprodotto
-a mano); un test di `App.test.tsx` (`findByRole('sign out')`, timeout 1 s) è intermittente in CI.
+com'è, ogni regola mobile sta nella media query. Un test di `App.test.tsx`
+(`findByRole('sign out')`, timeout 1 s) è intermittente in CI.
 
 > **Stato (2026-07-10):** ✅ **tutte le 11 voci implementate** + un bug promo segnalato fuori audit.
 >

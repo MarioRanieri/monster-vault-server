@@ -3622,8 +3622,11 @@ legend.field-label {
   .header {
     padding: 0 0.75rem;
     /* Hero sticky (variante A): su mobile l'header scorre via e lascia il posto
-       alla barra compatta (.sticky-controls), invece di restare agganciato. */
-    position: static;
+       alla barra compatta (.sticky-controls), invece di restare agganciato.
+       `relative` e non `static`: con static lo z-index (100) è ignorato e il
+       backdrop-filter crea comunque un livello a 0, così la hero (dopo nel DOM)
+       copre il menu ⋯ e ne intercetta i click. Con relative il menu sta sopra. */
+    position: relative;
   }
   .logo {
     flex-shrink: 0;
