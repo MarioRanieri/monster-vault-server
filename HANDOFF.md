@@ -2,11 +2,21 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-09-18 (rev 60 — pulizia Sonar 96→16, coverage 93%, mappa wayfinder #49)  
+**Updated:** 2026-09-19 (rev 61 — coverage backend: Sonar 82,3→86,1%)  
 **Branch:** main  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
 
+> **2026-09-19 — rev 61: coverage backend (PR #60, solo test).** Sonar globale **82,3 → 86,1%**, righe
+> 91,7 → 95,8%, branch 70,5 → 73,8%. `CanService` 69 → 99,6%, `CanController` 73 → 96,6%, `MongoRefreshToken`/
+> `MongoAdminCredential`/`MongoCanRepository` ora testati (mock di `MongoTemplate`). Ogni gruppo verificato con
+> mutation check a mano. **Resta scoperto:** ~255 condizioni sono i `equals/hashCode` generati da Lombok in
+> `Can`/`AdminCredential`/`RefreshToken` (non è codice scritto a mano); più `PhotoStorage` (default no-op),
+> `main()`, `NoSuchAlgorithmException` di SHA-256 e il return interno del double-checked locking in `getAll`.
+> Se si vuole salire ancora: `lombok.addLombokGeneratedAnnotation = true` in `lombok.config` (JaCoCo salta il
+> codice generato) — scelta da fare esplicitamente, conta come esclusione. Nota: in `CanController.getAll` il
+> ramo manuale `etag.equals(ifNoneMatch)` è ridondante, Spring risponde già 304 da solo con ETag + If-None-Match.
+>
 > **2026-09-18 — rev 60: pulizia Sonar (mappa wayfinder #49, chiusa).** Code smell **96 → 16** (i 16 sono
 > falsi positivi/eccezioni documentati in `docs/AUDIT.md`). Fatto in 5 PR: #54 (~50 meccanici, `TabParts`/
 > `keyed()`, CSS duplicato, backend `Instant`), #55 (contrasto WCAG AA in entrambi i temi, `contrast.test.ts`),
