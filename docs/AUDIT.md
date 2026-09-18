@@ -25,8 +25,8 @@
 
 **Note aperte** (già note, non sono novità): la barra sticky dei filtri su telefono è un po' più
 alta dopo i 44px, verificato solo l'assenza di overflow orizzontale; coverage Vitest 93,5%
-(frontend), Sonar 86,1% globale (2026-09-19, dopo la PR #60 sul backend; le condizioni residue sono
-quasi tutte `equals/hashCode` Lombok dei model); il desktop resta
+(frontend), Sonar 92,4% globale (2026-09-19, dopo le PR #60 e #62 sul backend; `lombok.config` fa
+saltare a JaCoCo il codice generato da Lombok); il desktop resta
 com'è, ogni regola mobile sta nella media query. Un test di `App.test.tsx`
 (`findByRole('sign out')`, timeout 1 s) è intermittente in CI.
 
