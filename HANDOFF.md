@@ -2,11 +2,20 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-09-18 (rev 59 — touch target mobile #46/#47 + docs riordinati)  
+**Updated:** 2026-09-18 (rev 60 — pulizia Sonar 96→16, coverage 93%, mappa wayfinder #49)  
 **Branch:** main  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
 
+> **2026-09-18 — rev 60: pulizia Sonar (mappa wayfinder #49, chiusa).** Code smell **96 → 16** (i 16 sono
+> falsi positivi/eccezioni documentati in `docs/AUDIT.md`). Fatto in 5 PR: #54 (~50 meccanici, `TabParts`/
+> `keyed()`, CSS duplicato, backend `Instant`), #55 (contrasto WCAG AA in entrambi i temi, `contrast.test.ts`),
+> #56 (`<dialog open>`, `<output>`, `<button>`), #57 (complessità cognitiva: `filterCans`, `csv`, `shareView`,
+> `App` spezzata in `AppParts`/`CollectionFilterBar`), più #48 (coverage Vitest 86,55→93,5% e fix pan/pinch del
+> Lightbox). **Non toccare** l'hash id di `excel.ts` (`| 0`, `charCodeAt`): un test lo fissa. Da verificare:
+> menu ⋯ mobile sotto la hero (Stats lo copre) e un test flaky in `App.test.tsx` (`findByRole('sign out')` 1 s).
+> Coverage Sonar globale 82,3% (backend il più basso: `CanService`, `Mongo*Repository`): PR dedicata da fare.
+>
 > **2026-09-18 — rev 59.** Audit Lovable, seconda serie: #46 (font 401 + primi bersagli di tocco) e
 > **#47** (`.view-btn`, `.filter-select`, `.header-more-btn`, ricerca, "Details", `.logo` a 44px, solo
 > nella media query 640px; spec Playwright `frontend/tests/e2e/touch-targets.spec.ts`). Le decisioni

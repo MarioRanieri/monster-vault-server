@@ -32,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **"black" tab color unreadable** on the dark background.
 - **Webfonts 401** — `/fonts/**` is now `permitAll`, so the self-hosted fonts load for guests.
 - **Mobile touch targets >= 44px** — filter chips, share/stats/header buttons, view toggle, sort select, header ⋯ menu, search field, card "Details" and logo have a 44px tappable area on phones (text and icons unchanged, desktop untouched; covered by a Playwright spec).
+- **Lightbox pan and pinch lost movement** — the delta was computed inside the `setZoom` updater, after the ref had already been updated, so a drag or pinch could collapse to zero. It is now computed before `setZoom`.
+- **WCAG AA contrast in both themes** — badges, active chips and messages meet 4.5:1 on the real (alpha-composited) background; the light theme gets its own darker tones instead of the neon dark-theme ones. Guarded by `contrast.test.ts`.
 
 ### Removed
 - **eBay watch flag & photo rotate** — deliberately dropped in the React migration (leftover watch types, help text and CSS cleaned up); rotate saw no use.
@@ -70,6 +72,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Post-migration cleanup** — `tools/sheet-sync` Apps Script rewritten to talk to the backend REST API instead of Firestore (admin login + `GET /api/cans` for pulls, `POST /api/cans/batch` for pushes, with a photo-preserving merge); frontend data-layer helpers renamed `*FS` → `*Api` (they call REST, not Firestore); backend javadoc/comments de-Firestored and the false batch-atomicity claim removed.
+- **Native HTML semantics** — modals are `<dialog open>` (never `showModal`), status messages are `<output>`, the detail photos are real `<button>`s. Cards and photo slots keep `role="button"` on purpose (they contain other buttons).
+- **Sonar code smells 96 → 16** — mechanical cleanups (`TabParts`/`keyed()`, `SubmitEvent`, flat ternaries, deduplicated CSS), lower cognitive complexity in `filterCans`, `csv`, `shareView` and `App`, `Instant` for the refresh-token expiry. The remaining ones are documented false positives in `docs/AUDIT.md`.
 
 ## [0.2.0] - 2026-06-21
 
