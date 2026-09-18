@@ -20,7 +20,6 @@ application-local.properties
 .vscode/
 # Materiale di studio personale — MAI committare/pushare
 teoria_Monster_vault/
-STUDY.md
 frontend/node_modules/
 frontend/dist/
 frontend/coverage/
