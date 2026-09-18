@@ -162,7 +162,7 @@ export function CanEditForm({
     ) : null;
 
   return (
-    <div className="modal-backdrop open" role="dialog" aria-modal="true" aria-label={title}>
+    <dialog className="modal-backdrop open" open aria-modal="true" aria-label={title}>
       <form
         className="modal"
         onSubmit={(e) => {
@@ -223,7 +223,7 @@ export function CanEditForm({
                   }}
                 >
                   {src ? (
-                    <img src={src} alt={`Photo ${slot}`} />
+                    <img src={src} alt={`Slot ${slot}`} />
                   ) : (
                     <div className="photo-slot-ph">
                       <span>{slot === 1 ? 'Main photo' : `Photo ${slot}`}</span>
@@ -424,8 +424,8 @@ export function CanEditForm({
               />
               {datalist('dl-stato', suggestions?.conditions)}
             </div>
-            <div className="field field-full">
-              <label>Opening</label>
+            <fieldset className="field field-full">
+              <legend className="field-label">Opening</legend>
               <div className="opening-grid">
                 {OPENING.map((o) => (
                   <label key={o} className="opening-opt">
@@ -440,7 +440,7 @@ export function CanEditForm({
                   </label>
                 ))}
               </div>
-            </div>
+            </fieldset>
             <div className="field field-full">
               <label htmlFor="e-descrizione">More Info</label>
               <textarea
@@ -486,6 +486,6 @@ export function CanEditForm({
           onCancel={() => setCropTarget(null)}
         />
       )}
-    </div>
+    </dialog>
   );
 }

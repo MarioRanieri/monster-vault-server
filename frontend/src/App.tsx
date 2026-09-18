@@ -720,14 +720,14 @@ function App() {
         />
       )}
       {toast && (
-        <div className={toast.onUndo ? 'toast toast-undo' : 'toast'} role="status">
+        <output className={toast.onUndo ? 'toast toast-undo' : 'toast'}>
           {toast.msg}
           {toast.onUndo && (
             <button type="button" className="toast-undo-btn" onClick={toast.onUndo}>
               Undo
             </button>
           )}
-        </div>
+        </output>
       )}
     </main>
   );

@@ -31,3 +31,18 @@ test('"Forgot password?" apre il recupero e chiama onRecover', async () => {
   expect(onRecover).toHaveBeenCalledWith('admin', 'MV-CODE', 'newpass12');
   expect(await screen.findByText(/password updated/i)).toBeTruthy();
 });
+
+test('la modale è un <dialog> nativo', () => {
+  render(<LoginForm onLogin={() => {}} />);
+  expect(screen.getByRole('dialog').tagName).toBe('DIALOG');
+});
+
+test('il messaggio di recupero riuscito è un <output> nativo', async () => {
+  render(<LoginForm onLogin={() => {}} onRecover={vi.fn().mockResolvedValue({ ok: true })} />);
+  await userEvent.click(screen.getByRole('button', { name: /forgot password/i }));
+  await userEvent.type(screen.getByLabelText('Username'), 'admin');
+  await userEvent.type(screen.getByLabelText('Recovery code'), 'MV-CODE');
+  await userEvent.type(screen.getByLabelText('New password'), 'newpass12');
+  await userEvent.click(screen.getByRole('button', { name: /reset password/i }));
+  expect((await screen.findByRole('status')).tagName).toBe('OUTPUT');
+});

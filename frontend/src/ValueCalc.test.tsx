@@ -30,3 +30,8 @@ test('ESC chiama onClose', async () => {
   await userEvent.keyboard('{Escape}');
   expect(onClose).toHaveBeenCalled();
 });
+
+test('la modale è un <dialog> nativo', () => {
+  render(<ValueCalc cans={[]} onClose={() => {}} />);
+  expect(screen.getByRole('dialog').tagName).toBe('DIALOG');
+});

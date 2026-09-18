@@ -81,3 +81,8 @@ test('timeline: presente con toggle By year; € Value solo admin', async () => 
   await userEvent.click(screen.getByRole('button', { name: /€ value/i }));
   expect(screen.getByRole('button', { name: /€ value/i }).className).toContain('active');
 });
+
+test('la modale � un <dialog> nativo', () => {
+  render(<StatsModal cans={[]} stats={stats} onClose={() => {}} />);
+  expect(screen.getByRole('dialog').tagName).toBe('DIALOG');
+});

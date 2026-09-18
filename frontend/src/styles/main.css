@@ -165,6 +165,17 @@ body.light .auth-card {
   margin: 0;
   padding: 0;
 }
+/* Reset del <dialog> nativo (usato con `open`, mai showModal): via i suoi stili UA
+   (bordo, colori Canvas, fit-content) così le classi delle modali (.modal-backdrop,
+   .lightbox, .compare-panel, .crop-overlay, .auth-overlay) restano l'unica fonte
+   dell'aspetto. Margin/padding sono già azzerati dal reset universale. */
+dialog {
+  border: 0;
+  width: auto;
+  height: auto;
+  color: inherit;
+  background: transparent;
+}
 body {
   background: var(--bg);
   color: var(--text);
@@ -327,6 +338,7 @@ body {
   text-decoration: underline;
 }
 .auth-success {
+  display: block; /* <output> è inline di default */
   color: var(--green);
   font-size: 13px;
   text-align: center;
@@ -965,6 +977,19 @@ body.public-mode .public-banner {
   flex: 1 1 auto;
   min-width: 0;
 }
+/* <button> che avvolge l'immagine (principale/miniatura): niente stile da bottone. */
+.detail-photo-btn {
+  display: block;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.detail-main-wrap > .detail-photo-btn {
+  width: 100%;
+}
 .detail-main-img {
   width: 100%;
   aspect-ratio: 1;
@@ -1019,6 +1044,7 @@ body.public-mode .public-banner {
   flex: 0 0 72px;
 }
 .detail-thumb {
+  display: block;
   width: 72px;
   height: 72px;
   object-fit: cover;
@@ -2846,11 +2872,20 @@ input.field-invalid {
   flex-direction: column;
   gap: 5px;
 }
-.field label {
+.field label,
+.field .field-label {
   font-size: 11px;
   color: var(--text3);
   text-transform: uppercase;
   letter-spacing: 1px;
+}
+/* <fieldset>/<legend> del gruppo Opening: via bordo UA e min-width, la legend fa da label */
+fieldset.field {
+  border: 0;
+  min-inline-size: 0;
+}
+legend.field-label {
+  margin-bottom: 5px;
 }
 .field input,
 .field select,
@@ -3011,6 +3046,7 @@ input.field-invalid {
   gap: 8px;
 }
 .toast {
+  display: block; /* <output> è inline di default */
   background: var(--bg3);
   border: 1px solid var(--border2);
   border-left: 3px solid var(--green);

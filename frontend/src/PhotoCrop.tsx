@@ -75,7 +75,7 @@ export function PhotoCrop({
   };
 
   return (
-    <div className="crop-overlay" role="dialog" aria-label="Crop photo">
+    <dialog className="crop-overlay" open aria-label="Crop photo">
       <div className="crop-stage">
         <img
           ref={imgRef}
@@ -124,6 +124,6 @@ export function PhotoCrop({
           Cancel
         </button>
       </div>
-    </div>
+    </dialog>
   );
 }

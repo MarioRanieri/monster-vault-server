@@ -44,3 +44,16 @@ test('il prezzo (Est. Value) è solo da admin', () => {
   expect(screen.getByText('Est. Value')).toBeTruthy();
   expect(screen.getByText('€20')).toBeTruthy();
 });
+
+test('la modale � un <dialog> nativo', () => {
+  render(
+    <ComparePanel
+      cans={[
+        { id: '1', nome: 'A' },
+        { id: '2', nome: 'B' },
+      ]}
+      onClose={() => {}}
+    />,
+  );
+  expect(screen.getByRole('dialog').tagName).toBe('DIALOG');
+});

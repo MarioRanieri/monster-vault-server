@@ -582,6 +582,7 @@ test('Share view mostra la conferma "link copied"', async () => {
   await userEvent.click(screen.getByRole('button', { name: /share view/i }));
 
   expect(await screen.findByText(/link copied/i)).toBeTruthy();
+  expect(screen.getByRole('status').tagName).toBe('OUTPUT'); // toast nativo
 });
 
 test('admin: carica una foto durante la modifica', async () => {

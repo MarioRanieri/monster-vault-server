@@ -19,12 +19,7 @@ export function ValueCalc({ cans, onClose }: Readonly<{ cans: Can[]; onClose: ()
   const fmt = (n: number) => `€${Math.round(n).toLocaleString('en-US')}`;
 
   return (
-    <div
-      className="modal-backdrop open"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Value calculator"
-    >
+    <dialog className="modal-backdrop open" open aria-modal="true" aria-label="Value calculator">
       <div className="stats-modal">
         <div className="modal-header">
           <div className="modal-title">Value calculator</div>
@@ -56,6 +51,6 @@ export function ValueCalc({ cans, onClose }: Readonly<{ cans: Can[]; onClose: ()
           </p>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

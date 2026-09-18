@@ -363,9 +363,9 @@ export function StatsModal({
   );
 
   return (
-    <div
+    <dialog
       className="modal-backdrop open"
-      role="dialog"
+      open
       aria-modal="true"
       aria-label="Collection statistics"
     >
@@ -511,6 +511,6 @@ export function StatsModal({
           <Timeline cans={cans} isAdmin={isAdmin} />
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

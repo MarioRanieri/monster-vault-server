@@ -133,3 +133,8 @@ test('swipe troppo corto (< 40px) o da zoomati non cambia foto', () => {
   fireEvent.touchEnd(img, { changedTouches: [{ clientX: 100, clientY: 0 }] });
   expect(src()).toContain('a.jpg');
 });
+
+test('la modale � un <dialog> nativo', () => {
+  render(<Lightbox photos={['a.jpg']} alt="Alpha" onClose={() => {}} />);
+  expect(screen.getByRole('dialog').tagName).toBe('DIALOG');
+});

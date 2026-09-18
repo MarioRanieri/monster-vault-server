@@ -40,12 +40,7 @@ export function AccountPanel({ onClose }: Readonly<{ onClose: () => void }>) {
   };
 
   return (
-    <div
-      className="modal-backdrop open"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Account & security"
-    >
+    <dialog className="modal-backdrop open" open aria-modal="true" aria-label="Account & security">
       <div className="stats-modal">
         <div className="modal-header">
           <div className="modal-title">Account &amp; security</div>
@@ -76,9 +71,9 @@ export function AccountPanel({ onClose }: Readonly<{ onClose: () => void }>) {
                 onChange={(e) => setNext(e.target.value)}
               />
               {pwMsg && (
-                <p className={pwMsg.ok ? 'auth-success' : 'auth-required-msg'} role="status">
+                <output className={pwMsg.ok ? 'auth-success' : 'auth-required-msg'}>
                   {pwMsg.text}
-                </p>
+                </output>
               )}
               <button
                 type="submit"
@@ -119,6 +114,6 @@ export function AccountPanel({ onClose }: Readonly<{ onClose: () => void }>) {
           </div>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }
