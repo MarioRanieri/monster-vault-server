@@ -110,9 +110,6 @@ body.light .detail-note {
   background: #ffffff;
   border: 1px solid rgba(15, 23, 42, 0.07);
 }
-body.light .filter-select option {
-  background: #ffffff;
-}
 body.light .field select option {
   background: #ffffff;
 }
@@ -720,23 +717,6 @@ body.public-mode .public-banner {
   object-fit: contain;
   border-radius: 8px;
 }
-.lb-close {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  font-size: 17px;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 .lb-nav {
   position: absolute;
   top: 50%;
@@ -820,6 +800,7 @@ body.public-mode .public-banner {
   display: flex;
   align-items: center;
   justify-content: center;
+  line-height: 1;
 }
 .lb-close:hover {
   background: var(--bg4);
@@ -1636,12 +1617,6 @@ body.light .filter-select option {
   border-color: rgba(255, 255, 255, 0.25);
 }
 /* Lista (React): riga cliccabile + header ordinabili */
-.list-table tbody tr {
-  cursor: pointer;
-}
-.list-table tbody tr:hover {
-  background: var(--bg3);
-}
 .list-table th.sortable {
   cursor: pointer;
   user-select: none;
@@ -1665,9 +1640,6 @@ body.light .filter-select option {
 }
 
 /* Wall (React): caption col nome + flag all'hover */
-.wall-tile {
-  position: relative;
-}
 .wall-caption {
   position: absolute;
   left: 0;
@@ -1751,13 +1723,6 @@ body.light .filter-select option {
 }
 .donut {
   flex-shrink: 0;
-}
-.donut-legend {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 4px 14px;
-  flex: 1;
-  min-width: 200px;
 }
 .donut-legend-item {
   display: flex;
@@ -4277,7 +4242,7 @@ body.comparing-active .grid-container {
   display: flex;
   align-items: center;
   min-width: 0;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 .compare-cell:last-child {
   border-right: none;
@@ -4312,16 +4277,6 @@ body.comparing-active .grid-container {
   display: block;
   background: var(--bg3);
 }
-.compare-cell-photo-ph {
-  width: 100%;
-  aspect-ratio: 1/1;
-  background: var(--bg4);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text3);
-}
 /* Compare (React): colonne larghe → limita l'altezza di foto e placeholder */
 .compare-cell-photo img {
   width: 100%;
@@ -4331,8 +4286,14 @@ body.comparing-active .grid-container {
   aspect-ratio: auto;
 }
 .compare-cell-photo-ph {
-  aspect-ratio: auto;
+  width: 100%;
   height: 110px;
+  background: var(--bg4);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text3);
 }
 .compare-photo-nav {
   display: flex;
