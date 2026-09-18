@@ -19,9 +19,15 @@ if (typeof URL.revokeObjectURL !== 'function') {
 // incrementale della griglia, hero sticky) creano l'observer senza errori.
 if (globalThis.IntersectionObserver === undefined) {
   globalThis.IntersectionObserver = class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
+    observe() {
+      /* no-op: nessun osservatore reale in jsdom */
+    }
+    unobserve() {
+      /* no-op */
+    }
+    disconnect() {
+      /* no-op */
+    }
     takeRecords() {
       return [];
     }
