@@ -3490,6 +3490,14 @@ legend.field-label {
   border-color: rgba(168, 255, 0, 0.5);
 }
 
+/* "Latest additions": riusa .detail-related (bordo, titolo, .grid) di
+   CanDetail; qui serve solo forzare la larghezza piena di .land-inner, dato
+   che .land-inner è un flex column con align-items:center (nessuno stretch
+   automatico). */
+.land-latest {
+  width: 100%;
+}
+
 .land-footer {
   display: flex;
   /* wrap + center: su schermi stretti il testo va a capo e "GitHub" scende su una
