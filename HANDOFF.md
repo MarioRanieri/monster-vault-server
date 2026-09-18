@@ -2,19 +2,19 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-09-19 (rev 61 — coverage backend: Sonar 82,3→86,1%)  
+**Updated:** 2026-09-19 (rev 61 — coverage backend: Sonar 82,3→92,4%)  
 **Branch:** main  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
 
-> **2026-09-19 — rev 61: coverage backend (PR #60, solo test).** Sonar globale **82,3 → 86,1%**, righe
-> 91,7 → 95,8%, branch 70,5 → 73,8%. `CanService` 69 → 99,6%, `CanController` 73 → 96,6%, `MongoRefreshToken`/
+> **2026-09-19 — rev 61: coverage backend (PR #60 test, #62 `lombok.config`).** Sonar globale **82,3 → 92,4%**, righe
+> 91,7 → 95,9%, branch 70,5 → 87,3%. `CanService` 69 → 99,6%, `CanController` 73 → 96,6%, `MongoRefreshToken`/
 > `MongoAdminCredential`/`MongoCanRepository` ora testati (mock di `MongoTemplate`). Ogni gruppo verificato con
-> mutation check a mano. **Resta scoperto:** ~255 condizioni sono i `equals/hashCode` generati da Lombok in
-> `Can`/`AdminCredential`/`RefreshToken` (non è codice scritto a mano); più `PhotoStorage` (default no-op),
-> `main()`, `NoSuchAlgorithmException` di SHA-256 e il return interno del double-checked locking in `getAll`.
-> Se si vuole salire ancora: `lombok.addLombokGeneratedAnnotation = true` in `lombok.config` (JaCoCo salta il
-> codice generato) — scelta da fare esplicitamente, conta come esclusione. Nota: in `CanController.getAll` il
+> mutation check a mano. Il salto da 86,1 a 92,4% viene da `backend/lombok.config`
+> (`lombok.addLombokGeneratedAnnotation = true`, scelta esplicita dell'utente): JaCoCo salta i `equals/hashCode`
+> generati da Lombok nei model (~255 condizioni). **Resta scoperto:** `PhotoStorage` (default no-op), `main()`,
+> `NoSuchAlgorithmException` di SHA-256, il return interno del double-checked locking in `getAll`; il resto
+> delle condizioni Sonar (179) è quasi tutto frontend. Nota: in `CanController.getAll` il
 > ramo manuale `etag.equals(ifNoneMatch)` è ridondante, Spring risponde già 304 da solo con ETag + If-None-Match.
 >
 > **2026-09-18 — rev 60: pulizia Sonar (mappa wayfinder #49, chiusa).** Code smell **96 → 16** (i 16 sono
