@@ -174,7 +174,7 @@ export function Lightbox({
           ‹
         </button>
       )}
-      <img
+      <img // NOSONAR: superficie dei gesti touch/mouse; la tastiera è coperta da frecce ed Esc
         ref={imgRef}
         src={cloudinaryThumb(photos[idx], 1200, 1200)}
         alt={alt}

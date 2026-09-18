@@ -183,7 +183,7 @@ export function CanEditForm({
               const s = pending[i];
               const src = slotSrc(s);
               return (
-                <div
+                <div // NOSONAR: slot trascinabile con bottoni di azione dentro, non può essere un <button>
                   key={slot}
                   id={`slot-${slot}`}
                   className={`photo-slot${dragIdx === i ? ' dragging-slot' : ''}${
