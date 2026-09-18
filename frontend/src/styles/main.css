@@ -2879,6 +2879,14 @@ input.field-invalid {
   text-transform: uppercase;
   letter-spacing: 1px;
 }
+/* <fieldset>/<legend> del gruppo Opening: via bordo UA e min-width, la legend fa da label */
+fieldset.field {
+  border: 0;
+  min-inline-size: 0;
+}
+legend.field-label {
+  margin-bottom: 5px;
+}
 .field input,
 .field select,
 .field textarea {

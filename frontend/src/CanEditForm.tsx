@@ -424,11 +424,9 @@ export function CanEditForm({
               />
               {datalist('dl-stato', suggestions?.conditions)}
             </div>
-            <div className="field field-full">
-              <span className="field-label" id="e-opening-lbl">
-                Opening
-              </span>
-              <div className="opening-grid" role="group" aria-labelledby="e-opening-lbl">
+            <fieldset className="field field-full">
+              <legend className="field-label">Opening</legend>
+              <div className="opening-grid">
                 {OPENING.map((o) => (
                   <label key={o} className="opening-opt">
                     <input
@@ -442,7 +440,7 @@ export function CanEditForm({
                   </label>
                 ))}
               </div>
-            </div>
+            </fieldset>
             <div className="field field-full">
               <label htmlFor="e-descrizione">More Info</label>
               <textarea
