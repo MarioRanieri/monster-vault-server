@@ -3,6 +3,7 @@ import type { Can } from './types';
 import { PhotoCrop } from './PhotoCrop';
 import { cloudinaryThumb } from './cloudinary';
 import { colorizeTab } from './colorizeTab';
+import { useEscapeClose } from './useEscapeClose';
 
 // Le scelte di "Opening" (gruppo di pill mutuamente esclusive, come il vecchio).
 const OPENING = [
@@ -91,6 +92,46 @@ export function CanEditForm({
   const [overIdx, setOverIdx] = useState<number | null>(null);
   const [invalid, setInvalid] = useState(false);
   const fileRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Snapshot dei valori all'apertura (congelato al primo render, useRef ignora
+  // gli aggiornamenti successivi): confrontato con lo stato corrente per sapere
+  // se ci sono modifiche non salvate quando si preme ESC.
+  const initial = useRef({
+    nome: can.nome,
+    sku: can.sku ?? '',
+    produttore: can.produttore ?? '',
+    size: can.size ?? '',
+    lingua: can.lingua ?? '',
+    top: can.top ?? '',
+    promo: can.promo ?? '',
+    valore: can.valore ?? '',
+    stato: can.stato ?? '',
+    note: can.note ?? '',
+    descrizione: can.descrizione ?? '',
+    pending: JSON.stringify(
+      [can.p1, can.p2, can.p3, can.p4].map((u) => (u ? { kind: 'keep', url: u } : null)),
+    ),
+  });
+  const dirty =
+    nome !== initial.current.nome ||
+    sku !== initial.current.sku ||
+    produttore !== initial.current.produttore ||
+    size !== initial.current.size ||
+    lingua !== initial.current.lingua ||
+    top !== initial.current.top ||
+    promo !== initial.current.promo ||
+    valore !== initial.current.valore ||
+    stato !== initial.current.stato ||
+    note !== initial.current.note ||
+    descrizione !== initial.current.descrizione ||
+    JSON.stringify(pending) !== initial.current.pending;
+
+  // ESC chiude come gli altri overlay, ma con modifiche non salvate chiede
+  // conferma prima di scartarle (a differenza di Cancel/✕, che è un'azione
+  // esplicita dell'utente e non la richiede).
+  useEscapeClose(() => {
+    if (!dirty || globalThis.confirm('Discard changes?')) onCancel();
+  });
 
   const setSlot = (i: number, s: Slot) => setPending((p) => p.map((x, j) => (j === i ? s : x)));
   // Scambio di due slot: solo staging, nessun upload coinvolto.

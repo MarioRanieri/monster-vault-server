@@ -225,7 +225,44 @@ test('il bottone URL mette in coda un upload da URL sullo slot 1', async () => {
   );
 });
 
-test('la modale è un <dialog> nativo', () => {
+test('la modale ï¿½ un <dialog> nativo', () => {
   render(<CanEditForm can={can} onSave={vi.fn()} onCancel={() => {}} />);
   expect(screen.getByRole('dialog').tagName).toBe('DIALOG');
+});
+
+test('ESC senza modifiche chiude subito, senza chiedere conferma', async () => {
+  const confirmSpy = vi.spyOn(window, 'confirm');
+  const onCancel = vi.fn();
+  render(<CanEditForm can={can} onSave={() => {}} onCancel={onCancel} />);
+
+  await userEvent.keyboard('{Escape}');
+
+  expect(confirmSpy).not.toHaveBeenCalled();
+  expect(onCancel).toHaveBeenCalled();
+  confirmSpy.mockRestore();
+});
+
+test('ESC con modifiche non salvate chiede conferma; annullando resta aperto', async () => {
+  vi.spyOn(window, 'confirm').mockReturnValue(false);
+  const onCancel = vi.fn();
+  render(<CanEditForm can={can} onSave={() => {}} onCancel={onCancel} />);
+
+  await userEvent.type(screen.getByLabelText('Name'), ' Beta');
+  await userEvent.keyboard('{Escape}');
+
+  expect(window.confirm).toHaveBeenCalledWith('Discard changes?');
+  expect(onCancel).not.toHaveBeenCalled();
+  vi.restoreAllMocks();
+});
+
+test('ESC con modifiche non salvate, confermando chiude', async () => {
+  vi.spyOn(window, 'confirm').mockReturnValue(true);
+  const onCancel = vi.fn();
+  render(<CanEditForm can={can} onSave={() => {}} onCancel={onCancel} />);
+
+  await userEvent.type(screen.getByLabelText('Name'), ' Beta');
+  await userEvent.keyboard('{Escape}');
+
+  expect(onCancel).toHaveBeenCalled();
+  vi.restoreAllMocks();
 });
