@@ -12,14 +12,24 @@ type Theme = 'dark' | 'light';
 type RGBA = [number, number, number, number];
 
 // Una regola per ogni selettore di una lista ("a, b { ... }").
-const rules = [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{([^{}]*)\}/g)].flatMap(
-  (m) => m[1].split(',').map((sel) => ({ sel: sel.trim(), body: m[2] })),
-);
+// Si spezza su '}' e si prende l'ultimo '{' di ogni pezzo: selettore prima, corpo dopo
+// (regola più interna, come faceva la regex, ma senza backtracking).
+const rules = css
+  .replaceAll(/\/\*[^]*?\*\//g, '')
+  .split('}')
+  .flatMap((chunk) => {
+    const open = chunk.lastIndexOf('{');
+    if (open < 0) return [];
+    const head = chunk.slice(0, open);
+    const selectors = head.slice(head.lastIndexOf('{') + 1);
+    return selectors.split(',').map((sel) => ({ sel: sel.trim(), body: chunk.slice(open + 1) }));
+  });
 
 function prop(sel: string, name: string, theme: Theme): string | undefined {
   const find = (s: string) => {
     const decls = rules.find((r) => r.sel === s)?.body;
-    return decls?.match(new RegExp(String.raw`(?:^|[;\s])${name}\s*:\s*([^;]+)`))?.[1].trim();
+    const re = new RegExp(String.raw`(?:^|[;\s])${name}\s*:\s*([^;]+)`);
+    return decls ? re.exec(decls)?.[1].trim() : undefined;
   };
   return (theme === 'light' ? find(`body.light ${sel}`) : undefined) ?? find(sel);
 }
@@ -27,7 +37,7 @@ function prop(sel: string, name: string, theme: Theme): string | undefined {
 function resolveVars(v: string, theme: Theme): string {
   const body = (sel: string) => rules.find((r) => r.sel === sel)?.body ?? '';
   return v.replace(/var\((--[\w-]+)\)/g, (_, n: string) => {
-    const pick = (b: string) => b.match(new RegExp(String.raw`${n}\s*:\s*([^;]+)`))?.[1].trim();
+    const pick = (b: string) => new RegExp(String.raw`${n}\s*:\s*([^;]+)`).exec(b)?.[1].trim();
     const val = (theme === 'light' ? pick(body('body.light')) : undefined) ?? pick(body(':root'));
     return resolveVars(val ?? '', theme);
   });
@@ -35,12 +45,12 @@ function resolveVars(v: string, theme: Theme): string {
 
 function parse(v: string, theme: Theme): RGBA {
   const s = resolveVars(v, theme);
-  const hex = s.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(s);
   if (hex) {
     const h = hex[1].length === 3 ? [...hex[1]].map((c) => c + c).join('') : hex[1];
-    return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)).concat(1) as RGBA;
+    return [0, 2, 4].map((i) => Number.parseInt(h.slice(i, i + 2), 16)).concat(1) as RGBA;
   }
-  const fn = s.match(/^rgba?\(([^)]+)\)$/);
+  const fn = /^rgba?\(([^)]+)\)$/.exec(s);
   if (!fn) throw new Error(`colore non supportato: ${s}`);
   const [r, g, b, a = 1] = fn[1].split(',').map(Number);
   return [r, g, b, a];

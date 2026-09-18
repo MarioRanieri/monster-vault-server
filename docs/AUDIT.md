@@ -14,11 +14,20 @@
 | Bersagli di tocco < 44px | **Risolti** (#46, #47) | Regole solo in `@media (max-width: 640px)` di `main.css`, coperte da `frontend/tests/e2e/touch-targets.spec.ts` (390x844 + guardia desktop 1280px). |
 | Soglia 44px | **Buona pratica, non difetto di conformità** | 44px è Apple HIG / WCAG 2.5.5 (AAA). WCAG 2.5.8 (AA) chiede solo 24px: sotto 24px è un problema, tra 24 e 44 è rifinitura. |
 | Webfont `/fonts/**` con 401 | **Risolto** (#46) | `/fonts/**` è in `permitAll`. |
+| Sonar `css:S7924` (contrasto) su badge, chip e messaggi | **12 restano segnalati: falsi positivi** | Sonar ignora l'alpha dello sfondo: vede `#00c850` su `rgba(0,200,80,.15)` come "stesso colore". Il contrasto vero (WCAG AA 4,5:1, tema scuro e chiaro) è calcolato e asserito da `frontend/src/contrast.test.ts`; le righe sono marcate `NOSONAR`. Un contrasto nuovo va aggiunto a quel test, non "corretto" a occhio. |
+| Sonar `S7767` / `S7758` in `excel.ts` (`\| 0`, `charCodeAt`) | **Non modificare** | È l'hash degli id d'import: il wrapping a 32 bit e le unità UTF-16 devono restare, altrimenti gli id cambiano e la re-importazione duplica le lattine (con un'emoji: `can_og075x` contro `can_nlut1x`). Test di caratterizzazione in `excel.test.ts`. |
+| Sonar `java:S2143` su `JwtUtil` (`java.util.Date`) | **Resta** | L'API del builder jjwt richiede `Date`. |
+| `role="button"` su card (`CanGrid`) e slot foto (`CanEditForm`), `<img>` con i gesti (`Lightbox`) | **Restano** | Contengono altri bottoni o sono trascinabili: un `<button>` annidato è HTML non valido. L'`<img>` è la superficie dei gesti; la tastiera è coperta da frecce ed Esc. |
+| Modali, stati e foto del dettaglio | **Semantica nativa** (#56) | 9 modali `<dialog open>` (mai `showModal`, comportamento invariato), 3 stati `<output>`, foto e miniature del dettaglio `<button>`. |
+| Complessità cognitiva sopra 15 (`S3776`) | **Risolta** (#57) | `filterCans` a predicati, `csv`/`shareView` con helper, `App` spezzata in componenti. Soglia Sonar: 15. |
+| Code smell Sonar | **96 → 16** (2026-09-18, prima dei `NOSONAR`) | I 16 rimasti sono i falsi positivi e le eccezioni qui sopra (12 contrasto, 3 semantica, 1 `JwtUtil`). Mappa: issue #49. |
 
 **Note aperte** (già note, non sono novità): la barra sticky dei filtri su telefono è un po' più
-alta dopo i 44px, verificato solo l'assenza di overflow orizzontale; coverage sotto il 90%
-(Vitest 86,55% frontend, Sonar 77,9% globale), lavoro separato; il desktop resta com'è, ogni
-regola mobile sta nella media query.
+alta dopo i 44px, verificato solo l'assenza di overflow orizzontale; coverage Vitest 93,5%
+(frontend), Sonar 82,3% globale con il backend più basso, lavoro separato; il desktop resta
+com'è, ogni regola mobile sta nella media query. Da verificare: su mobile il menu ⋯ dell'header
+si apre sotto la hero e il pulsante Stats lo copre (visto in una prova, non ancora riprodotto
+a mano); un test di `App.test.tsx` (`findByRole('sign out')`, timeout 1 s) è intermittente in CI.
 
 > **Stato (2026-07-10):** ✅ **tutte le 11 voci implementate** + un bug promo segnalato fuori audit.
 >

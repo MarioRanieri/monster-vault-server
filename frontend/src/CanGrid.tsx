@@ -47,7 +47,7 @@ export function CanGrid({
         const pv = can.valore ? Number.parseFloat(can.valore).toLocaleString('en-US') : '';
         const isFull = (can.note ?? '').toUpperCase().includes('FULL');
         return (
-          <div
+          <div // NOSONAR: la card contiene altri bottoni, un <button> annidato sarebbe HTML non valido
             key={can.id}
             className="card"
             role="button"
