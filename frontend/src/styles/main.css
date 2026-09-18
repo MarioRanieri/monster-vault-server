@@ -977,6 +977,19 @@ body.public-mode .public-banner {
   flex: 1 1 auto;
   min-width: 0;
 }
+/* <button> che avvolge l'immagine (principale/miniatura): niente stile da bottone. */
+.detail-photo-btn {
+  display: block;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.detail-main-wrap > .detail-photo-btn {
+  width: 100%;
+}
 .detail-main-img {
   width: 100%;
   aspect-ratio: 1;
@@ -1031,6 +1044,7 @@ body.public-mode .public-banner {
   flex: 0 0 72px;
 }
 .detail-thumb {
+  display: block;
   width: 72px;
   height: 72px;
   object-fit: cover;
@@ -3024,6 +3038,7 @@ input.field-invalid {
   gap: 8px;
 }
 .toast {
+  display: block; /* <output> è inline di default */
   background: var(--bg3);
   border: 1px solid var(--border2);
   border-left: 3px solid var(--green);
@@ -3038,7 +3053,6 @@ input.field-invalid {
   border-left-color: #ff4444;
 }
 @keyframes slideIn {
-  display: block; /* <output> è inline di default */
   from {
     transform: translateX(110%);
     opacity: 0;

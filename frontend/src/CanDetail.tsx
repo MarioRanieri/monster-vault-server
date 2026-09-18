@@ -163,19 +163,17 @@ export function CanDetail({
                       ‹
                     </button>
                   )}
-                  <img
-                    className="detail-main-img"
-                    src={cloudinaryThumb(main, 800, 800)}
-                    alt={can.nome}
-                    tabIndex={0}
+                  <button
+                    type="button"
+                    className="detail-photo-btn"
                     onClick={() => setLbIdx(mainIdx)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        setLbIdx(mainIdx);
-                      }
-                    }}
-                  />
+                  >
+                    <img
+                      className="detail-main-img"
+                      src={cloudinaryThumb(main, 800, 800)}
+                      alt={can.nome}
+                    />
+                  </button>
                   {photos.length > 1 && (
                     <button
                       type="button"
@@ -196,20 +194,18 @@ export function CanDetail({
                 {photos.length > 1 && (
                   <div className="detail-thumbs-col">
                     {photos.map((url, i) => (
-                      <img
+                      <button
                         key={url}
-                        className={'detail-thumb' + (i === mainIdx ? ' active' : '')}
-                        src={cloudinaryThumb(url, 80, 80)}
-                        alt={can.nome}
-                        tabIndex={0}
+                        type="button"
+                        className="detail-photo-btn"
                         onClick={() => setMainIdx(i)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            setMainIdx(i);
-                          }
-                        }}
-                      />
+                      >
+                        <img
+                          className={'detail-thumb' + (i === mainIdx ? ' active' : '')}
+                          src={cloudinaryThumb(url, 80, 80)}
+                          alt={can.nome}
+                        />
+                      </button>
                     ))}
                   </div>
                 )}

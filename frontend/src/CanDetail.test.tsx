@@ -277,3 +277,16 @@ test('alla chiusura il focus torna al trigger che ha aperto il pannello', () => 
   expect(document.activeElement).toBe(trigger);
   trigger.remove();
 });
+
+test('immagine principale e miniature sono <button> nativi, attivabili da tastiera', async () => {
+  render(
+    <CanDetail can={{ id: '1', nome: 'Alpha', p1: 'a.jpg', p2: 'b.jpg' }} onClose={() => {}} />,
+  );
+  const imgs = screen.getAllByRole('img', { name: 'Alpha' });
+  for (const img of imgs) expect(img.parentElement!.tagName).toBe('BUTTON');
+
+  // Il bottone dell'immagine principale prende il focus; Invio apre la lightbox.
+  (imgs[0].parentElement as HTMLElement).focus();
+  await userEvent.keyboard('{Enter}');
+  expect(screen.getByRole('dialog', { name: /enlarged photo/i })).toBeTruthy();
+});
