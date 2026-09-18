@@ -5,7 +5,6 @@ import com.monstervault.service.CanService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -54,21 +53,17 @@ public class CanController {
      *
      * ETag calcolato come hash XOR di (id + updatedAt) di tutte le lattine:
      * cambia ad ogni modifica, consente al browser/SW di evitare il download se la
-     * collezione non è cambiata dall'ultima richiesta.
+     * collezione non è cambiata dall'ultima richiesta. Il 304 lo produce Spring stesso
+     * (HttpEntityMethodProcessor confronta If-None-Match con l'ETag della risposta).
      */
     @GetMapping
-    public ResponseEntity<List<Can>> getAll(
-            @RequestHeader(value = "If-None-Match", required = false) String ifNoneMatch)
-            throws Exception {
+    public ResponseEntity<List<Can>> getAll() throws Exception {
         List<Can> all = canService.getAll();
         // Suffisso di ruolo sull'ETag: senza, admin e guest condividerebbero lo stesso
         // ETag pur ricevendo body diversi (prezzo oscurato per il guest), e un browser
         // con in cache la risposta admin risponderebbe 304 a una richiesta guest
         // successiva, servendo dalla propria cache locale il body con i prezzi.
         String etag = roleEtag(CanService.computeEtag(all));
-        if (etag.equals(ifNoneMatch)) {
-            return ResponseEntity.status(HttpStatus.NOT_MODIFIED).eTag(etag).build();
-        }
         List<Can> body = isAdmin() ? all : all.stream().map(CanController::redactPrice).toList();
         return ResponseEntity.ok().eTag(etag).body(body);
     }
