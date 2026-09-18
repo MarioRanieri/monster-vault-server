@@ -37,3 +37,12 @@ test('parseCsv genera un id se manca e ignora le righe vuote', () => {
   expect(out[0].nome).toBe('SenzaId');
   expect(out[0].id).toBeTruthy();
 });
+
+test('parseCsv: CRLF, virgolette dentro il campo e virgoletta non chiusa', () => {
+  const crlf = parseCsv('MV_ID,NOME\r\n1,"a ""q"", b"\r\n2,fine');
+  expect(crlf.map((c) => c.nome)).toEqual(['a "q", b', 'fine']);
+  // virgoletta aperta a metà campo: il resto del testo finisce nel campo
+  const open = parseCsv('MV_ID,NOME\n1,x"y,z\n2,w');
+  expect(open).toHaveLength(1);
+  expect(open[0].nome).toBe('xy,z\n2,w');
+});

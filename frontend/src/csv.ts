@@ -30,32 +30,48 @@ export function buildCsv(cans: Can[]): string {
   return [head, ...rows].join('\n');
 }
 
+// Legge un campo tra virgolette a partire da start (subito dopo la virgoletta
+// d'apertura); "" è una virgoletta letterale. Ritorna il testo e l'indice dopo
+// la virgoletta di chiusura (fine testo se non chiusa).
+function readQuoted(s: string, start: number): [string, number] {
+  let out = '';
+  let i = start;
+  while (i < s.length) {
+    if (s[i] !== '"') {
+      out += s[i];
+      i++;
+    } else if (s[i + 1] === '"') {
+      out += '"';
+      i += 2;
+    } else return [out, i + 1];
+  }
+  return [out, i];
+}
+
 // Tokenizer CSV che gestisce virgolette, virgole e newline dentro i campi.
 function parseRows(text: string): string[][] {
   const rows: string[][] = [];
   let row: string[] = [];
   let field = '';
-  let inQuotes = false;
   const s = text.replace(/\r\n?/g, '\n');
-  for (let i = 0; i < s.length; i++) {
+  let i = 0;
+  while (i < s.length) {
     const ch = s[i];
-    if (inQuotes) {
-      if (ch === '"') {
-        if (s[i + 1] === '"') {
-          field += '"';
-          i++;
-        } else inQuotes = false;
-      } else field += ch;
-    } else if (ch === '"') inQuotes = true;
-    else if (ch === ',') {
+    if (ch === '"') {
+      const [quoted, next] = readQuoted(s, i + 1);
+      field += quoted;
+      i = next;
+      continue;
+    }
+    if (ch === ',' || ch === '\n') {
       row.push(field);
       field = '';
-    } else if (ch === '\n') {
-      row.push(field);
-      rows.push(row);
-      row = [];
-      field = '';
+      if (ch === '\n') {
+        rows.push(row);
+        row = [];
+      }
     } else field += ch;
+    i++;
   }
   if (field !== '' || row.length) {
     row.push(field);
