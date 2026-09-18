@@ -40,35 +40,51 @@ export function extractYearFromCan(can: Can): number | null {
   return 2000 + Number.parseInt(s.slice(2), 10);
 }
 
-// Applica tutti i criteri insieme (AND); un filtro assente non restringe.
+type Criterion = (can: Can, f: CanFilters) => boolean;
+
 // La query cerca in nome + SKU + note (come il vecchio).
+const matchesQuery: Criterion = (can, f) => {
+  const q = (f.query ?? '').trim().toLowerCase();
+  if (!q) return true;
+  return `${can.nome} ${can.sku ?? ''} ${can.note ?? ''}`.toLowerCase().includes(q);
+};
+
+// Match esatto su un campo stringa: filtro assente (o vuoto) non restringe.
+const matchesField =
+  (key: 'lingua' | 'size' | 'produttore' | 'top' | 'stato'): Criterion =>
+  (can, f) =>
+    !f[key] || can[key] === f[key];
+
+const matchesValue: Criterion = (can, f) =>
+  (f.vmin == null || num(can.valore) >= f.vmin) && (f.vmax == null || num(can.valore) <= f.vmax);
+
+// Con un limite d'anno attivo, le lattine senza anno interpretabile sono escluse.
+const matchesYear: Criterion = (can, f) => {
+  if (f.ymin == null && f.ymax == null) return true;
+  const y = extractYearFromCan(can);
+  if (y == null) return false;
+  return (f.ymin == null || y >= f.ymin) && (f.ymax == null || y <= f.ymax);
+};
+
+const CRITERIA: Criterion[] = [
+  matchesQuery,
+  (can, f) => !f.withPhoto || !!can.p1,
+  (can, f) => !f.noPhoto || !can.p1,
+  (can, f) => !f.noValue || !can.valore,
+  (can, f) => !f.promo || hasPromo(can.promo),
+  (can, f) => !f.full || isFull(can),
+  matchesField('lingua'),
+  matchesField('size'),
+  matchesField('produttore'),
+  matchesField('top'),
+  matchesField('stato'),
+  matchesValue,
+  matchesYear,
+];
+
+// Applica tutti i criteri insieme (AND); un filtro assente non restringe.
 export function filterCans(cans: Can[], filters: CanFilters): Can[] {
-  const q = (filters.query ?? '').trim().toLowerCase();
-  return cans.filter((can) => {
-    if (q) {
-      const hay = `${can.nome} ${can.sku ?? ''} ${can.note ?? ''}`.toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    if (filters.withPhoto && !can.p1) return false;
-    if (filters.noPhoto && can.p1) return false;
-    if (filters.noValue && can.valore) return false;
-    if (filters.promo && !hasPromo(can.promo)) return false;
-    if (filters.full && !isFull(can)) return false;
-    if (filters.lingua && can.lingua !== filters.lingua) return false;
-    if (filters.size && can.size !== filters.size) return false;
-    if (filters.produttore && can.produttore !== filters.produttore) return false;
-    if (filters.top && can.top !== filters.top) return false;
-    if (filters.stato && can.stato !== filters.stato) return false;
-    if (filters.vmin != null && num(can.valore) < filters.vmin) return false;
-    if (filters.vmax != null && num(can.valore) > filters.vmax) return false;
-    if (filters.ymin != null || filters.ymax != null) {
-      const y = extractYearFromCan(can);
-      if (y == null) return false;
-      if (filters.ymin != null && y < filters.ymin) return false;
-      if (filters.ymax != null && y > filters.ymax) return false;
-    }
-    return true;
-  });
+  return cans.filter((can) => CRITERIA.every((criterion) => criterion(can, filters)));
 }
 
 export type SortKey = 'added-desc' | 'nome-asc' | 'lingua-asc' | 'valore-desc' | 'valore-asc';

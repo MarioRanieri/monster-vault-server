@@ -15,26 +15,31 @@ export interface ShareFilters {
   sort: string;
 }
 
+// Aggiunge il parametro solo se il valore è valorizzato.
+const setIf = (p: URLSearchParams, key: string, value: string) => {
+  if (value) p.set(key, value);
+};
+
 // Costruisce un deep-link con i soli filtri attivi in query-string.
 export function buildShareUrl(base: string, f: ShareFilters): string {
   const p = new URLSearchParams();
-  if (f.query) p.set('q', f.query);
-  if (f.lingua) p.set('lingua', f.lingua);
-  if (f.size) p.set('size', f.size);
-  if (f.produttore) p.set('prod', f.produttore);
-  if (f.top) p.set('top', f.top);
+  setIf(p, 'q', f.query);
+  setIf(p, 'lingua', f.lingua);
+  setIf(p, 'size', f.size);
+  setIf(p, 'prod', f.produttore);
+  setIf(p, 'top', f.top);
   const chips = [
     f.promo && 'promo',
     f.full && 'full',
     f.withPhoto && 'withphoto',
     f.noPhoto && 'nophoto',
   ].filter(Boolean) as string[];
-  if (chips.length) p.set('chips', chips.join(','));
-  if (f.vmin) p.set('vmin', f.vmin);
-  if (f.vmax) p.set('vmax', f.vmax);
-  if (f.ymin) p.set('ymin', f.ymin);
-  if (f.ymax) p.set('ymax', f.ymax);
-  if (f.sort && f.sort !== 'added-desc') p.set('sort', f.sort);
+  setIf(p, 'chips', chips.join(','));
+  setIf(p, 'vmin', f.vmin);
+  setIf(p, 'vmax', f.vmax);
+  setIf(p, 'ymin', f.ymin);
+  setIf(p, 'ymax', f.ymax);
+  if (f.sort !== 'added-desc') setIf(p, 'sort', f.sort);
   const qs = p.toString();
   return qs ? `${base}?${qs}` : base;
 }
