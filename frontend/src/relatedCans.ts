@@ -74,7 +74,8 @@ export function sameLineupPool(cans: Can[], can: Can, minGroupSize = 4): Can[] {
     const matches = sameStatus.filter(attempt);
     if (matches.length >= minGroupSize) return matches;
   }
-  return sameStatus.filter(attempts.at(-1)!);
+  const last = attempts.at(-1)!;
+  return sameStatus.filter((c) => last(c));
 }
 
 /**
