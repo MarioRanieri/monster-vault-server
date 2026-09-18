@@ -217,3 +217,13 @@ test('filtra per stato (match esatto, dalle stats)', () => {
   expect(filterCans(cans, { stato: 'Damaged' }).map((c) => c.id)).toEqual(['1']);
   expect(filterCans(cans, {}).map((c) => c.id)).toEqual(['1', '2', '3']);
 });
+
+test('range anno con entrambi i limiti e vmin (caratterizzazione)', () => {
+  const list: Can[] = [
+    { id: '1', nome: 'A', sku: '0610', valore: '5' }, // 2010
+    { id: '2', nome: 'B', sku: '0613', valore: '15' }, // 2013
+    { id: '3', nome: 'C', sku: '0618', valore: '25' }, // 2018
+  ];
+  expect(filterCans(list, { ymin: 2012, ymax: 2014 }).map((c) => c.nome)).toEqual(['B']);
+  expect(filterCans(list, { vmin: 10 }).map((c) => c.nome)).toEqual(['B', 'C']);
+});
