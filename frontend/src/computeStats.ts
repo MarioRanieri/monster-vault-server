@@ -19,17 +19,34 @@ export function computeStats(cans: Can[]): Stats {
   };
 }
 
-// Quante lattine sono state create (campo `createdAt` immutabile) nel mese
-// solare corrente. I record migrati (createdAt null) non contano → il badge
-// "added this month" della landing riflette solo le aggiunte vere, non gli edit.
+// Data "di aggiunta" di una lattina: createdAt (record nuovi) oppure, in sua
+// assenza, photoAt (quasi tutte le lattine sono migrate senza createdAt, ma
+// hanno una foto caricata dopo). 0 se non ha nessuna delle due.
+const addedAt = (c: Can) => Math.max(c.createdAt ?? 0, c.photoAt ?? 0);
+
+// Quante lattine sono state aggiunte (vedi addedAt) nel mese solare corrente.
+// Usa anche photoAt perché createdAt manca su quasi tutti i record migrati →
+// senza fallback il badge "added this month" della landing direbbe quasi
+// sempre "no new cans", pure quando ne sono state fotografate di recenti.
 export function addedThisMonth(cans: Can[], now: Date = new Date()): number {
   const y = now.getFullYear();
   const m = now.getMonth();
   return cans.filter((c) => {
-    if (c.createdAt == null) return false;
-    const d = new Date(c.createdAt);
+    const t = addedAt(c);
+    if (t === 0) return false;
+    const d = new Date(t);
     return d.getFullYear() === y && d.getMonth() === m;
   }).length;
+}
+
+// Le `limit` lattine più recenti CON foto (per la landing), ordinate per
+// addedAt desc. Chi non ha né createdAt né photoAt è escluso: nessuna data
+// non è un'aggiunta recente, anche se ha comunque una foto.
+export function latestAdditions(cans: Can[], limit: number): Can[] {
+  return cans
+    .filter((c) => c.p1 && addedAt(c) > 0)
+    .sort((a, b) => addedAt(b) - addedAt(a))
+    .slice(0, limit);
 }
 
 // Somma del valore stimato (campo `valore`) di una lista di lattine.
