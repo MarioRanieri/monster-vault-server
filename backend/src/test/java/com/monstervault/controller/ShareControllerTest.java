@@ -86,4 +86,37 @@ class ShareControllerTest {
                 .andExpect(content().string(not(containsString("<script>alert(1)"))))
                 .andExpect(content().string(containsString("&lt;script&gt;")));
     }
+
+    @Test
+    void share_serviceFailure_isTreatedAsMissingCanAndRedirects() throws Exception {
+        when(canService.getById("boom")).thenThrow(new com.monstervault.exception.MonsterVaultException("mongo down"));
+
+        mockMvc.perform(get("/share/boom"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("url=/")))
+                .andExpect(content().string(not(containsString("og:title"))));
+    }
+
+    @Test
+    void share_canWithoutNameOrDescription_usesDefaultTexts() throws Exception {
+        Can can = new Can();
+        can.setId("z");
+        when(canService.getById("z")).thenReturn(can);
+
+        mockMvc.perform(get("/share/z"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("content=\"Monster Can — Monster Vault\"")))
+                .andExpect(content().string(containsString("content=\"Monster Energy can collection\"")));
+    }
+
+    @Test
+    void share_escapesHtmlInTheDescription() throws Exception {
+        Can can = new Can();
+        can.setId("d");
+        can.setDescrizione("a & \"b\" <i>");
+        when(canService.getById("d")).thenReturn(can);
+
+        mockMvc.perform(get("/share/d"))
+                .andExpect(content().string(containsString("content=\"a &amp; &quot;b&quot; &lt;i&gt;\"")));
+    }
 }

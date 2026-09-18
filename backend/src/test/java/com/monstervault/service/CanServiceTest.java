@@ -695,4 +695,17 @@ class CanServiceTest {
         assertThat(c.getP1Id()).startsWith("monster-vault/1_1_");
         verify(photoStorage).delete("monster-vault/old_1_x");
     }
+
+    @Test
+    void permanentDelete_photoSlotsWithEmptyUrl_areNotSentToStorage() throws Exception {
+        Can c = can("1", "Alpha");
+        c.setP1("");
+        c.setP2("https://x/2.jpg");
+        warmCache(c);
+
+        service.permanentDelete("1");
+
+        verify(photoStorage).delete("https://x/2.jpg");
+        verify(photoStorage, times(1)).delete(any());
+    }
 }
