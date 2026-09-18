@@ -100,7 +100,10 @@ export function Lightbox({
     const move = (e: MouseEvent) => {
       const g = gesture.current;
       if (!g.dragging) return;
-      setZoom((z) => panBy(z, e.clientX - g.px, e.clientY - g.py));
+      // Delta calcolato QUI: l'updater di setZoom gira dopo, quando g.px è già aggiornato.
+      const dx = e.clientX - g.px;
+      const dy = e.clientY - g.py;
+      setZoom((z) => panBy(z, dx, dy));
       g.px = e.clientX;
       g.py = e.clientY;
     };
@@ -136,10 +139,13 @@ export function Lightbox({
       const mx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
       const my = (e.touches[0].clientY + e.touches[1].clientY) / 2;
       const { cx, cy } = toCenter(mx, my);
-      setZoom((z) => zoomAt(z, d / g.pinchDist, cx, cy));
+      const factor = d / g.pinchDist; // prima di aggiornare pinchDist (vedi nota sul pan)
+      setZoom((z) => zoomAt(z, factor, cx, cy));
       g.pinchDist = d;
     } else if (e.touches.length === 1 && zoom.scale > 1) {
-      setZoom((z) => panBy(z, e.touches[0].clientX - g.px, e.touches[0].clientY - g.py));
+      const dx = e.touches[0].clientX - g.px;
+      const dy = e.touches[0].clientY - g.py;
+      setZoom((z) => panBy(z, dx, dy));
       g.px = e.touches[0].clientX;
       g.py = e.touches[0].clientY;
     }
