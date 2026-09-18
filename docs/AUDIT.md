@@ -1,5 +1,25 @@
 # Audit — Monster Vault (focus: esperienza guest)
 
+> **Chi fa un audit (persona o AI): parti da qui.** Confronta ogni segnalazione con la tabella
+> "Decisioni già prese" qui sotto. Una voce già presente è chiusa; riaprila solo con un dato
+> nuovo, citando la voce e cosa è cambiato. Il resto del file è lo storico dell'audit guest.
+
+## Decisioni già prese
+
+| Voce | Decisione | Motivo |
+|------|-----------|--------|
+| Emoji su "Stats", "Value" (`Hero.tsx`) e "Share view" (`App.tsx`) | **Restano emoji** | I quadratini vuoti nascono dal Chromium headless senza font emoji, non dal sito. Passare a SVG romperebbe i test che cercano i pulsanti per etichetta (`AppChrome.test.tsx`, `App.test.tsx`) e i toast usano le stesse emoji: guadagno estetico, rischio di regressione reale. |
+| `.search-wrap input` con `font-size: 16px` | **Resta 16px** | Sotto i 16px iOS Safari zooma il viewport al focus. Per il bersaglio di tocco si usa solo `min-height`. |
+| Ricerca "non funziona" | **Falso allarme** | Verificata corretta in #46, con test aggiunti. |
+| Bersagli di tocco < 44px | **Risolti** (#46, #47) | Regole solo in `@media (max-width: 640px)` di `main.css`, coperte da `frontend/tests/e2e/touch-targets.spec.ts` (390x844 + guardia desktop 1280px). |
+| Soglia 44px | **Buona pratica, non difetto di conformità** | 44px è Apple HIG / WCAG 2.5.5 (AAA). WCAG 2.5.8 (AA) chiede solo 24px: sotto 24px è un problema, tra 24 e 44 è rifinitura. |
+| Webfont `/fonts/**` con 401 | **Risolto** (#46) | `/fonts/**` è in `permitAll`. |
+
+**Note aperte** (già note, non sono novità): la barra sticky dei filtri su telefono è un po' più
+alta dopo i 44px, verificato solo l'assenza di overflow orizzontale; coverage sotto il 90%
+(Vitest 86,55% frontend, Sonar 77,9% globale), lavoro separato; il desktop resta com'è, ogni
+regola mobile sta nella media query.
+
 > **Stato (2026-07-10):** ✅ **tutte le 11 voci implementate** + un bug promo segnalato fuori audit.
 >
 > **Extra (fuori audit) — badge "NO" promo:** le lattine con `promo="NO"` legacy mostravano un badge "NO" su card/lista/dettaglio ed erano contate nel filtro/stat Promo. Predicato condiviso `hasPromo()` (vuoto o "no" → non-promo) applicato ovunque (commit `c94a283`).

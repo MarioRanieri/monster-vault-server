@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Landing context line** — a one-line tagline on the landing explains whose collection this is and what the site does, so a first-time visitor gets context before entering (guest-experience audit, `docs/AUDIT.md`).
 - **Collapsible filters on mobile** — the advanced filters (country/size/manufacturer/tab selects, chips, ranges, sort, view switch) collapse behind a "Filters" toggle on small screens, with an active-filter count badge, so cans sit above the fold; desktop is unchanged (`display: contents`).
 - **SEO / social meta from source** — Open Graph, Twitter Card, description, canonical and schema.org JSON-LD now live in `frontend/index.html` (previously only in the build-overwritten backend copy, so the live site shipped without them), giving rich link previews and search snippets.
+- **"No value" filter** — admin-only button to list the cans that still have no price.
 
 ### Fixed
 - **Webfonts load under the CSP** — Bebas Neue / DM Sans / Space Mono are now self-hosted (latin woff2 in `frontend/public/fonts`, `@font-face`) instead of an `@import` from Google Fonts, which the `font-src 'self'` CSP silently blocked in production — the whole typographic identity had been falling back to system fonts. Same-origin, so no CSP change; DM Sans is variable, which also restores the 700 weight the old `@import` never requested.
@@ -26,6 +27,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Sessions survive backend restarts** — refresh tokens moved from an in-memory map to a Mongo-persisted store (keyed by SHA-256 hash, TTL index on expiry), so Render cold starts no longer force a re-login on every reload.
 - **Silent token refresh** — a 401 now refreshes the access token (single-flight) and retries the request once. Also restored from the old app: the 10s undo window on can delete, PWA registration (manifest tags + service worker), filters persisting across reloads, and the green/yellow/red condition badge colors.
 - **Edit form polish** — crop preselects the whole image and freezes on pointer release; slot previews show the full photo (contain); Promo is a Yes/No select that preserves historical values; Name + SKU are validated; header buttons regained their icons and the green admin avatar is back (mobile header is a single icon-only row again).
+- **Admin prices were always empty** — the main list was fetched without the Bearer token, so the backend redacted `valore` even for a logged-in admin (Value calculator and stats showed 0). The list now uses the authenticated fetch and waits for the token refresh on mount.
+- **Esc closes Stats and Value modals** — same keyboard behaviour as the other panels.
+- **"black" tab color unreadable** on the dark background.
+- **Webfonts 401** — `/fonts/**` is now `permitAll`, so the self-hosted fonts load for guests.
+- **Mobile touch targets >= 44px** — filter chips, share/stats/header buttons, view toggle, sort select, header ⋯ menu, search field, card "Details" and logo have a 44px tappable area on phones (text and icons unchanged, desktop untouched; covered by a Playwright spec).
 
 ### Removed
 - **eBay watch flag & photo rotate** — deliberately dropped in the React migration (leftover watch types, help text and CSS cleaned up); rotate saw no use.
