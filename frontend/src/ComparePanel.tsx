@@ -1,6 +1,7 @@
 import type { Can } from './types';
 import { colorizeTab } from './colorizeTab';
 import { TabParts } from './TabParts';
+import { useEscapeClose } from './useEscapeClose';
 
 // Pannello di confronto affiancato (classi .compare-panel/.compare-table/
 // .compare-row/.compare-cell del vecchio): una colonna per lattina, una riga per
@@ -14,6 +15,8 @@ export function ComparePanel({
   isAdmin?: boolean;
   onClose: () => void;
 }>) {
+  useEscapeClose(onClose);
+
   const rows: { lbl: string; key: keyof Can; isTop?: boolean; money?: boolean }[] = [
     { lbl: 'SKU', key: 'sku' },
     { lbl: 'Manufacturer', key: 'produttore' },

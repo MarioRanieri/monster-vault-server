@@ -57,3 +57,18 @@ test('la modale � un <dialog> nativo', () => {
   );
   expect(screen.getByRole('dialog').tagName).toBe('DIALOG');
 });
+
+test('ESC chiama onClose', async () => {
+  const onClose = vi.fn();
+  render(
+    <ComparePanel
+      cans={[
+        { id: '1', nome: 'A' },
+        { id: '2', nome: 'B' },
+      ]}
+      onClose={onClose}
+    />,
+  );
+  await userEvent.keyboard('{Escape}');
+  expect(onClose).toHaveBeenCalled();
+});

@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { normalizeRect } from './cropRect';
+import { useEscapeClose } from './useEscapeClose';
 
 // Editor di crop on-demand: si apre cliccando una foto (già caricata o esistente).
 // L'utente trascina un rettangolo; Apply ritaglia via canvas e ritorna un File.
@@ -15,6 +16,7 @@ export function PhotoCrop({
   onApply: (file: File) => void;
   onCancel: () => void;
 }>) {
+  useEscapeClose(onCancel);
   const imgRef = useRef<HTMLImageElement>(null);
   const drawing = useRef(false);
   const [drag, setDrag] = useState<{

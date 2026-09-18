@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Result } from './authStore';
+import { useEscapeClose } from './useEscapeClose';
 
 // Icone inline (utente / lucchetto / occhio) per non aggiungere dipendenze.
 const UserIcon = () => (
@@ -57,6 +58,10 @@ export function LoginForm({
   onGuest?: () => void;
   onRecover?: (username: string, recoveryCode: string, newPassword: string) => Promise<Result>;
 }>) {
+  // ESC = "Continue in read-only mode" (stessa via d'uscita dal login già offerta
+  // dal bottone); senza onGuest non c'è modo di lasciare il login, quindi niente.
+  useEscapeClose(() => onGuest?.(), Boolean(onGuest));
+
   const [mode, setMode] = useState<'login' | 'recover'>('login');
 
   // login

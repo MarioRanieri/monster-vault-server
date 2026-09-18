@@ -1,5 +1,9 @@
+import { useEscapeClose } from './useEscapeClose';
+
 // Modal guida (classi come StatsModal): breve aiuto sull'uso della collezione.
 export function HelpModal({ onClose }: Readonly<{ onClose: () => void }>) {
+  useEscapeClose(onClose);
+
   return (
     <dialog className="modal-backdrop open" open aria-modal="true" aria-label="Guide">
       <div className="stats-modal">

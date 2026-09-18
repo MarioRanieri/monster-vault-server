@@ -17,7 +17,14 @@ test('Cancel chiama onCancel', async () => {
   expect(onCancel).toHaveBeenCalled();
 });
 
-test('la modale è un <dialog> nativo', () => {
+test('la modale ï¿½ un <dialog> nativo', () => {
   render(<PhotoCrop src="blob:x" onApply={() => {}} onCancel={() => {}} />);
   expect(screen.getByRole('dialog').tagName).toBe('DIALOG');
+});
+
+test('ESC chiama onCancel', async () => {
+  const onCancel = vi.fn();
+  render(<PhotoCrop src="blob:x" onApply={() => {}} onCancel={onCancel} />);
+  await userEvent.keyboard('{Escape}');
+  expect(onCancel).toHaveBeenCalled();
 });
