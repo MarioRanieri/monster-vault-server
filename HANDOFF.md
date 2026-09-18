@@ -2,10 +2,18 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-09-16 (rev 58 — bug prezzo admin + Esc su Stats/Value + CI davvero stabile)  
+**Updated:** 2026-09-18 (rev 59 — touch target mobile #46/#47 + docs riordinati)  
 **Branch:** main  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
+
+> **2026-09-18 — rev 59.** Audit Lovable, seconda serie: #46 (font 401 + primi bersagli di tocco) e
+> **#47** (`.view-btn`, `.filter-select`, `.header-more-btn`, ricerca, "Details", `.logo` a 44px, solo
+> nella media query 640px; spec Playwright `frontend/tests/e2e/touch-targets.spec.ts`). Le decisioni
+> già prese sugli audit (emoji lasciate, input ricerca 16px, soglia 44px = best practice) stanno in
+> **`docs/AUDIT.md`**: darlo da leggere a chi fa il prossimo audit. `docs/audit-decisions.md` è stato
+> accorpato lì; `STUDY.md` (locale, ignorato da git) cancellato. Coverage: Vitest 86,55% frontend,
+> Sonar 77,9% globale — PR dedicata da fare (App.tsx, Lightbox.tsx, compressImage.ts; backend dopo).
 
 > **2026-09-16 — Bug segnalato dall'utente: da admin il Value calculator/stats mostravano 0
 > (rev 58).** Root cause vera (systematic-debugging, test rosso prima di toccare codice):
