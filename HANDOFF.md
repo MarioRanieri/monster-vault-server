@@ -12,8 +12,9 @@
 > `keyed()`, CSS duplicato, backend `Instant`), #55 (contrasto WCAG AA in entrambi i temi, `contrast.test.ts`),
 > #56 (`<dialog open>`, `<output>`, `<button>`), #57 (complessità cognitiva: `filterCans`, `csv`, `shareView`,
 > `App` spezzata in `AppParts`/`CollectionFilterBar`), più #48 (coverage Vitest 86,55→93,5% e fix pan/pinch del
-> Lightbox). **Non toccare** l'hash id di `excel.ts` (`| 0`, `charCodeAt`): un test lo fissa. Da verificare:
-> menu ⋯ mobile sotto la hero (Stats lo copre) e un test flaky in `App.test.tsx` (`findByRole('sign out')` 1 s).
+> Lightbox). **Non toccare** l'hash id di `excel.ts` (`| 0`, `charCodeAt`): un test lo fissa. Da fare:
+> un test flaky in `App.test.tsx` (`findByRole('sign out')` 1 s). Risolto dopo: il menu ⋯ mobile era coperto dalla hero
+> (`.header` static + backdrop-filter): ora `position: relative`, test `mobile-header-menu.spec.ts`.
 > Coverage Sonar globale 82,3% (backend il più basso: `CanService`, `Mongo*Repository`): PR dedicata da fare.
 >
 > **2026-09-18 — rev 59.** Audit Lovable, seconda serie: #46 (font 401 + primi bersagli di tocco) e
