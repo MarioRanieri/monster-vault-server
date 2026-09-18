@@ -20,13 +20,23 @@ const ALIASES: Record<string, string> = {
 
 // Hash del vecchio core.ts: righe senza MV_ID ottengono un id deterministico,
 // così re-importare lo stesso foglio aggiorna invece di duplicare.
+// NON "modernizzare": `| 0` riporta h a 32 bit ad ogni giro (come l'hash di stringhe di
+// Java) e charCodeAt lavora sulle unità UTF-16. Math.trunc / codePointAt darebbero id
+// diversi da quelli già generati → duplicati alla re-importazione. Per questo i NOSONAR.
 function simpleHash(str: string): string {
   let h = 0;
   for (let i = 0; i < str.length; i++) {
-    h = (h << 5) - h + str.charCodeAt(i);
-    h |= 0;
+    h = (h << 5) - h + str.charCodeAt(i); // NOSONAR S7758: serve UTF-16, vedi sopra
+    h |= 0; // NOSONAR S7767: wrapping a 32 bit voluto, vedi sopra
   }
   return Math.abs(h).toString(36);
+}
+
+// Testo di una cella: stringhe, numeri e booleani; oggetti/vuoti → ''.
+function cellText(v: unknown): string {
+  if (typeof v === 'string') return v.trim();
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+  return '';
 }
 
 // SheetJS è caricato on demand (chunk separato): export/import sono azioni rare
@@ -68,7 +78,7 @@ export async function parseXlsx(buf: ArrayBuffer): Promise<Can[]> {
     .map((r) => {
       const can = { id: '', nome: '' } as Can;
       for (const { col, i } of cols) {
-        const v = i >= 0 ? String(r[i] ?? '').trim() : '';
+        const v = i >= 0 ? cellText(r[i]) : '';
         if (v) col.set(can, v);
       }
       can.stato ??= 'OK'; // default del vecchio

@@ -84,16 +84,16 @@ var NO_MONSTER_ISO = [];
 
 function parseLinguaToIsos(lingua){
   var isos = [], regions = [], unknown = [];
-  function addIso(i){ if(isos.indexOf(i)===-1) isos.push(i); }
+  function addIso(i){ if(!isos.includes(i)) isos.push(i); }
   function flush(tok){
     var t = tok.trim().toUpperCase();
     if(!t) return;
     if(MAP_EXPAND[t]){ MAP_EXPAND[t].forEach(addIso); return; }
-    if(MAP_REGIONS[t]){ if(regions.indexOf(t)===-1) regions.push(t); return; }
+    if(MAP_REGIONS[t]){ if(!regions.includes(t)){ regions.push(t); } return; }
     var iso = MAP_COUNTRY[t];
     if(iso){ addIso(iso); return; }
     if(/^[A-Z]{2}$/.test(t)){ addIso(t); return; }
-    if(unknown.indexOf(t)===-1) unknown.push(t);
+    if(!unknown.includes(t)) unknown.push(t);
   }
   var s = String(lingua||''), cur = '', i = 0;
   while(i < s.length){
@@ -111,8 +111,8 @@ function parseLinguaToIsos(lingua){
 function skuKey(sku){
   var s = String(sku == null ? '' : sku).trim();
   if(/^\d{3,4}$/.test(s)){
-    var mm = parseInt(s.slice(0, 2), 10);
-    if(mm >= 1 && mm <= 12) return (2000 + parseInt(s.slice(2), 10)) * 100 + mm;
+    var mm = Number.parseInt(s.slice(0, 2), 10);
+    if(mm >= 1 && mm <= 12) return (2000 + Number.parseInt(s.slice(2), 10)) * 100 + mm;
   }
   return Infinity;
 }
@@ -121,7 +121,7 @@ function skuKey(sku){
    (es. /zero ?sugar/). Le regex passate portano già i confini di parola. */
 function flavourMatch(name, words, exclude){
   var n = String(name == null ? '' : name);
-  if(exclude && exclude.some(function(re){ return re.test(n); })) return false;
+  if(exclude?.some(function(re){ return re.test(n); })) return false;
   return words.every(function(re){ return re.test(n); });
 }
 
@@ -131,14 +131,18 @@ function listGroups(c){
   var isos = parseLinguaToIsos(c.lingua).isos.slice();
   if(/\bCARIBBEAN\b/i.test(String(c.lingua || ''))){
     var car = MAP_EXPAND['CARIBBEAN'] || [];
-    isos = isos.filter(function(i){ return car.indexOf(i) === -1; });
+    isos = isos.filter(function(i){ return !car.includes(i); });
     isos.push('_CARIB');
   }
   return isos;
 }
 
 /* Fascia choropleth dal n° di lattine: 1 / 2–3 / 4–7 / 8+. Guida colore mappa E legenda. */
-function litBand(n){ return n >= 8 ? 'q4' : n >= 4 ? 'q3' : n >= 2 ? 'q2' : 'q1'; }
+function litBand(n){
+  if(n >= 8) return 'q4';
+  if(n >= 4) return 'q3';
+  return n >= 2 ? 'q2' : 'q1';
+}
 
 // Esporta per Node (test) senza toccare il comportamento browser
 if (typeof module !== 'undefined' && module.exports) {

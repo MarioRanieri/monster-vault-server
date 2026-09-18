@@ -57,10 +57,10 @@ export function parseShareUrl(search: string): Partial<ShareFilters> {
   str('ymin', 'ymin');
   str('ymax', 'ymax');
   str('sort', 'sort');
-  const chips = (p.get('chips') ?? '').split(',').filter(Boolean);
-  if (chips.includes('promo')) out.promo = true;
-  if (chips.includes('full')) out.full = true;
-  if (chips.includes('withphoto')) out.withPhoto = true;
-  if (chips.includes('nophoto')) out.noPhoto = true;
+  const chips = new Set((p.get('chips') ?? '').split(',').filter(Boolean));
+  if (chips.has('promo')) out.promo = true;
+  if (chips.has('full')) out.full = true;
+  if (chips.has('withphoto')) out.withPhoto = true;
+  if (chips.has('nophoto')) out.noPhoto = true;
   return out;
 }

@@ -1,5 +1,6 @@
 import type { Can } from './types';
 import { colorizeTab } from './colorizeTab';
+import { TabParts } from './TabParts';
 
 // Pannello di confronto affiancato (classi .compare-panel/.compare-table/
 // .compare-row/.compare-cell del vecchio): una colonna per lattina, una riga per
@@ -68,12 +69,7 @@ export function ComparePanel({
                   const tab = colorizeTab(raw);
                   return (
                     <div key={can.id} className="compare-cell compare-cell-val">
-                      {tab.parts.map((p, i) => (
-                        <span key={i}>
-                          {i > 0 && '/'}
-                          <span style={p.color ? { color: p.color } : undefined}>{p.text}</span>
-                        </span>
-                      ))}
+                      <TabParts parts={tab.parts} />
                     </div>
                   );
                 }

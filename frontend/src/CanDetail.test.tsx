@@ -46,7 +46,7 @@ test('mostra la galleria (immagine principale + miniature)', async () => {
   );
   const imgs = screen.getAllByRole('img');
   expect(imgs.length).toBeGreaterThanOrEqual(3);
-  await userEvent.click(imgs[imgs.length - 1]); // clic su una miniatura
+  await userEvent.click(imgs.at(-1)!); // clic su una miniatura
 });
 
 test('cliccando una foto si apre la lightbox; il suo Chiudi la chiude', async () => {

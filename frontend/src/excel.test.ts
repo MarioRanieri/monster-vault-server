@@ -66,3 +66,21 @@ test('parseXlsx trova la riga header anche se preceduta da righe di titolo', asy
   expect(parsed[0]).toMatchObject({ nome: 'Ripper', sku: '0311', lingua: 'Japan' });
   expect(parsed[0].id).toBeTruthy(); // senza MV_ID → id generato
 });
+
+// Gli id delle righe senza MV_ID derivano da un hash a 32 bit su unità UTF-16 (vedi
+// simpleHash in excel.ts). Se cambiassero, re-importare un vecchio foglio duplicherebbe le
+// lattine: questi valori sono quelli già in produzione e NON vanno aggiornati.
+test('parseXlsx: gli id senza MV_ID sono deterministici e stabili nel tempo', async () => {
+  const rows = [
+    ['NOME', 'SKU', 'LINGUA'],
+    ['Ripper', '0311', 'Japan'],
+    ['Monster 🥤 Ultra', '0512', 'Italy'], // emoji: charCodeAt ≠ codePointAt
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'S');
+  const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer;
+
+  const parsed = await parseXlsx(buf);
+
+  expect(parsed.map((c) => c.id)).toEqual(['can_rnlqzj', 'can_og075x']);
+});

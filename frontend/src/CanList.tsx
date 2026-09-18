@@ -5,6 +5,7 @@ import { hasPromo } from './filterCans';
 import { cloudinaryThumb } from './cloudinary';
 import { Flags } from './flags';
 import { colorizeTab } from './colorizeTab';
+import { TabParts } from './TabParts';
 
 type SortKey = 'nome' | 'sku' | 'produttore' | 'lingua' | 'size' | 'top' | 'valore';
 const num = (v?: string) => Number.parseFloat(v ?? '') || 0;
@@ -37,8 +38,11 @@ export function CanList({
     : cans;
 
   const toggleSort = (key: SortKey) =>
-    setSort((s) => (s && s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: 1 }));
-  const arrow = (key: SortKey) => (sort?.key === key ? (sort.dir === 1 ? ' ↑' : ' ↓') : '');
+    setSort((s) => (s?.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: 1 }));
+  const arrow = (key: SortKey) => {
+    if (sort?.key !== key) return '';
+    return sort.dir === 1 ? ' ↑' : ' ↓';
+  };
   const th = (key: SortKey, label: string) => (
     <th className="sortable" onClick={() => toggleSort(key)}>
       {label}
@@ -47,12 +51,7 @@ export function CanList({
   );
   const renderTab = (top?: string) => {
     if (!top) return '—';
-    return colorizeTab(top).parts.map((p, i) => (
-      <span key={i}>
-        {i > 0 && '/'}
-        <span style={p.color ? { color: p.color } : undefined}>{p.text}</span>
-      </span>
-    ));
+    return <TabParts parts={colorizeTab(top).parts} />;
   };
 
   return (

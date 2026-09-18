@@ -16,7 +16,7 @@ export function AccountPanel({ onClose }: Readonly<{ onClose: () => void }>) {
   const [codeBusy, setCodeBusy] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const submitPw = async (e: React.FormEvent) => {
+  const submitPw = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     setPwMsg(null);
     setPwBusy(true);

@@ -74,7 +74,7 @@ export function LoginForm({
   const [rDone, setRDone] = useState(false);
   const [rBusy, setRBusy] = useState(false);
 
-  const submitLogin = async (e: React.FormEvent) => {
+  const submitLogin = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!username || !password || busy) return;
     setBusy(true);
@@ -82,7 +82,7 @@ export function LoginForm({
     setBusy(false);
   };
 
-  const submitRecover = async (e: React.FormEvent) => {
+  const submitRecover = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!onRecover || rBusy) return;
     setRError(null);

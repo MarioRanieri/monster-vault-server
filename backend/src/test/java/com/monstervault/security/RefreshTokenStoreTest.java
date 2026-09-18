@@ -79,7 +79,7 @@ class RefreshTokenStoreTest {
     void store_setsExpiryAboutRefreshWindowAhead() {
         long before = System.currentTimeMillis();
         store.store("t", "admin");
-        long expiresAt = repo.byId.get(RefreshTokenStore.hash("t")).getExpiresAt().getTime();
+        long expiresAt = repo.byId.get(RefreshTokenStore.hash("t")).getExpiresAt().toEpochMilli();
         assertThat(expiresAt).isBetween(before + REFRESH_MS, System.currentTimeMillis() + REFRESH_MS);
     }
 

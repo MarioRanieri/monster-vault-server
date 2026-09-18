@@ -1,3 +1,4 @@
+import { keyed } from './keyed';
 // Bandiere delle nazioni sulla card (mappe + parser), portate dal vanilla core.ts.
 export const COUNTRY_FLAGS: Record<string, string> = {
   ITALY: 'IT',
@@ -359,35 +360,38 @@ export function parseFlags(lingua: string | undefined): FlagToken[] {
   return out;
 }
 
+// Simbolo di una bandiera: immagine custom, emoji, oppure PNG di flagcdn dal codice ISO.
+function FlagGlyph({ flag }: Readonly<{ flag: Extract<FlagToken, { kind: 'flag' }> }>) {
+  if (flag.url) return <img src={flag.url} alt="" className="flag-img" loading="lazy" />;
+  if (flag.emoji) return <span className="flag-emoji">{flag.emoji}</span>;
+  return (
+    <img
+      src={`https://flagcdn.com/16x12/${flag.iso!.toLowerCase()}.png`}
+      alt=""
+      className="flag-img"
+      loading="lazy"
+    />
+  );
+}
+
 // Rende le bandiere del campo lingua (immagini flagcdn + nome), come nel vecchio.
 export function Flags({ lingua }: Readonly<{ lingua?: string }>) {
   const tokens = parseFlags(lingua);
   if (tokens.length === 0) return null;
   return (
     <>
-      {tokens.map((t, i) => {
+      {keyed(tokens, (t) => (t.kind === 'flag' ? t.name : t.text)).map(({ key, item: t }) => {
         if (t.kind === 'sep')
           return (
-            <span key={i} className="flag-sep">
+            <span key={key} className="flag-sep">
               {' '}
               {t.text}{' '}
             </span>
           );
-        if (t.kind === 'text') return <span key={i}>{t.text}</span>;
+        if (t.kind === 'text') return <span key={key}>{t.text}</span>;
         return (
-          <span key={i} className="flag-chip">
-            {t.url ? (
-              <img src={t.url} alt="" className="flag-img" loading="lazy" />
-            ) : t.emoji ? (
-              <span className="flag-emoji">{t.emoji}</span>
-            ) : (
-              <img
-                src={`https://flagcdn.com/16x12/${t.iso!.toLowerCase()}.png`}
-                alt=""
-                className="flag-img"
-                loading="lazy"
-              />
-            )}
+          <span key={key} className="flag-chip">
+            <FlagGlyph flag={t} />
             <span className="flag-name">{t.name}</span>
           </span>
         );

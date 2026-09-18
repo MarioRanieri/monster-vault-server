@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Date;
+import java.time.Instant;
 import java.util.HexFormat;
 
 /**
@@ -33,7 +33,7 @@ public class RefreshTokenStore {
     }
 
     public void store(String token, String username) {
-        Date expiresAt = new Date(System.currentTimeMillis() + refreshExpirationMs);
+        Instant expiresAt = Instant.now().plusMillis(refreshExpirationMs);
         repo.save(new RefreshToken(hash(token), username, expiresAt));
     }
 

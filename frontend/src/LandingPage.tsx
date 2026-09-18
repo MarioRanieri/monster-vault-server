@@ -1,5 +1,11 @@
 // Splash iniziale (struttura/classi del vecchio #landing-overlay): scelta guest
 // vs admin + link alla mappa. Presentazionale: stats e callback vengono da App.
+// Testo del badge "attività del mese": singolare/plurale o nessuna novità.
+function monthNotice(n: number): string {
+  if (n <= 0) return 'no new cans added this month';
+  return `${n} ${n === 1 ? 'can' : 'cans'} added this month`;
+}
+
 export function LandingPage({
   total,
   countries,
@@ -67,15 +73,13 @@ export function LandingPage({
         {!loading && (
           <div className="land-notice">
             <span className="land-live" aria-hidden="true" />
-            {addedThisMonth > 0
-              ? `${addedThisMonth} ${addedThisMonth === 1 ? 'can' : 'cans'} added this month`
-              : 'no new cans added this month'}
+            {monthNotice(addedThisMonth)}
           </div>
         )}
 
         <div className="land-btns">
           <button type="button" className="land-btn-enter" onClick={onEnter}>
-            ENTER THE COLLECTION
+            <span>ENTER THE COLLECTION</span>
             <span className="land-btn-sub">Guest mode</span>
           </button>
           <button type="button" className="land-btn-admin" onClick={onAdmin}>
@@ -88,7 +92,7 @@ export function LandingPage({
         </a>
 
         <div className="land-footer">
-          Built by Mario Ranieri &middot; Spring Boot + React
+          <span>Built by Mario Ranieri &middot; Spring Boot + React</span>
           <a
             href="https://github.com/MarioRanieri/monster-vault-server"
             target="_blank"

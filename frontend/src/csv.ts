@@ -21,7 +21,7 @@ export const COLUMNS: {
   { h: 'MORE INFO', get: (c) => c.descrizione ?? '', set: (c, v) => (c.descrizione = v) },
 ];
 
-const escapeCell = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+const escapeCell = (v: string) => (/[",\n]/.test(v) ? `"${v.replaceAll('"', '""')}"` : v);
 
 // Serializza le lattine in CSV (con intestazione).
 export function buildCsv(cans: Can[]): string {

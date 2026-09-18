@@ -275,9 +275,10 @@ function App() {
     setTimeout(() => setToast(null), 2000);
   };
   const toggleCompare = (id: string) => {
-    setCompareIds((ids) =>
-      ids.includes(id) ? ids.filter((x) => x !== id) : ids.length >= 4 ? ids : [...ids, id],
-    );
+    setCompareIds((ids) => {
+      if (ids.includes(id)) return ids.filter((x) => x !== id);
+      return ids.length >= 4 ? ids : [...ids, id];
+    });
   };
   const compareCans = compareIds
     .map((id) => cans.find((c) => c.id === id))

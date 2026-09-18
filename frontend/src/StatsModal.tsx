@@ -174,7 +174,7 @@ function Timeline({ cans, isAdmin }: Readonly<{ cans: Can[]; isAdmin: boolean }>
         }}
       >
         <span>
-          Added over time
+          <span>Added over time</span>
           <span style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 400, marginLeft: 8 }}>
             based on last update
           </span>

@@ -3,6 +3,7 @@ import type { Can } from './types';
 import { statoBadgeClass } from './statoBadge';
 import { hasPromo } from './filterCans';
 import { colorizeTab } from './colorizeTab';
+import { TabParts } from './TabParts';
 import { cloudinaryThumb } from './cloudinary';
 import { CanShare } from './CanShare';
 import { Lightbox } from './Lightbox';
@@ -242,12 +243,7 @@ export function CanDetail({
                   <li key={f.lbl} className="detail-field detail-field-top" style={tab.style}>
                     <span className="detail-field-lbl">{f.lbl}</span>
                     <span className="detail-field-val">
-                      {tab.parts.map((p, i) => (
-                        <span key={i}>
-                          {i > 0 && '/'}
-                          <span style={p.color ? { color: p.color } : undefined}>{p.text}</span>
-                        </span>
-                      ))}
+                      <TabParts parts={tab.parts} />
                     </span>
                   </li>
                 );

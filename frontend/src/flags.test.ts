@@ -13,7 +13,7 @@ test('BENELUX si espande in Belgio/Olanda/Lussemburgo', () => {
 test('gestisce la freccia -> come separatore tra due bandiere', () => {
   const t = parseFlags('USA -> UK');
   expect(t.map((x) => x.kind)).toEqual(['flag', 'sep', 'flag']);
-  expect(t.filter((x) => x.kind === 'sep')[0]).toMatchObject({ text: '→' });
+  expect(t.find((x) => x.kind === 'sep')).toMatchObject({ text: '→' });
 });
 
 test('un valore sconosciuto resta testo', () => {
