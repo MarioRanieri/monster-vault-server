@@ -94,12 +94,7 @@ export function LoginForm({
   };
 
   return (
-    <div
-      className="auth-overlay"
-      style={{ display: 'flex' }}
-      role="dialog"
-      aria-label="Admin access"
-    >
+    <dialog className="auth-overlay" style={{ display: 'flex' }} open aria-label="Admin access">
       <div className="auth-card">
         <div className="auth-logo">
           <svg width="36" height="36" viewBox="0 0 32 32" fill="none" aria-hidden="true">
@@ -239,9 +234,7 @@ export function LoginForm({
             </div>
             {rDone ? (
               <>
-                <p className="auth-success" role="status">
-                  ✓ Password updated. You can sign in now.
-                </p>
+                <output className="auth-success">✓ Password updated. You can sign in now.</output>
                 <button
                   type="button"
                   className="auth-google-btn"
@@ -316,6 +309,6 @@ export function LoginForm({
           </>
         )}
       </div>
-    </div>
+    </dialog>
   );
 }

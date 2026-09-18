@@ -165,7 +165,7 @@ export function Lightbox({
   if (photos.length === 0) return null;
 
   return (
-    <div className="lightbox open" role="dialog" aria-label="Enlarged photo">
+    <dialog className="lightbox open" open aria-label="Enlarged photo">
       <button type="button" className="lb-close" aria-label="Close photo" onClick={onClose}>
         ✕
       </button>
@@ -195,6 +195,6 @@ export function Lightbox({
           ›
         </button>
       )}
-    </div>
+    </dialog>
   );
 }

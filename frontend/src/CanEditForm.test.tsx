@@ -150,8 +150,8 @@ test('⇄: seleziona uno slot, tap su un altro → foto scambiate anche al Save'
   await userEvent.click(screen.getByRole('button', { name: /^move photo 1$/i }));
   await userEvent.click(document.getElementById('slot-2')!);
 
-  expect((screen.getByAltText('Photo 1') as HTMLImageElement).src).toContain('b.jpg');
-  expect((screen.getByAltText('Photo 2') as HTMLImageElement).src).toContain('a.jpg');
+  expect((screen.getByAltText('Slot 1') as HTMLImageElement).src).toContain('b.jpg');
+  expect((screen.getByAltText('Slot 2') as HTMLImageElement).src).toContain('a.jpg');
 
   await userEvent.click(screen.getByRole('button', { name: /save/i }));
   expect(onSave).toHaveBeenCalledWith(
@@ -175,8 +175,8 @@ test('drag&drop tra due slot scambia le foto', () => {
   fireEvent.dragOver(document.getElementById('slot-2')!, { dataTransfer: dt });
   fireEvent.drop(document.getElementById('slot-2')!, { dataTransfer: dt });
 
-  expect((screen.getByAltText('Photo 1') as HTMLImageElement).src).toContain('b.jpg');
-  expect((screen.getByAltText('Photo 2') as HTMLImageElement).src).toContain('a.jpg');
+  expect((screen.getByAltText('Slot 1') as HTMLImageElement).src).toContain('b.jpg');
+  expect((screen.getByAltText('Slot 2') as HTMLImageElement).src).toContain('a.jpg');
 });
 
 test('Save bloccato senza Name/SKU, con messaggio; sbloccato compilandoli', async () => {
@@ -223,4 +223,9 @@ test('il bottone URL mette in coda un upload da URL sullo slot 1', async () => {
     expect.any(Object),
     expect.arrayContaining([expect.objectContaining({ slot: 1, url: 'https://x/y.jpg' })]),
   );
+});
+
+test('la modale � un <dialog> nativo', () => {
+  render(<CanEditForm can={can} onSave={vi.fn()} onCancel={() => {}} />);
+  expect(screen.getByRole('dialog').tagName).toBe('DIALOG');
 });

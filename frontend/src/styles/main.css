@@ -165,6 +165,17 @@ body.light .auth-card {
   margin: 0;
   padding: 0;
 }
+/* Reset del <dialog> nativo (usato con `open`, mai showModal): via i suoi stili UA
+   (bordo, colori Canvas, fit-content) così le classi delle modali (.modal-backdrop,
+   .lightbox, .compare-panel, .crop-overlay, .auth-overlay) restano l'unica fonte
+   dell'aspetto. Margin/padding sono già azzerati dal reset universale. */
+dialog {
+  border: 0;
+  width: auto;
+  height: auto;
+  color: inherit;
+  background: transparent;
+}
 body {
   background: var(--bg);
   color: var(--text);
@@ -327,6 +338,7 @@ body {
   text-decoration: underline;
 }
 .auth-success {
+  display: block; /* <output> è inline di default */
   color: var(--green);
   font-size: 13px;
   text-align: center;
@@ -2846,7 +2858,8 @@ input.field-invalid {
   flex-direction: column;
   gap: 5px;
 }
-.field label {
+.field label,
+.field .field-label {
   font-size: 11px;
   color: var(--text3);
   text-transform: uppercase;
@@ -3025,6 +3038,7 @@ input.field-invalid {
   border-left-color: #ff4444;
 }
 @keyframes slideIn {
+  display: block; /* <output> è inline di default */
   from {
     transform: translateX(110%);
     opacity: 0;

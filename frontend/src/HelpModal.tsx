@@ -1,7 +1,7 @@
 // Modal guida (classi come StatsModal): breve aiuto sull'uso della collezione.
 export function HelpModal({ onClose }: Readonly<{ onClose: () => void }>) {
   return (
-    <div className="modal-backdrop open" role="dialog" aria-modal="true" aria-label="Guide">
+    <dialog className="modal-backdrop open" open aria-modal="true" aria-label="Guide">
       <div className="stats-modal">
         <div className="modal-header">
           <div className="modal-title">Guide</div>
@@ -37,6 +37,6 @@ export function HelpModal({ onClose }: Readonly<{ onClose: () => void }>) {
           </div>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

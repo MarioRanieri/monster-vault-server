@@ -16,3 +16,8 @@ test('Cancel chiama onCancel', async () => {
   await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
   expect(onCancel).toHaveBeenCalled();
 });
+
+test('la modale è un <dialog> nativo', () => {
+  render(<PhotoCrop src="blob:x" onApply={() => {}} onCancel={() => {}} />);
+  expect(screen.getByRole('dialog').tagName).toBe('DIALOG');
+});

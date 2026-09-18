@@ -28,7 +28,7 @@ export function ComparePanel({
   const cols = `120px repeat(${cans.length}, minmax(0, 1fr))`;
 
   return (
-    <div className="compare-panel open" role="dialog" aria-label="Compare cans">
+    <dialog className="compare-panel open" open aria-label="Compare cans">
       <div className="compare-panel-header">
         <span className="compare-panel-title">Comparing {cans.length} cans</span>
         <button type="button" className="btn btn-ghost" onClick={onClose}>
@@ -84,6 +84,6 @@ export function ComparePanel({
           ))}
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }
