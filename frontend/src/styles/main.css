@@ -3731,6 +3731,20 @@ input.field-invalid {
   .filter-toggle {
     min-height: 44px;
   }
+  /* Stessa soglia per i controlli rimasti: il glifo/testo non cambia, cresce solo
+     l'area toccabile. I controlli quadrati/icona hanno anche min-width. */
+  .view-btn,
+  .header-more-btn,
+  .logo {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+  }
+  .filter-select,
+  .search-wrap input,
+  .card-overlay-btn.view {
+    min-height: 44px;
+  }
   /* iOS: font-size >=16px sui campi di testo evita lo zoom automatico del viewport al focus */
   .auth-input,
   .search-wrap input,
