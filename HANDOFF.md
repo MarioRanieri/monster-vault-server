@@ -14,8 +14,9 @@
 > (`lombok.addLombokGeneratedAnnotation = true`, scelta esplicita dell'utente): JaCoCo salta i `equals/hashCode`
 > generati da Lombok nei model (~255 condizioni). **Resta scoperto:** `PhotoStorage` (default no-op), `main()`,
 > `NoSuchAlgorithmException` di SHA-256, il return interno del double-checked locking in `getAll`; il resto
-> delle condizioni Sonar (179) è quasi tutto frontend. Nota: in `CanController.getAll` il
-> ramo manuale `etag.equals(ifNoneMatch)` è ridondante, Spring risponde già 304 da solo con ETag + If-None-Match.
+> delle condizioni Sonar (179) è quasi tutto frontend. Rimosso poi (PR successiva) il ramo
+> manuale `etag.equals(ifNoneMatch)` di `CanController.getAll`: era ridondante, il 304 lo dà già Spring con
+> ETag + If-None-Match (i test 304 guest/admin restano verdi).
 >
 > **2026-09-18 — rev 60: pulizia Sonar (mappa wayfinder #49, chiusa).** Code smell **96 → 16** (i 16 sono
 > falsi positivi/eccezioni documentati in `docs/AUDIT.md`). Fatto in 5 PR: #54 (~50 meccanici, `TabParts`/
