@@ -375,9 +375,14 @@ function jumpToCountry(q){
     openPanel(target);
     var el=pulse(target); hint.textContent='';
     if(el){
-      var box=document.getElementById('map-box'), boxRect=box.getBoundingClientRect(), rect=el.getBoundingClientRect();
-      box.scrollLeft=centerScroll(rect.left-boxRect.left+box.scrollLeft,rect.width,box.clientWidth);
-      box.scrollTop=centerScroll(rect.top-boxRect.top+box.scrollTop,rect.height,box.clientHeight);
+      // #panel apre con transition:width .2s, che restringe #map-box (e la mappa s*100%-wide)
+      // DOPO l'apertura: aspettiamo che finisca prima di misurare/centrare (waiting anche se già
+      // aperto è innocuo).
+      setTimeout(function(){
+        var box=document.getElementById('map-box'), boxRect=box.getBoundingClientRect(), rect=el.getBoundingClientRect();
+        box.scrollLeft=centerScroll(rect.left-boxRect.left+box.scrollLeft,rect.width,box.clientWidth);
+        box.scrollTop=centerScroll(rect.top-boxRect.top+box.scrollTop,rect.height,box.clientHeight);
+      },220);
     }
   }
   else hint.textContent = target ? isoName(target)+': not in this view' : 'No match for "'+esc(q)+'"';
