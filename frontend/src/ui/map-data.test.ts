@@ -1,6 +1,6 @@
 import { COUNTRY_FLAGS } from './flags';
 // @ts-expect-error - plain JS module (loaded as-is by map.html), no .d.ts; shape asserted via `md`
-import * as mapData from '../public/map-data.js';
+import * as mapData from '../../public/map-data.js';
 
 type Iso = { isos: string[]; regions: string[]; unknown: string[] };
 const md = mapData as unknown as {

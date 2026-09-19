@@ -1,6 +1,6 @@
 import type { Can } from '../types';
 import { sumValue } from './computeStats';
-import { useEscapeClose } from '../useEscapeClose';
+import { useEscapeClose } from '../ui/useEscapeClose';
 
 // Calcolatore di valore (modal, classi come StatsModal): somma/media del valore
 // stimato delle lattine attualmente filtrate. Admin-only (i prezzi lo sono).

@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AccountPanel } from './AccountPanel';
-import { useAuthStore } from './authStore';
+import { useAuthStore } from '../authStore';
 
 test('cambia password: chiama changePassword e mostra conferma', async () => {
   const changePassword = vi.fn().mockResolvedValue({ ok: true });

@@ -9,9 +9,9 @@ import {
   type Freq,
   type TimelinePoint,
 } from './computeStats';
-import { statusBadgeClass } from '../statusBadge';
+import { statusBadgeClass } from '../ui/statusBadge';
 import { cloudinaryThumb } from '../photos/cloudinary';
-import { useEscapeClose } from '../useEscapeClose';
+import { useEscapeClose } from '../ui/useEscapeClose';
 
 // Palette categoriale del vecchio (le fette identificano categorie, non magnitudini).
 const CHART_COLORS = [

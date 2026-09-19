@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAuthStore } from './authStore';
+import { useAuthStore } from '../authStore';
 import { useEscapeClose } from './useEscapeClose';
 
 // Pannello "Account & security" (admin): cambio password + generazione del codice

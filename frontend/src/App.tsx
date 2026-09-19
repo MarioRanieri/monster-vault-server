@@ -8,10 +8,10 @@ import { CanViews, LoadStatus, Toast, type ToastState } from './AppParts';
 import { NO_FILTERS, type Filters } from './filters/appFilters';
 import { computeStats, addedThisMonth, latestAdditions } from './stats/computeStats';
 import { useAuthStore } from './authStore';
-import { LoginForm } from './LoginForm';
+import { LoginForm } from './ui/LoginForm';
 import { CanEditForm } from './cans/CanEditForm';
 import { LandingPage } from './landing/LandingPage';
-import { Header } from './Header';
+import { Header } from './ui/Header';
 import { buildShareUrl, parseShareUrl, type ShareFilters } from './filters/shareView';
 import { CompareBar } from './compare/CompareBar';
 import { ComparePanel } from './compare/ComparePanel';
@@ -19,9 +19,9 @@ import { StatsModal } from './stats/StatsModal';
 import { ValueCalc } from './stats/ValueCalc';
 import { parseCsv } from './export/csv';
 import { buildXlsx, parseXlsx } from './export/excel';
-import { HelpModal } from './HelpModal';
+import { HelpModal } from './ui/HelpModal';
 import { Lightbox } from './photos/Lightbox';
-import { AccountPanel } from './AccountPanel';
+import { AccountPanel } from './ui/AccountPanel';
 import type { Can } from './types';
 
 // Render incrementale: quante card montare per "pagina" (vedi shownCans).

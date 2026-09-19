@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import type { Can } from '../types';
-import { statusBadgeClass } from '../statusBadge';
+import { statusBadgeClass } from '../ui/statusBadge';
 import { hasPromo } from '../filters/filterCans';
 import { cloudinaryThumb } from '../photos/cloudinary';
-import { Flags } from '../flags';
-import { colorizeTab } from '../colorizeTab';
-import { TabParts } from '../TabParts';
+import { Flags } from '../ui/flags';
+import { colorizeTab } from '../ui/colorizeTab';
+import { TabParts } from '../ui/TabParts';
 
 type SortKey = 'nome' | 'sku' | 'produttore' | 'lingua' | 'size' | 'top' | 'valore';
 const num = (v?: string) => Number.parseFloat(v ?? '') || 0;
