@@ -1,4 +1,4 @@
-import type { Can } from './types';
+import type { Can } from '../types';
 
 // Barra in basso (classi .compare-bar/.compare-slot del vecchio): mostra le
 // lattine selezionate per il confronto, permette di rimuoverle e aprire il panel.

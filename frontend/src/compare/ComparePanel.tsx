@@ -1,7 +1,7 @@
-import type { Can } from './types';
-import { colorizeTab } from './colorizeTab';
-import { TabParts } from './TabParts';
-import { useEscapeClose } from './useEscapeClose';
+import type { Can } from '../types';
+import { colorizeTab } from '../colorizeTab';
+import { TabParts } from '../TabParts';
+import { useEscapeClose } from '../useEscapeClose';
 
 // Pannello di confronto affiancato (classi .compare-panel/.compare-table/
 // .compare-row/.compare-cell del vecchio): una colonna per lattina, una riga per
