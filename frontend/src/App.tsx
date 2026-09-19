@@ -59,13 +59,17 @@ function App() {
   // anche a sessione nuova. Un guest la salta solo per la sessione corrente
   // (sessionStorage: sopravvive a un refresh ma si azzera chiudendo la tab/app
   // per davvero) — la landing resta comunque raggiungibile dal logo dell'header.
+  // Nella PWA installata sessionStorage può sopravvivere alla chiusura dell'app
+  // (iOS): lì il "già vista" del guest resta solo in memoria, così ogni apertura
+  // mostra la landing.
+  const standalone = globalThis.matchMedia?.('(display-mode: standalone)').matches ?? false;
   const [view, setView] = useState<'landing' | 'collection'>(() =>
-    localStorage.getItem('mv_auth') || sessionStorage.getItem('mv_seen_landing')
+    localStorage.getItem('mv_auth') || (!standalone && sessionStorage.getItem('mv_seen_landing'))
       ? 'collection'
       : 'landing',
   );
   const enterCollection = () => {
-    sessionStorage.setItem('mv_seen_landing', '1');
+    if (!standalone) sessionStorage.setItem('mv_seen_landing', '1');
     setView('collection');
   };
   const [showLogin, setShowLogin] = useState(false);

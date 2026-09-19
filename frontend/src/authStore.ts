@@ -85,7 +85,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     refreshing ??= (async () => {
       try {
         const res = await fetch('/api/auth/refresh', { method: 'POST' });
-        if (!res.ok) return false;
+        if (!res.ok) {
+          // sessione scaduta/revocata: l'hint mentirebbe per sempre (App salta la landing)
+          localStorage.removeItem('mv_auth');
+          return false;
+        }
         const data = (await res.json()) as { accessToken?: string };
         // login solo se il server ha davvero restituito un token
         if (typeof data.accessToken !== 'string') return false;

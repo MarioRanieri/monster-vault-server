@@ -81,6 +81,22 @@ test('refresh ripristina la sessione se il server dà un token', async () => {
   expect(useAuthStore.getState().isAdmin).toBe(true);
 });
 
+// Refresh token scaduto (7 giorni) o revocato: l'hint mv_auth restava per
+// sempre, e App saltava la landing per un utente che ormai è guest.
+test("refresh rifiutato dal server rimuove l'hint di sessione", async () => {
+  localStorage.setItem('mv_auth', '1');
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401 }));
+  expect(await useAuthStore.getState().refresh()).toBe(false);
+  expect(localStorage.getItem('mv_auth')).toBeNull();
+});
+
+test("refresh offline (errore di rete) conserva l'hint di sessione", async () => {
+  localStorage.setItem('mv_auth', '1');
+  vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('offline')));
+  expect(await useAuthStore.getState().refresh()).toBe(false);
+  expect(localStorage.getItem('mv_auth')).toBe('1');
+});
+
 test('changePassword: ok con token, 401 se la corrente è sbagliata', async () => {
   useAuthStore.setState({ accessToken: 'tok' });
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
