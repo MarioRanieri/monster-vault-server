@@ -311,9 +311,12 @@ function toggleValues(){ showValues=!showValues; document.getElementById('val-bt
 function setScale(s,ax,ay){
   var box=document.getElementById('map-box'), host=document.getElementById('svg-host');
   var s0=parseFloat(host.dataset.scale||'1');
+  // Leggere lo scroll PRIMA di cambiare width: il browser clampa scrollLeft/Top al nuovo
+  // max non appena la mappa si restringe (zoom-out), quindi letto dopo sarebbe già sbagliato.
+  var sl=box.scrollLeft, st=box.scrollTop;
   host.dataset.scale=s; host.style.width=(s*100)+'%';
-  box.scrollLeft=zoomScroll(box.scrollLeft,ax,s0,s);
-  box.scrollTop=zoomScroll(box.scrollTop,ay,s0,s);
+  box.scrollLeft=zoomScroll(sl,ax,s0,s);
+  box.scrollTop=zoomScroll(st,ay,s0,s);
 }
 function zoomMap(dir){
   var box=document.getElementById('map-box');
