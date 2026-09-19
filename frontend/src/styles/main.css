@@ -908,8 +908,8 @@ body.public-mode .public-banner {
   background: var(--bg3);
   border: 1px solid var(--border2);
   color: var(--text2);
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 18px;
