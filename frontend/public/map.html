@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Monster Vault — World Map</title>
 <meta name="theme-color" content="#0a0a0a"/>
 <link rel="icon" href="/icon.png"/>
@@ -30,7 +30,7 @@
      scorre SOTTO. La mappa ha il proprio scroll → lo zoom muove solo la mappa. */
   #firstview{display:flex;min-height:300px}
   #map-col{flex:1;display:flex;flex-direction:column;min-width:0}
-  #map-box{flex:1;min-height:0;overflow:auto;padding:12px}
+  #map-box{flex:1;min-height:0;overflow:auto;padding:12px;touch-action:pan-x pan-y}
   #svg-host{transform-origin:0 0;width:100%}
   #svg-host svg{width:100%;height:auto;display:block}
   #svg-host path{fill:#161d16;stroke:#262e26;stroke-width:.5;transition:fill .15s}
@@ -182,18 +182,6 @@
 <script src="/map-data.js"></script>
 <script>
 'use strict';
-var MOCK = [
-  {id:'m1',nome:'OG',sku:'0610',lingua:'USA',valore:'120',p1:''},
-  {id:'m2',nome:'OG Mexico',sku:'0312',lingua:'MEXICO',valore:'90',p1:''},
-  {id:'m3',nome:'OG Brazil',sku:'1211',lingua:'BRAZIL',size:'500ml',valore:'40',p1:''},
-  {id:'m4',nome:'OG Brazil',sku:'0322',lingua:'BRAZIL',size:'473ml',valore:'45',p1:''},
-  {id:'m5',nome:'Assault Camo',sku:'0207',lingua:'CANADA',valore:'80',p1:''},
-  {id:'m6',nome:'Khaos Caribbean',sku:'0815',lingua:'CARIBBEAN',valore:'30',p1:''},
-  {id:'m7',nome:'OG Zero Sugar',sku:'0118',lingua:'UK',valore:'5',p1:''},
-  {id:'m8',nome:'OG Pakistan',sku:'0921',lingua:'PAKISTAN',valore:'25',promo:'Limited',p1:''},
-  {id:'m9',nome:'Rehab Lemonade',sku:'0414',lingua:'USA',valore:'18',p1:''},
-  {id:'m10',nome:'Ripper',sku:'0613',lingua:'AUSTRALIA',valore:'22',p1:''}
-];
 var isAdmin=false; // ponytail: map is public-only, price toggle checks this
 
 /* Gusti collezionati (match LARGO sul NOME, confini di parola: "OG Mexico" sì, "Mad Dog" no).
@@ -206,7 +194,7 @@ var FLAVOURS=[
   {key:'ripper',  label:'Ripper',      words:[/\bripper\b/i]},
   {key:'khaos',   label:'Khaos',       words:[/\bkhaos\b/i]}
 ];
-var allCans=[], currentFlavour=null, showValues=false, usingMock=false;
+var allCans=[], currentFlavour=null, showValues=false;
 var byIso={}, regionsFound={}, unknownFound={}, tinyMissing={};
 
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -263,7 +251,6 @@ function lightMap(){
     if(el&&!el.classList.contains('lit')&&!el.classList.contains('shared')) el.classList.add('nomon'); });
   document.getElementById('counter').innerHTML='&#127758; <b>'+lit+'</b>&nbsp;countries lit';
   var notes=[];
-  if(usingMock) notes.push('&#9888;&#65039; Demo data (API not reachable)');
   var tinyN=Object.keys(tinyMissing).length;
   if(tinyN) notes.push('<b>'+tinyN+'</b> countr'+(tinyN>1?'ies':'y')+' too small for the map');
   if(Object.keys(regionsFound).length) notes.push('Regions not on map: '+Object.keys(regionsFound).join(', '));
@@ -406,12 +393,10 @@ function openInfo(){
   var miss=computeMissing();
   var html='<div style="display:flex;justify-content:space-between;align-items:center"><h2>&#127758; Map legend</h2>'
     +'<button class="p-close" onclick="closeInfo()">&#10005;</button></div>'
-    +'<div class="leg"><span class="dot" style="background:var(--green)"></span> You have a can from this country</div>'
-    +'<div class="leg"><span class="dot" style="background:var(--red)"></span> The can exists but I don&rsquo;t have it yet (to be marked from my missing-list, e.g. OG Indonesia)</div>'
-    +'<div class="leg"><span class="dot" style="background:#161d16;border:1px solid #333"></span> No can (for now: includes countries that use another country&rsquo;s can)</div>'
+    +'<div class="leg"><span class="dot" style="background:var(--green)"></span> A can from this country is in the collection</div>'
+    +'<div class="leg"><span class="dot" style="background:#161d16;border:1px solid #333"></span> No can from this country yet</div>'
     +'<h3>Caribbean</h3><p>The <b>CARIBBEAN</b> label lights all Caribbean islands <b>except</b> Dominican Republic, Trinidad &amp; Tobago and Jamaica, which have (or will have) their own can.</p>'
-    +'<h3>Countries without a can of yours ('+miss.length+')</h3>'
-    +'<p style="margin-bottom:6px">Review this list and tell me, country by country, whether Monster makes a can there (you’re missing it) or not (no Monster) — I’ll mark them accordingly.</p>'
+    +'<h3>Countries not in the collection yet ('+miss.length+')</h3>'
     +'<div class="miss-grid">'+miss.map(function(iso){ return '<div>'+flagImg(iso,'16x12')+esc(isoName(iso))+'</div>'; }).join('')+'</div>';
   document.getElementById('info-body').innerHTML=html;
   document.getElementById('info-ov').classList.add('open');
@@ -455,7 +440,7 @@ function attachEvents(){
 var warmTimer=setTimeout(function(){ var w=document.getElementById('warm'); if(w) w.style.display='block'; },5000);
 Promise.all([
   fetch('/world-map.svg').then(function(r){ if(!r.ok) throw 0; return r.text(); }),
-  fetch('/api/cans').then(function(r){ if(!r.ok) throw 0; return r.json(); }).catch(function(){ usingMock=true; return MOCK; })
+  fetch('/api/cans').then(function(r){ if(!r.ok) throw 0; return r.json(); })
 ]).then(function(res){
   clearTimeout(warmTimer);
   document.getElementById('loading').style.display='none';
@@ -464,7 +449,6 @@ Promise.all([
   renderChips();
   document.getElementById('picker').style.display='';
   if(isAdmin) document.getElementById('val-btn').style.display='';
-  if(usingMock) document.getElementById('notes').innerHTML='&#9888;&#65039; Demo data (API not reachable)';
   attachEvents();
   fitFirstView();
 }).catch(function(){
