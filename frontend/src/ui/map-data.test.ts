@@ -10,6 +10,8 @@ const md = mapData as unknown as {
   flavourMatch: (name: unknown, words: RegExp[], exclude?: RegExp[]) => boolean;
   listGroups: (c: { lingua: string }) => string[];
   litBand: (n: number) => string;
+  zoomScroll: (scroll: number, anchor: number, s0: number, s1: number) => number;
+  centerScroll: (elStart: number, elSize: number, viewSize: number) => number;
 };
 const MAP_COUNTRY = md.MAP_COUNTRY;
 
@@ -90,6 +92,27 @@ describe('listGroups', () => {
   });
   test('CARIBBEAN collapses the islands into a single _CARIB group', () => {
     expect(md.listGroups({ lingua: 'CARIBBEAN' })).toEqual(['_CARIB']);
+  });
+});
+
+describe('zoomScroll', () => {
+  test('same scale returns the same scroll (no-op zoom)', () => {
+    expect(md.zoomScroll(50, 100, 2, 2)).toBe(50);
+  });
+  test('zooming in 1→2 with anchor 100, scroll 0 gives 100', () => {
+    expect(md.zoomScroll(0, 100, 1, 2)).toBe(100);
+  });
+  test('zooming out clamps the result at 0', () => {
+    expect(md.zoomScroll(0, 100, 2, 1)).toBe(0);
+  });
+});
+
+describe('centerScroll', () => {
+  test('centers an element inside a larger viewport, clamped to 0', () => {
+    expect(md.centerScroll(0, 100, 400)).toBe(0);
+  });
+  test('centers an element further along the axis', () => {
+    expect(md.centerScroll(500, 100, 400)).toBe(350);
   });
 });
 

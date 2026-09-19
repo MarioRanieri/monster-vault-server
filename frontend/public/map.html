@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Monster Vault — World Map</title>
 <meta name="theme-color" content="#0a0a0a"/>
 <link rel="icon" href="/icon.png"/>
@@ -30,7 +30,7 @@
      scorre SOTTO. La mappa ha il proprio scroll → lo zoom muove solo la mappa. */
   #firstview{display:flex;min-height:300px}
   #map-col{flex:1;display:flex;flex-direction:column;min-width:0}
-  #map-box{flex:1;min-height:0;overflow:auto;padding:12px}
+  #map-box{flex:1;min-height:0;overflow:auto;padding:12px;touch-action:pan-x pan-y}
   #svg-host{transform-origin:0 0;width:100%}
   #svg-host svg{width:100%;height:auto;display:block}
   #svg-host path{fill:#161d16;stroke:#262e26;stroke-width:.5;transition:fill .15s}
@@ -41,7 +41,9 @@
   #svg-host .q3, #svg-host .q3 path{fill:#9be000}
   #svg-host .q4, #svg-host .q4 path{fill:#c6ff4d}
   #svg-host .q3, #svg-host .q4{filter:drop-shadow(0 0 4px rgba(168,255,0,.3))}
-  #svg-host .lit:hover, #svg-host .lit:hover path{fill:#e6ff99}
+  #svg-host .lit:hover, #svg-host .lit:hover path,
+  #svg-host .lit:focus-visible, #svg-host .lit:focus-visible path{fill:#e6ff99}
+  #svg-host .lit:focus-visible{outline:2px solid #fff;outline-offset:1px}
   #svg-host .pulse, #svg-host .pulse path{fill:#e6ff99}
   #svg-host .pulse{filter:drop-shadow(0 0 8px rgba(168,255,0,.8));animation:pls .5s ease-in-out 3}
   @keyframes pls{50%{filter:drop-shadow(0 0 12px rgba(168,255,0,1))}}
@@ -182,18 +184,6 @@
 <script src="/map-data.js"></script>
 <script>
 'use strict';
-var MOCK = [
-  {id:'m1',nome:'OG',sku:'0610',lingua:'USA',valore:'120',p1:''},
-  {id:'m2',nome:'OG Mexico',sku:'0312',lingua:'MEXICO',valore:'90',p1:''},
-  {id:'m3',nome:'OG Brazil',sku:'1211',lingua:'BRAZIL',size:'500ml',valore:'40',p1:''},
-  {id:'m4',nome:'OG Brazil',sku:'0322',lingua:'BRAZIL',size:'473ml',valore:'45',p1:''},
-  {id:'m5',nome:'Assault Camo',sku:'0207',lingua:'CANADA',valore:'80',p1:''},
-  {id:'m6',nome:'Khaos Caribbean',sku:'0815',lingua:'CARIBBEAN',valore:'30',p1:''},
-  {id:'m7',nome:'OG Zero Sugar',sku:'0118',lingua:'UK',valore:'5',p1:''},
-  {id:'m8',nome:'OG Pakistan',sku:'0921',lingua:'PAKISTAN',valore:'25',promo:'Limited',p1:''},
-  {id:'m9',nome:'Rehab Lemonade',sku:'0414',lingua:'USA',valore:'18',p1:''},
-  {id:'m10',nome:'Ripper',sku:'0613',lingua:'AUSTRALIA',valore:'22',p1:''}
-];
 var isAdmin=false; // ponytail: map is public-only, price toggle checks this
 
 /* Gusti collezionati (match LARGO sul NOME, confini di parola: "OG Mexico" sì, "Mad Dog" no).
@@ -206,7 +196,7 @@ var FLAVOURS=[
   {key:'ripper',  label:'Ripper',      words:[/\bripper\b/i]},
   {key:'khaos',   label:'Khaos',       words:[/\bkhaos\b/i]}
 ];
-var allCans=[], currentFlavour=null, showValues=false, usingMock=false;
+var allCans=[], currentFlavour=null, showValues=false;
 var byIso={}, regionsFound={}, unknownFound={}, tinyMissing={};
 
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -246,6 +236,7 @@ function buildStats(cans){
 function clearMapClasses(){
   document.querySelectorAll('#svg-host .lit,#svg-host .shared,#svg-host .nomon').forEach(function(el){
     el.classList.remove('lit','shared','nomon','q1','q2','q3','q4','pulse'); el.removeAttribute('data-iso');
+    el.removeAttribute('tabindex'); el.removeAttribute('role'); el.removeAttribute('aria-label');
   });
 }
 function lightMap(){
@@ -254,7 +245,13 @@ function lightMap(){
   var lit=0;
   Object.keys(byIso).forEach(function(iso){
     var el=host.querySelector('#'+iso.toLowerCase());
-    if(el){ el.classList.add('lit',litBand(byIso[iso].n)); el.setAttribute('data-iso',iso); lit++; }
+    if(el){
+      var n=byIso[iso].n;
+      el.classList.add('lit',litBand(n)); el.setAttribute('data-iso',iso);
+      el.setAttribute('tabindex','0'); el.setAttribute('role','button');
+      el.setAttribute('aria-label',isoName(iso)+': '+n+' can'+(n>1?'s':''));
+      lit++;
+    }
     else  { tinyMissing[iso]=byIso[iso].n; }
   });
   SHARED_CAN_ISO.forEach(function(iso){ var el=host.querySelector('#'+iso.toLowerCase());
@@ -263,7 +260,6 @@ function lightMap(){
     if(el&&!el.classList.contains('lit')&&!el.classList.contains('shared')) el.classList.add('nomon'); });
   document.getElementById('counter').innerHTML='&#127758; <b>'+lit+'</b>&nbsp;countries lit';
   var notes=[];
-  if(usingMock) notes.push('&#9888;&#65039; Demo data (API not reachable)');
   var tinyN=Object.keys(tinyMissing).length;
   if(tinyN) notes.push('<b>'+tinyN+'</b> countr'+(tinyN>1?'ies':'y')+' too small for the map');
   if(Object.keys(regionsFound).length) notes.push('Regions not on map: '+Object.keys(regionsFound).join(', '));
@@ -311,11 +307,26 @@ function openPanel(iso){
 function closePanel(){ openIso=null; document.getElementById('panel').classList.remove('open'); }
 function toggleValues(){ showValues=!showValues; document.getElementById('val-btn').classList.toggle('active',showValues); if(openIso) openPanel(openIso); }
 
+/* Applica la scala a #svg-host e riposiziona lo scroll di #map-box così che il punto
+   sotto (ax,ay) — px dal bordo visibile del contenitore — resti fermo (zoomScroll). */
+function setScale(s,ax,ay){
+  var box=document.getElementById('map-box'), host=document.getElementById('svg-host');
+  var s0=parseFloat(host.dataset.scale||'1');
+  // Leggere lo scroll PRIMA di cambiare width: il browser clampa scrollLeft/Top al nuovo
+  // max non appena la mappa si restringe (zoom-out), quindi letto dopo sarebbe già sbagliato.
+  var sl=box.scrollLeft, st=box.scrollTop;
+  host.dataset.scale=s; host.style.width=(s*100)+'%';
+  box.scrollLeft=zoomScroll(sl,ax,s0,s);
+  box.scrollTop=zoomScroll(st,ay,s0,s);
+}
 function zoomMap(dir){
+  var box=document.getElementById('map-box');
+  // Reset esplicito a (0,0): zoomScroll(sl,0,s0,1) darebbe sl/s0, non 0.
+  if(dir===0){ setScale(1,0,0); box.scrollLeft=0; box.scrollTop=0; return; }
   var host=document.getElementById('svg-host');
   var s=parseFloat(host.dataset.scale||'1');
-  s=dir===0?1:Math.min(5,Math.max(1,s+dir*0.5));
-  host.dataset.scale=s; host.style.width=(s*100)+'%';
+  s=Math.min(5,Math.max(1,s+dir*0.5));
+  setScale(s,box.clientWidth/2,box.clientHeight/2);
 }
 
 /* ── flavour picker + lista raggruppata per nazione ── */
@@ -362,12 +373,26 @@ function jumpToCountry(q){
   var up=q.toUpperCase(), target=MAP_COUNTRY[up]||(/^[A-Z]{2}$/.test(up)?up:null);
   if(!target) Object.keys(byIso).forEach(function(iso){
     if(!target&&isoName(iso).toLowerCase().indexOf(q.toLowerCase())===0) target=iso; });
-  if(target&&byIso[target]){ openPanel(target); pulse(target); hint.textContent=''; }
+  if(target&&byIso[target]){
+    openPanel(target);
+    var el=pulse(target); hint.textContent='';
+    if(el){
+      // #panel apre con transition:width .2s, che restringe #map-box (e la mappa s*100%-wide)
+      // DOPO l'apertura: aspettiamo che finisca prima di misurare/centrare (waiting anche se già
+      // aperto è innocuo).
+      setTimeout(function(){
+        var box=document.getElementById('map-box'), boxRect=box.getBoundingClientRect(), rect=el.getBoundingClientRect();
+        box.scrollLeft=centerScroll(rect.left-boxRect.left+box.scrollLeft,rect.width,box.clientWidth);
+        box.scrollTop=centerScroll(rect.top-boxRect.top+box.scrollTop,rect.height,box.clientHeight);
+      },220);
+    }
+  }
   else hint.textContent = target ? isoName(target)+': not in this view' : 'No match for "'+esc(q)+'"';
 }
 function pulse(iso){
   var el=document.getElementById('svg-host').querySelector('#'+iso.toLowerCase());
   if(el){ el.classList.add('pulse'); setTimeout(function(){ el.classList.remove('pulse'); },1600); }
+  return el;
 }
 /* Lista: blocchi per nazione (alfabetico), bandiera nel titolo, righe ordinate per SKU.
    Niente promo, TRANNE se la nazione ha SOLO promo → la mostro e la segnalo. */
@@ -406,12 +431,10 @@ function openInfo(){
   var miss=computeMissing();
   var html='<div style="display:flex;justify-content:space-between;align-items:center"><h2>&#127758; Map legend</h2>'
     +'<button class="p-close" onclick="closeInfo()">&#10005;</button></div>'
-    +'<div class="leg"><span class="dot" style="background:var(--green)"></span> You have a can from this country</div>'
-    +'<div class="leg"><span class="dot" style="background:var(--red)"></span> The can exists but I don&rsquo;t have it yet (to be marked from my missing-list, e.g. OG Indonesia)</div>'
-    +'<div class="leg"><span class="dot" style="background:#161d16;border:1px solid #333"></span> No can (for now: includes countries that use another country&rsquo;s can)</div>'
+    +'<div class="leg"><span class="dot" style="background:var(--green)"></span> A can from this country is in the collection</div>'
+    +'<div class="leg"><span class="dot" style="background:#161d16;border:1px solid #333"></span> No can from this country yet</div>'
     +'<h3>Caribbean</h3><p>The <b>CARIBBEAN</b> label lights all Caribbean islands <b>except</b> Dominican Republic, Trinidad &amp; Tobago and Jamaica, which have (or will have) their own can.</p>'
-    +'<h3>Countries without a can of yours ('+miss.length+')</h3>'
-    +'<p style="margin-bottom:6px">Review this list and tell me, country by country, whether Monster makes a can there (you’re missing it) or not (no Monster) — I’ll mark them accordingly.</p>'
+    +'<h3>Countries not in the collection yet ('+miss.length+')</h3>'
     +'<div class="miss-grid">'+miss.map(function(iso){ return '<div>'+flagImg(iso,'16x12')+esc(isoName(iso))+'</div>'; }).join('')+'</div>';
   document.getElementById('info-body').innerHTML=html;
   document.getElementById('info-ov').classList.add('open');
@@ -432,21 +455,31 @@ function attachEvents(){
   host.addEventListener('mousemove',function(e){ if(tip.style.display==='block') moveTip(e); });
   host.addEventListener('mouseout',hideTip);
   host.addEventListener('click',function(e){ var el=e.target.closest('.lit'); if(el) openPanel(el.getAttribute('data-iso')); });
+  host.addEventListener('keydown',function(e){
+    if(e.key!=='Enter'&&e.key!==' ') return;
+    var el=e.target.closest('.lit'); if(!el) return;
+    e.preventDefault(); openPanel(el.getAttribute('data-iso'));
+  });
 }
 
 /* pinch-zoom a 2 dita sulla SOLA mappa (mobile): scala #svg-host dentro #map-box */
 (function(){
   var box=document.getElementById('map-box'), host=document.getElementById('svg-host');
-  var d0=0, s0=1;
+  var d0=0, s0=1, ax=0, ay=0;
   function dist(t){ return Math.hypot(t[0].clientX-t[1].clientX, t[0].clientY-t[1].clientY); }
   box.addEventListener('touchstart',function(e){
-    if(e.touches.length===2){ d0=dist(e.touches); s0=parseFloat(host.dataset.scale||'1'); }
+    if(e.touches.length===2){
+      d0=dist(e.touches); s0=parseFloat(host.dataset.scale||'1');
+      var r=box.getBoundingClientRect();
+      ax=(e.touches[0].clientX+e.touches[1].clientX)/2-r.left;
+      ay=(e.touches[0].clientY+e.touches[1].clientY)/2-r.top;
+    }
   },{passive:true});
   box.addEventListener('touchmove',function(e){
     if(e.touches.length===2&&d0){
       e.preventDefault();
       var s=Math.min(5,Math.max(1,s0*dist(e.touches)/d0));
-      host.dataset.scale=s; host.style.width=(s*100)+'%';
+      setScale(s,ax,ay);
     }
   },{passive:false});
   box.addEventListener('touchend',function(){ d0=0; },{passive:true});
@@ -455,7 +488,7 @@ function attachEvents(){
 var warmTimer=setTimeout(function(){ var w=document.getElementById('warm'); if(w) w.style.display='block'; },5000);
 Promise.all([
   fetch('/world-map.svg').then(function(r){ if(!r.ok) throw 0; return r.text(); }),
-  fetch('/api/cans').then(function(r){ if(!r.ok) throw 0; return r.json(); }).catch(function(){ usingMock=true; return MOCK; })
+  fetch('/api/cans').then(function(r){ if(!r.ok) throw 0; return r.json(); })
 ]).then(function(res){
   clearTimeout(warmTimer);
   document.getElementById('loading').style.display='none';
@@ -464,7 +497,6 @@ Promise.all([
   renderChips();
   document.getElementById('picker').style.display='';
   if(isAdmin) document.getElementById('val-btn').style.display='';
-  if(usingMock) document.getElementById('notes').innerHTML='&#9888;&#65039; Demo data (API not reachable)';
   attachEvents();
   fitFirstView();
 }).catch(function(){

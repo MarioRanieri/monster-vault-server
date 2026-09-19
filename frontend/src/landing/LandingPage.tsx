@@ -54,8 +54,8 @@ export function LandingPage({
         <div className="land-sub">The Collection</div>
 
         <p className="land-tagline">
-          RedMghost&rsquo;s personal Monster Energy archive — every can catalogued, valued, and
-          mapped across the world.
+          RedMghost&rsquo;s personal Monster Energy archive — every can catalogued and mapped across
+          the world.
         </p>
 
         <div className="land-bar" aria-hidden="true" />

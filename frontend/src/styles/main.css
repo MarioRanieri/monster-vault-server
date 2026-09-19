@@ -908,8 +908,8 @@ body.public-mode .public-banner {
   background: var(--bg3);
   border: 1px solid var(--border2);
   color: var(--text2);
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 18px;
@@ -1950,9 +1950,6 @@ body.light .filter-chip-withphoto.active {
     border-color 0.18s,
     transform 0.18s,
     box-shadow 0.18s;
-  /* Salta rendering/layout per card fuori viewport — virtual scroll CSS-only */
-  content-visibility: auto;
-  contain-intrinsic-size: 0 260px;
 }
 .card:hover {
   border-color: var(--green);
@@ -2160,7 +2157,10 @@ body.light .filter-chip-withphoto.active {
 .card-name {
   font-size: 13px;
   font-weight: 700;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
   text-overflow: ellipsis;
   margin-bottom: 3px;

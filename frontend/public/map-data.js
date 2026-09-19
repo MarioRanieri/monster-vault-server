@@ -144,11 +144,23 @@ function litBand(n){
   return n >= 2 ? 'q2' : 'q1';
 }
 
+/* Nuovo scroll (un solo asse) perché il punto sotto `anchor` (px dal bordo visibile
+   sup/sin del contenitore di scroll) resti fermo mentre la scala passa da s0 a s1. */
+function zoomScroll(scroll, anchor, s0, s1){
+  return Math.max(0, (scroll + anchor) * s1 / s0 - anchor);
+}
+
+/* Offset di scroll (un solo asse) che centra un elemento lungo la viewport. */
+function centerScroll(elStart, elSize, viewSize){
+  return Math.max(0, elStart + elSize / 2 - viewSize / 2);
+}
+
 // Esporta per Node (test) senza toccare il comportamento browser
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { MAP_COUNTRY: MAP_COUNTRY, MAP_ISO_NAMES: MAP_ISO_NAMES,
                      MAP_EXPAND: MAP_EXPAND, MAP_REGIONS: MAP_REGIONS,
                      SHARED_CAN_ISO: SHARED_CAN_ISO, NO_MONSTER_ISO: NO_MONSTER_ISO,
                      parseLinguaToIsos: parseLinguaToIsos, skuKey: skuKey,
-                     flavourMatch: flavourMatch, listGroups: listGroups, litBand: litBand };
+                     flavourMatch: flavourMatch, listGroups: listGroups, litBand: litBand,
+                     zoomScroll: zoomScroll, centerScroll: centerScroll };
 }
