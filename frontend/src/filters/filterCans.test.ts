@@ -1,5 +1,5 @@
 import { filterCans, sortCans, filterOptions, extractYearFromCan, hasPromo } from './filterCans';
-import type { Can } from '../types';
+import type { Can } from '../app/types';
 
 test('hasPromo: valorizzato = promo, vuoto o "no" (legacy) = non promo', () => {
   expect(hasPromo('Yes')).toBe(true);

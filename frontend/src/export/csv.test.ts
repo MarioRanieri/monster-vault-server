@@ -1,5 +1,5 @@
 import { buildCsv, parseCsv } from './csv';
-import type { Can } from '../types';
+import type { Can } from '../app/types';
 
 test('buildCsv scrive intestazione + righe, con escaping', () => {
   const cans: Can[] = [

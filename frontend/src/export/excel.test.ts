@@ -1,6 +1,6 @@
 import { buildXlsx, parseXlsx } from './excel';
 import * as XLSX from 'xlsx';
-import type { Can } from '../types';
+import type { Can } from '../app/types';
 
 test('roundtrip: buildXlsx → parseXlsx conserva i campi', async () => {
   const cans: Can[] = [

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Can } from './types';
 import { authFetch } from './api';
-import { compressImage } from './photos/compressImage';
+import { compressImage } from '../photos/compressImage';
 
 const CACHE_KEY = 'mv_cache';
 

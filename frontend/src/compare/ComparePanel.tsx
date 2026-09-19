@@ -1,4 +1,4 @@
-import type { Can } from '../types';
+import type { Can } from '../app/types';
 import { colorizeTab } from '../ui/colorizeTab';
 import { TabParts } from '../ui/TabParts';
 import { useEscapeClose } from '../ui/useEscapeClose';

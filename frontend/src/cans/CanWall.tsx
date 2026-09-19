@@ -1,4 +1,4 @@
-import type { Can } from '../types';
+import type { Can } from '../app/types';
 import { cloudinaryThumb } from '../photos/cloudinary';
 import { Flags } from '../ui/flags';
 

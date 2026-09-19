@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CanDetail } from './CanDetail';
-import type { Can } from '../types';
+import type { Can } from '../app/types';
 
 const can: Can = { id: '1', nome: 'Alpha', sku: 'SKU-1', size: '500ml' };
 

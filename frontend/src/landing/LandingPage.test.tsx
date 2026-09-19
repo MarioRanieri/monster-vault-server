@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { LandingPage } from './LandingPage';
-import type { Can } from '../types';
+import type { Can } from '../app/types';
 
 const base = {
   total: 1866,

@@ -1,4 +1,4 @@
-import type { Can } from '../types';
+import type { Can } from '../app/types';
 
 // Colonne di export/import (etichetta ↔ campo), come l'export del vecchio.
 // Riusate anche da excel.ts.

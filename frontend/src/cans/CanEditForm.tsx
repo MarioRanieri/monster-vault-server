@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import type { Can } from '../types';
+import type { Can } from '../app/types';
 import { PhotoCrop } from '../photos/PhotoCrop';
 import { cloudinaryThumb } from '../photos/cloudinary';
 import { colorizeTab } from '../ui/colorizeTab';

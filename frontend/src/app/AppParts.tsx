@@ -1,8 +1,8 @@
-import { CanGrid } from './cans/CanGrid';
-import { CanList } from './cans/CanList';
-import { CanWall } from './cans/CanWall';
-import type { GridMode } from './filters/CollectionFilterBar';
-import type { SortKey } from './filters/filterCans';
+import { CanGrid } from '../cans/CanGrid';
+import { CanList } from '../cans/CanList';
+import { CanWall } from '../cans/CanWall';
+import type { GridMode } from '../filters/CollectionFilterBar';
+import type { SortKey } from '../filters/filterCans';
 import type { Can } from './types';
 
 export interface ToastState {

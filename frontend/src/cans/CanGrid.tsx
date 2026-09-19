@@ -1,4 +1,4 @@
-import type { Can } from '../types';
+import type { Can } from '../app/types';
 import { statusBadgeClass } from '../ui/statusBadge';
 import { hasPromo } from '../filters/filterCans';
 import { cloudinaryThumb, cloudinaryLqip } from '../photos/cloudinary';

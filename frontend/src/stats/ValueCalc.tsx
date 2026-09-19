@@ -1,4 +1,4 @@
-import type { Can } from '../types';
+import type { Can } from '../app/types';
 import { sumValue } from './computeStats';
 import { useEscapeClose } from '../ui/useEscapeClose';
 

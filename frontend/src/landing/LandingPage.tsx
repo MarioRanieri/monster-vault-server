@@ -1,4 +1,4 @@
-import type { Can } from '../types';
+import type { Can } from '../app/types';
 import { CanGrid } from '../cans/CanGrid';
 
 // Splash iniziale (struttura/classi del vecchio #landing-overlay): scelta guest

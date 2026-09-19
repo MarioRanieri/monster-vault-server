@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Result } from '../authStore';
+import type { Result } from '../app/authStore';
 import { useEscapeClose } from './useEscapeClose';
 
 // Icone inline (utente / lucchetto / occhio) per non aggiungere dipendenze.

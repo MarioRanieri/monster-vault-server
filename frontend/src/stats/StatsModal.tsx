@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Can } from '../types';
+import type { Can } from '../app/types';
 import {
   statsBreakdown,
   buildTimelineData,

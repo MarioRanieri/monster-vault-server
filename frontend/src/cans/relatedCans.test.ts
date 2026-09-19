@@ -5,7 +5,7 @@ import {
   rankByRelevance,
   sameLineupGroups,
 } from './relatedCans';
-import type { Can } from '../types';
+import type { Can } from '../app/types';
 
 const can = (over: Partial<Can>): Can => ({ id: 'x', nome: 'X', ...over });
 
