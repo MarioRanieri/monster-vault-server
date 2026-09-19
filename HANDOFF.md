@@ -2,10 +2,35 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-09-19 (rev 61 — coverage backend: Sonar 82,3→92,4%)  
+**Updated:** 2026-09-19 (rev 62 — Esc su tutti gli overlay, "Latest additions", Spring Boot 3.5, bug `photoAt`, pulizia doc)  
 **Branch:** main  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
+
+> **2026-09-19 — rev 62: Esc su tutti gli overlay, "Latest additions" in landing, Spring Boot 3.5, bug
+> `photoAt`, pulizia doc (branch `feat/overlays-esc-landing-latest-boot35`).** Nuovo hook `useEscapeClose`
+> (stack module-level: Esc chiude solo l'overlay montato più di recente e ne restituisce il focus)
+> applicato a tutti gli overlay (`HelpModal`, `LoginForm`, `ComparePanel`, `AccountPanel`, `PhotoCrop`,
+> `StatsModal`, `ValueCalc`, `Lightbox`, `CanDetail`, `CanEditForm`) al posto degli
+> `addEventListener('keydown', …)` duplicati per componente; `CanEditForm` in più chiede conferma
+> (`confirm('Discard changes?')`) su Escape solo se il form è sporco. **Deciso di NON passare a
+> `dialog.showModal()`**: metterebbe i dialoghi nel top layer rendendo inerte il resto della pagina,
+> nascondendo i toast (renderizzati fuori dai dialog) e bloccando `ComparePanel` (pannello non modale).
+> **Landing "Latest additions"**: mostra le 8 lattine più recenti con foto (helper `latestAdditions`);
+> fix `addedThisMonth` (quasi sempre 0: `createdAt` manca sui migrati, ora fallback a `photoAt` via
+> `max`); due bug di layout/tema trovati con Playwright su dati reali — `.land-inner` centrato con
+> `align/justify` rendeva la cima irraggiungibile quando il contenuto superava il viewport (ora
+> `margin: auto`), e le card riusavano classi tematizzate che diventavano chiare col tema light della
+> collezione (dark scoping su `#landing-overlay`). **Bug backend `photoAt`**: veniva ribumpato a ogni
+> salvataggio (prezzo, nome, restore, batch) perché il frontend manda `""` per gli slot vuoti e il
+> controllo era `!= null`; ora si aggiorna solo se uno slot foto cambia davvero. I valori storici in
+> prod restano inquinati dai salvataggi passati (non ripuliti — servirebbe un data fix, es. dalle date
+> di upload Cloudinary, decisione in sospeso con l'utente): "Latest additions" sarà accurata solo per
+> le foto aggiunte da ora in poi. Spring Boot **3.3.0 → 3.5.16** (+ jjwt 0.12.7, springdoc 2.8.13:
+> 2.6.0 non compatibile con Spring Framework 6.2, `GET /v3/api-docs` rispondeva 500). Pulizia
+> `HANDOFF.md`: sezione Resources aggiornata a MongoDB Atlas, sezione eBay Monitor riscritta (era
+> ferma alla rev 30 su PC con VLM), rimossa l'idea "Tracciamento serie/set" (ri-scartata dall'utente
+> il 2026-09-19). Test: **404 frontend Vitest, 17 e2e Playwright, 217 backend**.
 
 > **2026-09-19 — rev 61: coverage backend (PR #60 test, #62 `lombok.config`).** Sonar globale **82,3 → 92,4%**, righe
 > 91,7 → 95,9%, branch 70,5 → 87,3%. `CanService` 69 → 99,6%, `CanController` 73 → 96,6%, `MongoRefreshToken`/
@@ -916,7 +941,6 @@ Le foto vengono caricate nella cartella `monster-vault/` su Cloudinary. Le foto 
 
 ### Idee valutate ma NON scelte dall'utente (in archivio)
 - Quantità copie + stato owned/wishlist/**for-trade** (collezione pubblica come strumento di trading)
-- Tracciamento **serie/set** ("8/12 della serie 2024")
 - **Scan barcode/SKU** con fotocamera (richiede riattivare `camera=()` nella Permissions-Policy)
 - **Nudge qualità dati** ("X senza foto/valore", cliccabili per filtrare)
 
@@ -924,32 +948,23 @@ Le foto vengono caricate nella cartella `monster-vault/` su Cloudinary. Le foto 
 
 ## eBay Monitor (companion tool) — progetto separato
 
-> **Cartella:** `ebay-monitor/` **dentro il repo** (spostata in rev 22). Non fa parte dell'app: il `Dockerfile` copia solo `pom.xml`+`src/`, quindi non finisce nel deploy. `config.py` (segreti) è **gitignored**; il template versionato è `config.example.py`. Vedi `ebay-monitor/README.md`.
+> **Cartella:** `ebay-monitor/` **dentro il repo** (spostata in rev 22). Non fa parte dell'app: il `Dockerfile` copia solo `pom.xml`+`src/`, quindi non finisce nel deploy. Vedi `ebay-monitor/README.md` per tutti i dettagli (env, file, comandi, budget query).
 
-**Scopo:** monitora eBay per **lattine Monster rare appena messe in vendita** e manda una notifica **Telegram**. Oggi cerca **per nome** ("monster energy" + keyword, modalità A); la verifica per **foto** (VLM, modalità B) è pronta ma **spenta** — sarà lei a isolare la variante esatta quando arriverà la API key Anthropic.
+**Scopo:** monitora eBay per lattine Monster rare appena messe in vendita e manda una notifica Telegram.
 
-**Ambiente (già pronto su questa macchina):**
-- **Python 3.12.10** installato via winget → `C:\Users\HP\AppData\Local\Programs\Python\Python312\python.exe`. Nei `.bat` si usa il launcher **`py`** (NON `python`, che è lo stub Store).
-- Dipendenze installate e verificate (import OK): `requests`, `Pillow`, `numpy`, **`sentence-transformers 5.5.1`** (porta `torch` — CLIP).
+**Architettura (dal 2026-09-16, rev 54-55):** due processi separati. Lo **sweep eBay** gira su **GitHub
+Actions** (cron, cerca **per nome** — "monster energy" + keyword — su 6 marketplace, filtrata da una
+**blacklist**/whitelist curate a mano), con stato in **MongoDB Atlas** (collection `ebay_seen`/
+`ebay_blacklist`, separate da `cans`). I **comandi Telegram** (`/add /remove /list /market /pause
+/resume /status /health /query /price /export /import /whitelist /snooze /delete /help`) sono serviti
+**istantaneamente** da un webhook Flask su un secondo Web Service Render (`monster-vault-ebay-webhook`),
+non dal cron. Riepilogo settimanale automatico via workflow dedicato. Il riconoscimento per **foto**
+(CLIP, DINOv2, OCR, poi un VLM) è stato **testato e scartato**: nessuno distingue in modo affidabile
+le varianti → la curatela manuale della blacklist resta la strategia.
 
-**File** (`ebay-monitor/`): `ebay_monitor.py` (logica), `config.py` (impostazioni+segreti, **gitignored**), `config.example.py` (template), `README.md`, `clip_check.py` (validazione soglia), `avvia_monitor.bat`/`test_subito.bat`/`installa.bat`, `requirements.txt` (solo `requests`) + `requirements-experiments.txt` (deps pesanti dei soli esperimenti CLIP/DINO/OCR), `rare_cans/` (referenze locali, foto gitignorate), `seen_listings.db` (runtime, gitignored).
-
-**Come funziona:**
-- **eBay Browse API** (OAuth) su **6 marketplace** (IT,DE,US,CA,GB,AU — `EBAY_DE` = grande mercato europeo; `EBAY_IT` mostra già le inserzioni internazionali spedibili in IT; riducibili/espandibili in config, occhio al budget). Ordine *appena listati*, **nessun filtro spedizione** → vede anche annunci "solo spedizione USA"; **filtro temporale `itemStartDate` → solo annunci recenti** (`MAX_LISTING_AGE_HOURS=2.5`, ultime ~2,5h; polling 2h). Le ricerche girano in **PARALLELO** (`PARALLEL_SEARCH`, ThreadPoolExecutor ×8 → giro ~40s). ⚠️ **NO Messico/NZ/Giappone**.
-- `SEARCH_QUERIES` (**26**): **sempre "monster energy" + keyword** (parole obbligatorie, non frase esatta), inclusa la ricerca **generica `monster energy`** (kw `""`). Doppio filtro sul titolo: `REQUIRE_WORDS=["monster","energy"]` (le deve contenere tutte — eBay non è un AND stretto) + `EXCLUDE_WORDS` (case-insensitive: altri brand Monster + carte/giochi + ricambi moto + Pop Mart/Labubu + abbigliamento/cappelli + multipack). Modalità A = notifica per nome (rumorosa, triage utente); modalità B (VLM, spenta) = verifica foto per la precisione.
-- **Referenze (per la modalità B/VLM, oggi spenta) — dal sito:** `GET .../api/cans` → solo le lattine con **`watch=true`** (flaggate a mano dall'admin; la UI dell'occhio è ora **nascosta** ma le flag restano nel DB) + immagini in `rare_cans/` (oggi **vuota**, solo README). CLIP/DINOv2/OCR **scartati** (non distinguono le lattine, testato) → la precisione arriverà dal **VLM** (`vlm_match()`, scheletro).
-- **Solo annunci NUOVI e freschi:** filtro `itemStartDate` (ultime ~2,5h) lato eBay + al 1° avvio `establish_baseline()` segna gli annunci già online come "visti" **senza notificare**; da lì in poi avvisa **solo i nuovi** (DB sqlite `seen_listings.db`). Avanzamento in-place + **timer countdown** (`_countdown`) in attesa; **`_prevent_sleep`** impedisce lo standby automatico del PC mentre gira (non la sospensione manuale).
-- **Notifiche: Telegram** (`send_telegram` via Bot API `sendPhoto`/`sendMessage`). `NOTIFY_VIA="telegram"` (accetta lista separata da virgola). WhatsApp è stato **rimosso** (CallMeBot inaffidabile, scartato dall'utente).
-- **Comando `/delete`**: `telegram_command_listener` (thread daemon, long-polling `getUpdates`) cancella i messaggi del bot a ritroso (`delete_bot_messages`, `DELETE_SCAN_BACK`). Limiti Telegram: solo msg del bot, < 48h, e solo mentre il monitor gira.
-
-**Stato attuale (rev 30):** ✅ **eBay LIVE** — keyset Production (App ID `MarioRan-ChatBot-PRD-9996645fc-8714e611`; secret solo in `config.py` gitignored), OAuth+Browse verificati. ✅ **Modalità A attiva e tarata**: query **"monster energy <kw>"** (**26**, inclusa la generica "monster energy") × **6 mercati (IT/DE/US/CA/GB/AU)** ≈ 1.872 call/giorno; ricerche in **PARALLELO** (giro ~40s); **`REQUIRE_WORDS`** impone "Monster Energy" lato client (niente Pokémon) + **`EXCLUDE_WORDS` v3** (~200 voci a categorie, case-insensitive, trick spazio iniziale `" hat"`/`" tee"`); **`MAX_LISTING_AGE_HOURS=2.5`** (ultime ~2,5h); **polling 2h** + **timer countdown** + **anti-standby automatico** + comando Telegram **`/delete`**; **allarme "radar cieco"** (fallimenti >50% → avviso Telegram) + retry su **429**; `--hours`/`test_subito.bat`. ✅ `ebay-monitor/README.md` aggiornata. 🙈 **Sito: occhio (watch) NASCOSTO via CSS** (reversibile) finché il VLM è spento; le **38 flag** restano salvate nel DB. ⏳ **Modalità B (VLM)** scaffold pronto ma **spento** (`USE_VLM=False`): manca solo la **API key Anthropic** — ora confronta TUTTE le referenze (media-type auto, max_tokens 50); resta da rifinire la prompt al primo uso.
-
-**⚠️ TODO (riprendere da qui):**
-1. 🔮 **Modalità B (VLM)** — quando arriva la **API key Anthropic**: `pip install anthropic`, `ANTHROPIC_API_KEY`, `USE_VLM=True`; rifinire `vlm_match()` (prompt + confronto con TUTTE le referenze). È la versione "sniper" che isola le varianti esatte (old camo 473 vs 2023, first-release, ecc.) — il vero bisogno dell'utente (collezione di varianti finissime).
-2. **Tarare ricerche/budget**: l'utente edita `SEARCH_QUERIES`/`EBAY_MARKETPLACES`; budget = n_query × n_mercati × cicli/giorno < ~5.000 (ora 6 mercati × 26 × 12 ≈ 1.872). ⚠️ `POLL_INTERVAL_SECONDS` deve restare **< di `MAX_LISTING_AGE_HOURS`** (ora 2h < 2,5h). ✅ Ricerca in **parallelo** già attiva (`PARALLEL_SEARCH`, giro ~40s).
-3. **24/7**: il monitor gira sul PC dell'utente (si ferma in standby) → valutare hosting su server.
-
-**Idea futura (non fatta):** ritaglio per-lattina nei lotti (object detection).
+⚠️ **Limite noto**: il cron orario (`schedule`) di GitHub Actions su questa repo pubblica deriva (run
+reali distanziate 2-8h invece che ogni ora); un fix (endpoint `POST /sweep` + pinger esterno) è stato
+progettato ma l'utente ha scelto di non farlo.
 
 ---
 
@@ -957,6 +972,6 @@ Le foto vengono caricate nella cartella `monster-vault/` su Cloudinary. Le foto 
 
 - Render dashboard: https://dashboard.render.com
 - GitHub repo: https://github.com/MarioRanieri/monster-vault-server
-- Firestore console: https://console.firebase.google.com/project/monster-vault-3fd2a
+- MongoDB Atlas console: https://cloud.mongodb.com
 - Cloudinary console: https://cloudinary.com/console
 - Swagger UI (live): https://monster-vault-server.onrender.com/swagger-ui.html
