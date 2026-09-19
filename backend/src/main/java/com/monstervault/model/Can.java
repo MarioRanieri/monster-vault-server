@@ -72,9 +72,11 @@ public class Can {
      */
     private Long deletedAt;
 
-    /** Timestamp Unix in millisecondi dell'ultima volta che p1 è stato impostato/aggiornato.
-     *  Impostato dal repository solo quando p1 != null → permette il sort "RECENTLY PHOTOGRAPHED"
-     *  indipendente dagli altri aggiornamenti (modifica note, stato, ecc.). */
+    /** Timestamp Unix in millisecondi dell'ultima volta che una foto (p1..p4) è davvero cambiata.
+     *  Impostato dal repository (MongoCanRepository.stampTimestamps) solo quando le foto salvate
+     *  differiscono da quelle già su Mongo e almeno uno slot resta presente dopo l'edit — NON a
+     *  ogni save → alimenta "RECENTLY PHOTOGRAPHED", la landing "Latest additions" e
+     *  "addedThisMonth" indipendentemente dagli altri aggiornamenti (modifica note, stato, ecc.). */
     private Long photoAt;
 
     /** Flag "Monitora su eBay": se true, il companion tool eBay Monitor usa le foto

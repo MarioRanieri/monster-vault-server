@@ -17,6 +17,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -94,11 +95,13 @@ class MongoCanRepositoryTest {
         assertThat(c.getUpdatedAt()).isNotNull();
     }
 
-    // ── photoAt: timbrato se almeno UNO dei 4 slot foto è presente ─────────────
+    // ── photoAt: timbrato SOLO se la foto è davvero cambiata rispetto al salvato ─
 
     @ParameterizedTest
     @ValueSource(ints = {1, 2, 3, 4})
-    void save_anyPhotoSlot_stampsPhotoAt(int slot) {
+    void save_newCanWithAnyPhotoSlot_stampsPhotoAt(int slot) {
+        // findById non stubbato → torna null di default: nessun documento esistente, è una vera
+        // creazione.
         Can c = can("1");
         switch (slot) {
             case 1 -> c.setP1("https://x/1.jpg");
@@ -113,10 +116,104 @@ class MongoCanRepositoryTest {
     }
 
     @Test
-    void save_noPhotos_leavesPhotoAtUntouched() {
+    void save_newCanWithoutPhoto_leavesPhotoAtNull() {
         Can c = can("1");
         repo.save(c);
         assertThat(c.getPhotoAt()).isNull();
+    }
+
+    @Test
+    void save_editWithIdenticalPhotos_keepsStoredPhotoAt() {
+        // Bug regression: prima qualunque save (prezzo, note, restore...) con p1..p4 non-null
+        // ribumpava photoAt anche a parità di foto.
+        Can existing = can("1");
+        existing.setP1("https://x/1.jpg");
+        existing.setPhotoAt(1000L);
+        when(mongo.findById(eq("1"), any())).thenReturn(existing);
+
+        Can incoming = can("1");
+        incoming.setP1("https://x/1.jpg"); // stessa foto, solo un edit di altri campi
+        incoming.setNome("Nome aggiornato");
+
+        repo.save(incoming);
+
+        assertThat(incoming.getPhotoAt()).isEqualTo(1000L);
+    }
+
+    @Test
+    void save_editWithBlankSlotsAndNoStoredPhotos_keepsStoredNullPhotoAt() {
+        // Il frontend manda "" per gli slot vuoti: non deve confondersi con "foto presente".
+        Can existing = can("1"); // nessuna foto, photoAt null
+        when(mongo.findById(eq("1"), any())).thenReturn(existing);
+
+        Can incoming = can("1");
+        incoming.setP1("");
+        incoming.setP2("");
+        incoming.setP3("");
+        incoming.setP4("");
+
+        repo.save(incoming);
+
+        assertThat(incoming.getPhotoAt()).isNull();
+    }
+
+    @Test
+    void save_editChangedPhoto_stampsPhotoAtNow() {
+        Can existing = can("1");
+        existing.setP1("https://x/old.jpg");
+        existing.setPhotoAt(1000L);
+        when(mongo.findById(eq("1"), any())).thenReturn(existing);
+
+        Can incoming = can("1");
+        incoming.setP1("https://x/new.jpg");
+
+        repo.save(incoming);
+
+        assertThat(incoming.getPhotoAt()).isNotNull().isEqualTo(incoming.getUpdatedAt());
+    }
+
+    @Test
+    void save_editAddedPhotoToCanWithNoStoredPhotos_stampsPhotoAtNow() {
+        Can existing = can("1"); // nessuna foto ancora
+        when(mongo.findById(eq("1"), any())).thenReturn(existing);
+
+        Can incoming = can("1");
+        incoming.setP3("https://x/3.jpg");
+
+        repo.save(incoming);
+
+        assertThat(incoming.getPhotoAt()).isNotNull().isEqualTo(incoming.getUpdatedAt());
+    }
+
+    @Test
+    void save_editRemovingAllPhotos_keepsStoredPhotoAtWithoutSpecialCase() {
+        Can existing = can("1");
+        existing.setP1("https://x/1.jpg");
+        existing.setPhotoAt(1000L);
+        when(mongo.findById(eq("1"), any())).thenReturn(existing);
+
+        Can incoming = can("1");
+        incoming.setP1(""); // rimossa dal frontend
+
+        repo.save(incoming);
+
+        assertThat(incoming.getPhotoAt()).isEqualTo(1000L);
+    }
+
+    @Test
+    void save_clientSentPhotoAt_isIgnored() {
+        Can existing = can("1");
+        existing.setP1("https://x/1.jpg");
+        existing.setPhotoAt(1000L);
+        when(mongo.findById(eq("1"), any())).thenReturn(existing);
+
+        Can incoming = can("1");
+        incoming.setP1("https://x/1.jpg"); // invariata
+        incoming.setPhotoAt(999_999_999L); // valore arbitrario mandato dal client, da ignorare
+
+        repo.save(incoming);
+
+        assertThat(incoming.getPhotoAt()).isEqualTo(1000L);
     }
 
     @Test
@@ -137,14 +234,21 @@ class MongoCanRepositoryTest {
     }
 
     @Test
-    void save_canAlreadyHavingCreatedAt_isNotLookedUp() {
+    void save_canAlreadyHavingCreatedAt_keepsClientValueButStillLooksUpOnceForPhotoAt() {
+        // La lookup ora serve anche a photoAt, quindi avviene comunque quando l'id è presente —
+        // ma createdAt già valorizzato dal client non viene toccato, e la query è UNA sola
+        // (riuso tra la logica photoAt e quella createdAt, non due query separate).
+        Can existing = can("1");
+        existing.setCreatedAt(1L);
+        when(mongo.findById(eq("1"), any())).thenReturn(existing);
+
         Can c = can("1");
         c.setCreatedAt(5L);
 
         repo.save(c);
 
         assertThat(c.getCreatedAt()).isEqualTo(5L);
-        verify(mongo, never()).findById(any(), eq(Can.class));
+        verify(mongo, times(1)).findById(eq("1"), eq(Can.class));
     }
 
     // ── batchSave ──────────────────────────────────────────────────────────────
