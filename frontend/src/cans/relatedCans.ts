@@ -1,5 +1,5 @@
-import type { Can } from './types';
-import { hasPromo } from './filters/filterCans';
+import type { Can } from '../types';
+import { hasPromo } from '../filters/filterCans';
 
 /**
  * Le prime `wordCount` parole del nome, maiuscole: euristica per il

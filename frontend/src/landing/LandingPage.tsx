@@ -1,5 +1,5 @@
 import type { Can } from '../types';
-import { CanGrid } from '../CanGrid';
+import { CanGrid } from '../cans/CanGrid';
 
 // Splash iniziale (struttura/classi del vecchio #landing-overlay): scelta guest
 // vs admin + link alla mappa. Presentazionale: stats e callback vengono da App.

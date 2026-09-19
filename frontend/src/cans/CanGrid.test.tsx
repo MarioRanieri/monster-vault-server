@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CanGrid } from './CanGrid';
-import type { Can } from './types';
+import type { Can } from '../types';
 
 test('renderizza una card per ogni can col suo nome', () => {
   const cans: Can[] = [

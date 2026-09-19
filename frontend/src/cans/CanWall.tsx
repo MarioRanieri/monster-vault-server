@@ -1,6 +1,6 @@
-import type { Can } from './types';
-import { cloudinaryThumb } from './photos/cloudinary';
-import { Flags } from './flags';
+import type { Can } from '../types';
+import { cloudinaryThumb } from '../photos/cloudinary';
+import { Flags } from '../flags';
 
 // Vista "wall" (classe .wall-grid del vecchio): mosaico di sole foto, miniature
 // Cloudinary leggere. All'hover una caption col nome + flag; il tile apre il dettaglio.

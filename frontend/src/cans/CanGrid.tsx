@@ -1,8 +1,8 @@
-import type { Can } from './types';
-import { statusBadgeClass } from './statusBadge';
-import { hasPromo } from './filters/filterCans';
-import { cloudinaryThumb, cloudinaryLqip } from './photos/cloudinary';
-import { Flags } from './flags';
+import type { Can } from '../types';
+import { statusBadgeClass } from '../statusBadge';
+import { hasPromo } from '../filters/filterCans';
+import { cloudinaryThumb, cloudinaryLqip } from '../photos/cloudinary';
+import { Flags } from '../flags';
 
 // Sagoma di lattina per le card senza foto: SVG inline riusato (niente immagini
 // esterne, costo trascurabile anche su ~1500 render) invece del trattino "—" di

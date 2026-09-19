@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useCansStore } from './store';
-import { CanDetail } from './CanDetail';
+import { CanDetail } from './cans/CanDetail';
 import { filterCans, sortCans, filterOptions, type SortKey } from './filters/filterCans';
 import { Hero } from './landing/Hero';
 import { CollectionFilterBar, type GridMode } from './filters/CollectionFilterBar';
@@ -9,7 +9,7 @@ import { NO_FILTERS, type Filters } from './filters/appFilters';
 import { computeStats, addedThisMonth, latestAdditions } from './stats/computeStats';
 import { useAuthStore } from './authStore';
 import { LoginForm } from './LoginForm';
-import { CanEditForm } from './CanEditForm';
+import { CanEditForm } from './cans/CanEditForm';
 import { LandingPage } from './landing/LandingPage';
 import { Header } from './Header';
 import { buildShareUrl, parseShareUrl, type ShareFilters } from './filters/shareView';

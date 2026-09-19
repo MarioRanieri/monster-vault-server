@@ -1,4 +1,4 @@
-import type { Can } from './types';
+import type { Can } from '../types';
 
 // Builder puri per condividere una singola lattina (link /share/{id}, testo,
 // WhatsApp, Telegram). Portati dal vecchio share.ts:shareCanLink.

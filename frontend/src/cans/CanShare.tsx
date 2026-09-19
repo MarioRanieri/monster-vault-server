@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Can } from './types';
+import type { Can } from '../types';
 import { canShareUrl, canShareText, canWhatsappUrl, canTelegramUrl } from './shareCan';
 
 // Bottone "Share" della lattina + sheet a tendina (classi .share-sheet* del vecchio):

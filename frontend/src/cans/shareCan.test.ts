@@ -1,5 +1,5 @@
 import { canShareText, canWhatsappUrl, canTelegramUrl } from './shareCan';
-import type { Can } from './types';
+import type { Can } from '../types';
 
 const can: Can = { id: '1', nome: 'Alpha', lingua: 'USA', size: '500ML', sku: 'S1', note: 'FULL' };
 const url = 'https://mv/share/1';

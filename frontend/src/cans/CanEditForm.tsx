@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react';
-import type { Can } from './types';
-import { PhotoCrop } from './photos/PhotoCrop';
-import { cloudinaryThumb } from './photos/cloudinary';
-import { colorizeTab } from './colorizeTab';
-import { useEscapeClose } from './useEscapeClose';
+import type { Can } from '../types';
+import { PhotoCrop } from '../photos/PhotoCrop';
+import { cloudinaryThumb } from '../photos/cloudinary';
+import { colorizeTab } from '../colorizeTab';
+import { useEscapeClose } from '../useEscapeClose';
 
 // Le scelte di "Opening" (gruppo di pill mutuamente esclusive, come il vecchio).
 const OPENING = [

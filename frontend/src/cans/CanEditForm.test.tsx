@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CanEditForm } from './CanEditForm';
-import type { Can } from './types';
+import type { Can } from '../types';
 
 const can: Can = { id: '1', nome: 'Alpha', sku: 'SKU-1' };
 

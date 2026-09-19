@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Can } from './types';
-import { statusBadgeClass } from './statusBadge';
-import { hasPromo } from './filters/filterCans';
-import { colorizeTab } from './colorizeTab';
-import { TabParts } from './TabParts';
-import { cloudinaryThumb } from './photos/cloudinary';
+import type { Can } from '../types';
+import { statusBadgeClass } from '../statusBadge';
+import { hasPromo } from '../filters/filterCans';
+import { colorizeTab } from '../colorizeTab';
+import { TabParts } from '../TabParts';
+import { cloudinaryThumb } from '../photos/cloudinary';
 import { CanShare } from './CanShare';
-import { Lightbox } from './photos/Lightbox';
+import { Lightbox } from '../photos/Lightbox';
 import { CanGrid } from './CanGrid';
 import { pickRelated, sameLineupGroups } from './relatedCans';
-import { useEscapeClose } from './useEscapeClose';
+import { useEscapeClose } from '../useEscapeClose';
 
 // Pannello di dettaglio completo (struttura/classi del vecchio): immagine
 // principale + miniature, tutti i campi, opening, descrizione. Lightbox con
