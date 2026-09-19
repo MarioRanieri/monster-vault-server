@@ -276,16 +276,16 @@ Monorepo with two top-level apps. The frontend is built and copied into the back
     ├── index.html                        # Vite entry (mounts #root)
     ├── vite.config.ts · vitest.config.ts · tsconfig.json · eslint.config.js · .prettierrc
     ├── src/
-    │   ├── main.tsx                      # entry: mounts <App/>
-    │   ├── App.tsx                       # composition: filters, views, modals, auth wiring
-    │   ├── store.ts · authStore.ts       # Zustand stores (cans · auth/password)
-    │   ├── CanGrid/CanList/CanWall.tsx   # the three gallery views
-    │   ├── CanDetail · CanEditForm · PhotoCrop   # detail, edit modal, on-demand crop
-    │   ├── LoginForm · AccountPanel      # login + password/recovery UI
-    │   ├── StatsModal · ValueCalc · ComparePanel · SavedViews · Lightbox · Header · FilterBar · Hero
-    │   ├── filterCans · computeStats · csv · excel · zoomPan · shareView · cloudinary · flags   # pure helpers (unit-tested)
-    │   ├── *.test.tsx / *.test.ts        # co-located Vitest + RTL tests
-    │   └── styles/main.css
+    │   ├── main.tsx · setupTests.ts      # entry (mounts <App/>) · Vitest setup
+    │   ├── app/                          # App composition, Zustand stores (cans · auth), api, types, pwa
+    │   ├── cans/                         # grid/list/wall views, detail, edit modal, share, related cans
+    │   ├── filters/                      # filter bars, filterCans, appFilters, shareView
+    │   ├── photos/                       # PhotoCrop, Lightbox, cropRect, compressImage, cloudinary, zoomPan
+    │   ├── stats/ · compare/ · export/   # StatsModal + ValueCalc · CompareBar/Panel · csv + excel
+    │   ├── landing/                      # LandingPage, Hero
+    │   ├── ui/                           # Header, modals, login/account, flags, shared hooks + helpers
+    │   │                                 # *.test.ts(x) co-located next to each module
+    │   └── styles/main.css               # + contrast.test.ts (WCAG check on the neon colors)
     ├── public/                           # sw.js, map.html, manifest.json, robots.txt, sitemap.xml, llms.txt, images
     └── tests/e2e/smoke.spec.ts           # Playwright smoke tests (run in CI)
 ```
