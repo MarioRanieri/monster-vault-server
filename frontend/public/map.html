@@ -41,7 +41,8 @@
   #svg-host .q3, #svg-host .q3 path{fill:#9be000}
   #svg-host .q4, #svg-host .q4 path{fill:#c6ff4d}
   #svg-host .q3, #svg-host .q4{filter:drop-shadow(0 0 4px rgba(168,255,0,.3))}
-  #svg-host .lit:hover, #svg-host .lit:hover path{fill:#e6ff99}
+  #svg-host .lit:hover, #svg-host .lit:hover path,
+  #svg-host .lit:focus-visible, #svg-host .lit:focus-visible path{fill:#e6ff99}
   #svg-host .lit:focus-visible{outline:2px solid #fff;outline-offset:1px}
   #svg-host .pulse, #svg-host .pulse path{fill:#e6ff99}
   #svg-host .pulse{filter:drop-shadow(0 0 8px rgba(168,255,0,.8));animation:pls .5s ease-in-out 3}
@@ -320,6 +321,7 @@ function setScale(s,ax,ay){
 }
 function zoomMap(dir){
   var box=document.getElementById('map-box');
+  // Reset esplicito a (0,0): zoomScroll(sl,0,s0,1) darebbe sl/s0, non 0.
   if(dir===0){ setScale(1,0,0); box.scrollLeft=0; box.scrollTop=0; return; }
   var host=document.getElementById('svg-host');
   var s=parseFloat(host.dataset.scale||'1');
