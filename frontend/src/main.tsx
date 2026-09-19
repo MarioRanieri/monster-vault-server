@@ -1,8 +1,8 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles/main.css';
-import App from './App.tsx';
-import { registerSW } from './pwa';
+import App from './app/App.tsx';
+import { registerSW } from './app/pwa';
 
 registerSW();
 

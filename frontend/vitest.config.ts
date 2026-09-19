@@ -25,7 +25,7 @@ export default defineConfig({
         'src/setupTests.ts',
         'src/**/*.d.ts',
         'src/**/*.{test,spec}.{ts,tsx}',
-        'src/PhotoCrop.tsx',
+        'src/photos/PhotoCrop.tsx',
       ],
     },
   },
