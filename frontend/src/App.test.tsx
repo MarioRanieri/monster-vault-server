@@ -211,6 +211,30 @@ test('guest che ha già visto la landing in questa sessione entra dritto nella c
   expect(await screen.findByRole('searchbox')).toBeTruthy();
 });
 
+// PWA installata (display-mode: standalone): sessionStorage può sopravvivere
+// alla chiusura dell'app (iOS), quindi lì il "già vista" non si persiste —
+// ogni apertura da guest mostra la landing.
+describe('PWA installata (display-mode: standalone)', () => {
+  beforeEach(() => {
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q === '(display-mode: standalone)' }));
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  test('nella PWA installata un guest vede sempre la landing, anche con mv_seen_landing', () => {
+    sessionStorage.setItem('mv_seen_landing', '1');
+    render(<App />);
+    expect(screen.getByRole('button', { name: /enter the collection/i })).toBeTruthy();
+  });
+
+  test('nella PWA installata entrare in collection non scrive mv_seen_landing', async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole('button', { name: /enter the collection/i }));
+    expect(sessionStorage.getItem('mv_seen_landing')).toBeNull();
+  });
+});
+
 test('un mv_seen_landing residuo in localStorage (vecchio meccanismo) non basta più a saltare la landing', () => {
   localStorage.setItem('mv_seen_landing', '1');
   render(<App />);
