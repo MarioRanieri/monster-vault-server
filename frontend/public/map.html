@@ -76,6 +76,9 @@
   .attrib{font-size:9.5px;color:var(--text3);margin-top:6px}
 
   /* lista raggruppata per nazione — sotto il primo schermo */
+  /* skip link: invisibile finché non riceve il focus da tastiera */
+  .skip{position:absolute;left:-9999px;top:auto}
+  .skip:focus{position:fixed;left:12px;top:12px;z-index:100;background:var(--green);color:#0a0a0a;font-weight:700;padding:8px 12px;border-radius:8px}
   #list-scroll{display:none;padding:16px;border-top:1px solid var(--line);background:var(--bg2)}
   #list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;align-items:start}
   .blk{background:var(--bg);border:1px solid var(--line);border-radius:10px;overflow:hidden}
@@ -147,6 +150,7 @@
 
 <div id="firstview">
   <div id="map-col">
+    <a class="skip" id="skip-list" href="#list-scroll" hidden>Skip to country list</a>
     <div id="map-box">
       <div class="loading" id="loading"><div class="spin"></div>Loading collection&hellip;<div id="warm" style="display:none;margin-top:8px;font-size:11px;color:var(--text3)">Server warming up (free tier)&hellip;</div></div>
       <div id="svg-host"></div>
@@ -173,7 +177,7 @@
   <aside id="panel"></aside>
 </div>
 
-<div id="list-scroll"><div id="list"></div></div>
+<div id="list-scroll" tabindex="-1"><div id="list"></div></div>
 
 <div id="tip"></div>
 
@@ -344,6 +348,7 @@ function resetMap(){
   document.getElementById('f-count').innerHTML=''; document.getElementById('notes').innerHTML='';
   document.getElementById('f-search-hint').textContent='';
   document.getElementById('list-scroll').style.display='none';
+  document.getElementById('skip-list').hidden=true;
   document.getElementById('list').innerHTML='';
 }
 /* Rende una selezione di lattine su mappa+conteggio+lista (condiviso da gusto e "All"). */
@@ -355,6 +360,7 @@ function showCans(cans){
     +' &middot; <b>'+k+'</b> countr'+(k===1?'y':'ies');
   renderList(cans);
   document.getElementById('list-scroll').style.display='block';
+  document.getElementById('skip-list').hidden=false;
 }
 function selectFlavour(key){
   if(key===currentFlavour){ resetMap(); return; }   // ri-click sullo stesso = reset (mappa vuota)
