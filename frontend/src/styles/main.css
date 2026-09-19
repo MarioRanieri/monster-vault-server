@@ -3229,8 +3229,12 @@ legend.field-label {
   background: #000;
   z-index: 1000;
   display: none;
-  align-items: center;
-  justify-content: center;
+  /* Centrare via align-items/justify-content sul container (come prima)
+     spinge .land-inner SOPRA lo scroll origin quando cresce oltre il
+     viewport (successo con "Latest additions"): niente più modo di
+     raggiungere claw/wordmark/tagline. margin:auto sul figlio (sotto) fa lo
+     stesso centraggio ma collassa a 0 quando manca spazio, quindi il
+     contenuto parte dal top ed è raggiungibile scrollando. */
   overflow-y: auto;
   /* senza questo, overflow-y:auto fa calcolare overflow-x a "auto" → scrollbar
      orizzontale su mobile quando un figlio sfora. Clip esplicito. */
@@ -3239,6 +3243,47 @@ legend.field-label {
   transition:
     opacity 0.4s ease,
     transform 0.4s ease;
+  /* La landing è sempre "dark", anche quando l'utente aveva acceso il tema
+     chiaro nella collection (body.light sopravvive tornando alla landing dal
+     logo/sign-out). "Latest additions" riusa classi a tema (.card,
+     .detail-related-title, ...) che leggono le custom property --bg2/--text2/
+     ecc.: ridichiararle qui coi valori scuri di :root le blinda da body.light,
+     senza duplicare le regole .card/.detail-related-*. */
+  --bg: #0a0a0a;
+  --bg2: #111111;
+  --bg3: #1a1a1a;
+  --bg4: #222222;
+  --border: rgba(255, 255, 255, 0.07);
+  --border2: rgba(255, 255, 255, 0.12);
+  --text: #f0f0f0;
+  --text2: #888;
+  --text3: #7a7a7a;
+  --green: #a8ff00;
+  --green-dim: rgba(168, 255, 0, 0.08);
+  --full-rgb: 43, 212, 255;
+  --full: rgb(var(--full-rgb));
+}
+/* Le due card-related rule sotto sono l'unico punto in cui body.light non usa
+   le custom property (colori hardcoded): la ridichiarazione di --bg2/... sopra
+   non basta a fermarle. #landing-overlay nel selettore le batte in specificità
+   (ID > coppia di classi) e le riporta ai valori scuri di .card/.badge-stato-*. */
+body.light #landing-overlay .card {
+  background: var(--bg2);
+  border: 1px solid transparent;
+  box-shadow: none;
+}
+body.light #landing-overlay .card:hover {
+  border-color: var(--green);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+body.light #landing-overlay .badge-stato-ok {
+  color: #00c850;
+}
+body.light #landing-overlay .badge-stato-bozze {
+  color: #ffa500;
+}
+body.light #landing-overlay .badge-stato-danneggiata {
+  color: #ff5a5a;
 }
 /* foto sfocata di sfondo (asset public/landing-bg.jpg), scurita così il
    contenuto resta leggibile. Sotto la .land-inner. */
@@ -3263,6 +3308,11 @@ legend.field-label {
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.9);
   width: 100%;
   max-width: 520px;
+  /* Centra (auto-margin) nel flex row di #landing-overlay finché c'è spazio;
+     quando il contenuto è più alto/largo del viewport i margini auto
+     collassano a 0 invece di spingere il top fuori dall'area scrollabile
+     (vedi commento su #landing-overlay). */
+  margin: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -3488,6 +3538,14 @@ legend.field-label {
 .land-map-link:hover {
   color: #a8ff00;
   border-color: rgba(168, 255, 0, 0.5);
+}
+
+/* "Latest additions": riusa .detail-related (bordo, titolo, .grid) di
+   CanDetail; qui serve solo forzare la larghezza piena di .land-inner, dato
+   che .land-inner è un flex column con align-items:center (nessuno stretch
+   automatico). */
+.land-latest {
+  width: 100%;
 }
 
 .land-footer {

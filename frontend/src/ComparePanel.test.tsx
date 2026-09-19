@@ -45,7 +45,7 @@ test('il prezzo (Est. Value) è solo da admin', () => {
   expect(screen.getByText('€20')).toBeTruthy();
 });
 
-test('la modale � un <dialog> nativo', () => {
+test('la modale è un <dialog> nativo', () => {
   render(
     <ComparePanel
       cans={[
@@ -56,4 +56,19 @@ test('la modale � un <dialog> nativo', () => {
     />,
   );
   expect(screen.getByRole('dialog').tagName).toBe('DIALOG');
+});
+
+test('ESC chiama onClose', async () => {
+  const onClose = vi.fn();
+  render(
+    <ComparePanel
+      cans={[
+        { id: '1', nome: 'A' },
+        { id: '2', nome: 'B' },
+      ]}
+      onClose={onClose}
+    />,
+  );
+  await userEvent.keyboard('{Escape}');
+  expect(onClose).toHaveBeenCalled();
 });

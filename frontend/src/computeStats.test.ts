@@ -6,21 +6,39 @@ import {
   buildYearlyData,
   buildTopValue,
   addedThisMonth,
+  latestAdditions,
 } from './computeStats';
 import type { Can } from './types';
 
-test('addedThisMonth conta solo i createdAt nel mese corrente, ignora null e altri mesi', () => {
+test('addedThisMonth conta max(createdAt, photoAt) nel mese corrente, ignora chi non ha nessuna data o è di un altro mese', () => {
   const now = new Date('2026-07-10T12:00:00Z');
   const inMonth = new Date('2026-07-02T08:00:00Z').getTime();
   const lastMonth = new Date('2026-06-28T08:00:00Z').getTime();
   const cans: Can[] = [
-    { id: '1', nome: 'A', createdAt: inMonth },
-    { id: '2', nome: 'B', createdAt: inMonth },
-    { id: '3', nome: 'C', createdAt: lastMonth }, // mese scorso → escluso
-    { id: '4', nome: 'D' }, // legacy, createdAt null → escluso
+    { id: '1', nome: 'A', createdAt: inMonth }, // createdAt nel mese
+    { id: '2', nome: 'B', photoAt: inMonth }, // legacy: solo photoAt, ma nel mese → conta
+    { id: '3', nome: 'C', createdAt: lastMonth, photoAt: inMonth }, // createdAt vecchio, foto nuova → conta
+    { id: '4', nome: 'D', createdAt: lastMonth }, // mese scorso → escluso
+    { id: '5', nome: 'E' }, // nessuna data → escluso
   ];
-  expect(addedThisMonth(cans, now)).toBe(2);
+  expect(addedThisMonth(cans, now)).toBe(3);
   expect(addedThisMonth([], now)).toBe(0);
+});
+
+test('latestAdditions: solo lattine con foto, ordinate per max(createdAt, photoAt) desc, troncate a limit', () => {
+  const t1 = new Date('2026-01-01').getTime();
+  const t2 = new Date('2026-02-01').getTime();
+  const t3 = new Date('2026-03-01').getTime();
+  const cans: Can[] = [
+    { id: '1', nome: 'A', p1: 'a.jpg', createdAt: t1 },
+    { id: '2', nome: 'B', p1: 'b.jpg', photoAt: t3 }, // photoAt più recente di createdAt di A
+    { id: '3', nome: 'C', p1: 'c.jpg', createdAt: t2, photoAt: t1 }, // max = t2
+    { id: '4', nome: 'D', createdAt: t3 }, // senza foto → escluso
+    { id: '5', nome: 'E', p1: 'e.jpg' }, // senza nessuna data → escluso
+  ];
+  expect(latestAdditions(cans, 10).map((c) => c.id)).toEqual(['2', '3', '1']);
+  expect(latestAdditions(cans, 2)).toHaveLength(2);
+  expect(latestAdditions([], 8)).toEqual([]);
 });
 
 test('sumValue somma i valori, ignorando quelli vuoti/non numerici', () => {

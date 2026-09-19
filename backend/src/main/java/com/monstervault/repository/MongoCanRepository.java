@@ -66,23 +66,57 @@ public class MongoCanRepository implements CanRepository {
         mongo.remove(new Query(), Can.class);
     }
 
-    /** Come il vecchio repository: aggiorna updatedAt, e photoAt se almeno uno slot foto è presente.
-     *  createdAt è server-autoritativo e immutabile: si timbra `now` SOLO se la lattina non esiste
-     *  ancora su Mongo (creazione vera); per un record esistente si preserva il valore già salvato
-     *  — null incluso, così i record migrati da Firestore non vengono "inventati" a oggi da un
-     *  edit o da un restore (altrimenti finirebbero in "added this month"). */
+    /** Aggiorna updatedAt sempre. createdAt è server-autoritativo e immutabile: si timbra `now`
+     *  SOLO se la lattina non esiste ancora su Mongo (creazione vera); per un record esistente si
+     *  preserva il valore già salvato — null incluso, così i record migrati da Firestore non
+     *  vengono "inventati" a oggi da un edit o da un restore (altrimenti finirebbero in "added
+     *  this month"). photoAt si timbra `now` SOLO se le foto sono davvero cambiate rispetto al
+     *  documento salvato (non basta che il client rimandi p1..p4 non-null: il frontend manda ""
+     *  per gli slot vuoti, quindi qualunque edit — prezzo, note, restore, batch — bumperebbe
+     *  photoAt a ogni save se controllassimo solo "presente"). Il record esistente si carica UNA
+     *  volta sola (se can.getId() != null) e serve sia per photoAt che per createdAt. */
     private void stampTimestamps(Can can) {
         long now = System.currentTimeMillis();
         can.setUpdatedAt(now);
-        if (can.getP1() != null || can.getP2() != null || can.getP3() != null || can.getP4() != null) {
-            can.setPhotoAt(now);
-        }
+
+        Can existing = can.getId() != null ? mongo.findById(can.getId(), Can.class) : null;
+
+        can.setPhotoAt(computePhotoAt(can, existing, now));
+
         if (can.getCreatedAt() == null) {
-            Can existing = can.getId() != null ? mongo.findById(can.getId(), Can.class) : null;
             // if/else (non ternario) di proposito: `now` è long e getCreatedAt() è Long null →
             // un ternario misto unboxerebbe e andrebbe in NPE sul ramo legacy.
             if (existing == null) can.setCreatedAt(now);
             else can.setCreatedAt(existing.getCreatedAt());
         }
+    }
+
+    /** null se il documento è nuovo e senza foto; `now` se il documento è nuovo con almeno una
+     *  foto, o se almeno uno slot p1..p4 è cambiato rispetto al salvato E almeno uno slot è
+     *  presente dopo l'edit; altrimenti il photoAt già salvato (mai quello mandato dal client —
+     *  rimuovere tutte le foto non resetta photoAt: nessun caso speciale). */
+    private Long computePhotoAt(Can can, Can existing, long now) {
+        boolean hasPhoto = present(can.getP1()) || present(can.getP2())
+                || present(can.getP3()) || present(can.getP4());
+        if (existing == null) {
+            return hasPhoto ? now : null;
+        }
+        boolean changed = !normalize(can.getP1()).equals(normalize(existing.getP1()))
+                || !normalize(can.getP2()).equals(normalize(existing.getP2()))
+                || !normalize(can.getP3()).equals(normalize(existing.getP3()))
+                || !normalize(can.getP4()).equals(normalize(existing.getP4()));
+        // if/else (non ternario) di proposito: `now` è long e getPhotoAt() è Long null → un
+        // ternario misto unboxerebbe comunque il ramo Long scelto e andrebbe in NPE (stesso
+        // motivo del ramo createdAt in stampTimestamps).
+        if (changed && hasPhoto) return now;
+        return existing.getPhotoAt();
+    }
+
+    private static String normalize(String url) {
+        return present(url) ? url : "";
+    }
+
+    private static boolean present(String url) {
+        return url != null && !url.isBlank();
     }
 }

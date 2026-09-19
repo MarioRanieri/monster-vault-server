@@ -6,7 +6,7 @@ import { Hero } from './Hero';
 import { CollectionFilterBar, type GridMode } from './CollectionFilterBar';
 import { CanViews, LoadStatus, Toast, type ToastState } from './AppParts';
 import { NO_FILTERS, type Filters } from './appFilters';
-import { computeStats, addedThisMonth } from './computeStats';
+import { computeStats, addedThisMonth, latestAdditions } from './computeStats';
 import { useAuthStore } from './authStore';
 import { LoginForm } from './LoginForm';
 import { CanEditForm } from './CanEditForm';
@@ -26,6 +26,8 @@ import type { Can } from './types';
 
 // Render incrementale: quante card montare per "pagina" (vedi shownCans).
 const PAGE = 60;
+// Quante lattine mostrare in "Latest additions" sulla landing.
+const LATEST_LIMIT = 8;
 
 function App() {
   const cans = useCansStore((s) => s.cans);
@@ -170,6 +172,12 @@ function App() {
   const selectCan = (can: Can) => {
     setSelectedId(can.id);
     setEditing(false);
+  };
+  // Card di "Latest additions" sulla landing: entra in collection e apre
+  // subito il dettaglio di quella lattina (stessa selectCan usata altrove).
+  const selectFromLanding = (can: Can) => {
+    enterCollection();
+    selectCan(can);
   };
   // ShareFilters non include `stato` (si attiva solo dalle stats, non si condivide).
   const currentFilters: ShareFilters = {
@@ -329,8 +337,10 @@ function App() {
         total={stats.total}
         countries={stats.countries}
         addedThisMonth={addedThisMonth(cans)}
+        latest={latestAdditions(cans, LATEST_LIMIT)}
         loading={loading}
         onEnter={enterCollection}
+        onSelect={selectFromLanding}
         onAdmin={() => {
           // Già admin (sessione attiva) → entra dritto, niente password.
           // Guest → entra e apre il login.

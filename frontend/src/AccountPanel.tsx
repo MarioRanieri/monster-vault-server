@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useAuthStore } from './authStore';
+import { useEscapeClose } from './useEscapeClose';
 
 // Pannello "Account & security" (admin): cambio password + generazione del codice
 // di recupero (mostrato una sola volta). Riusa il guscio modale di Stats.
 export function AccountPanel({ onClose }: Readonly<{ onClose: () => void }>) {
   const changePassword = useAuthStore((s) => s.changePassword);
   const generateRecoveryCode = useAuthStore((s) => s.generateRecoveryCode);
+  useEscapeClose(onClose);
 
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');

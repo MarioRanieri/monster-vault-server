@@ -32,12 +32,25 @@ test('"Forgot password?" apre il recupero e chiama onRecover', async () => {
   expect(await screen.findByText(/password updated/i)).toBeTruthy();
 });
 
-test('la modale è un <dialog> nativo', () => {
+test('la modale Ã¨ un <dialog> nativo', () => {
   render(<LoginForm onLogin={() => {}} />);
   expect(screen.getByRole('dialog').tagName).toBe('DIALOG');
 });
 
-test('il messaggio di recupero riuscito è un <output> nativo', async () => {
+test('ESC chiama onGuest (stesso effetto di "Continue in read-only mode")', async () => {
+  const onGuest = vi.fn();
+  render(<LoginForm onLogin={() => {}} onGuest={onGuest} />);
+  await userEvent.keyboard('{Escape}');
+  expect(onGuest).toHaveBeenCalled();
+});
+
+test('ESC senza onGuest non fa nulla (nessun modo di lasciare il login)', async () => {
+  render(<LoginForm onLogin={() => {}} />);
+  await userEvent.keyboard('{Escape}');
+  expect(screen.getByRole('dialog')).toBeTruthy();
+});
+
+test('il messaggio di recupero riuscito Ã¨ un <output> nativo', async () => {
   render(<LoginForm onLogin={() => {}} onRecover={vi.fn().mockResolvedValue({ ok: true })} />);
   await userEvent.click(screen.getByRole('button', { name: /forgot password/i }));
   await userEvent.type(screen.getByLabelText('Username'), 'admin');

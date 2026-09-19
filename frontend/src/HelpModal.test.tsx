@@ -16,7 +16,14 @@ test('Close chiama onClose', async () => {
   expect(onClose).toHaveBeenCalled();
 });
 
-test('la modale è un <dialog> nativo', () => {
+test('la modale Ã¨ un <dialog> nativo', () => {
   render(<HelpModal onClose={() => {}} />);
   expect(screen.getByRole('dialog').tagName).toBe('DIALOG');
+});
+
+test('ESC chiama onClose', async () => {
+  const onClose = vi.fn();
+  render(<HelpModal onClose={onClose} />);
+  await userEvent.keyboard('{Escape}');
+  expect(onClose).toHaveBeenCalled();
 });

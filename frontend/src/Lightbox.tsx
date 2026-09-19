@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { cloudinaryThumb } from './cloudinary';
 import { ZOOM_RESET, zoomAt, panBy, type ZoomState } from './zoomPan';
+import { useEscapeClose } from './useEscapeClose';
 
 // Lightbox a schermo intero riusabile: ✕ per chiudere, ‹ › per scorrere le foto,
 // ESC per uscire. Zoom: rotellina e pinch (verso il cursore, 1–4x), doppio
@@ -44,10 +45,13 @@ export function Lightbox({
     setIdx((i) => (i + 1) % photos.length);
   };
 
+  useEscapeClose(onClose);
+
+  // Solo le frecce: Escape passa dallo stack condiviso (useEscapeClose), così
+  // annidata nel dettaglio chiude solo se stessa, non il pannello sottostante.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-      else if (e.key === 'ArrowLeft') prev();
+      if (e.key === 'ArrowLeft') prev();
       else if (e.key === 'ArrowRight') next();
     };
     globalThis.addEventListener('keydown', onKey);

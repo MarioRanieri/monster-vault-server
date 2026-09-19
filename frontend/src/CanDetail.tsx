@@ -9,6 +9,7 @@ import { CanShare } from './CanShare';
 import { Lightbox } from './Lightbox';
 import { CanGrid } from './CanGrid';
 import { pickRelated, sameLineupGroups } from './relatedCans';
+import { useEscapeClose } from './useEscapeClose';
 
 // Pannello di dettaglio completo (struttura/classi del vecchio): immagine
 // principale + miniature, tutti i campi, opening, descrizione. Lightbox con
@@ -46,24 +47,15 @@ export function CanDetail({
   const main = photos[mainIdx] ?? photos[0];
   const panelRef = useRef<HTMLElement>(null);
 
-  // All'apertura sposta il focus dentro il pannello (accessibilità tastiera);
-  // alla chiusura lo restituisce a chi l'aveva aperto (es. la card cliccata).
-  useEffect(() => {
-    const previouslyFocused = document.activeElement as HTMLElement | null;
-    panelRef.current?.focus();
-    return () => previouslyFocused?.focus();
-  }, []);
+  // ESC chiude il pannello e ripristina il focus a chi l'aveva aperto —
+  // se la lightbox è aperta è lei in cima allo stack e chiude prima se stessa
+  // (vedi useEscapeClose), il pannello resta.
+  useEscapeClose(onClose);
 
-  // ESC chiude il pannello, come gli altri overlay dell'app — disattivato
-  // mentre la lightbox è aperta: lì ESC chiude prima la lightbox.
+  // All'apertura sposta il focus dentro il pannello (accessibilità tastiera).
   useEffect(() => {
-    if (lbIdx !== null) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    globalThis.addEventListener('keydown', onKey);
-    return () => globalThis.removeEventListener('keydown', onKey);
-  }, [onClose, lbIdx]);
+    panelRef.current?.focus();
+  }, []);
 
   const fields: { lbl: string; val?: string; isTop?: boolean }[] = [
     { lbl: 'SKU', val: can.sku },

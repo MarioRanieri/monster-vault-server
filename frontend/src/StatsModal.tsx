@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { Can } from './types';
 import {
   statsBreakdown,
@@ -11,6 +11,7 @@ import {
 } from './computeStats';
 import { statoBadgeClass } from './statoBadge';
 import { cloudinaryThumb } from './cloudinary';
+import { useEscapeClose } from './useEscapeClose';
 
 // Palette categoriale del vecchio (le fette identificano categorie, non magnitudini).
 const CHART_COLORS = [
@@ -288,13 +289,7 @@ export function StatsModal({
   onFilter?: (field: string, value: string) => void;
   onSelect?: (can: Can) => void;
 }>) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    globalThis.addEventListener('keydown', onKey);
-    return () => globalThis.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  useEscapeClose(onClose);
 
   const pct = stats.total ? Math.round((stats.withPhoto / stats.total) * 100) : 0;
 

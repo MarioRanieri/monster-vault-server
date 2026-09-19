@@ -217,6 +217,29 @@ test('un mv_seen_landing residuo in localStorage (vecchio meccanismo) non basta 
   expect(screen.getByRole('button', { name: /enter the collection/i })).toBeTruthy();
 });
 
+test('cliccare una card di "Latest additions" nella landing entra in collection con il dettaglio aperto', async () => {
+  const now = Date.now();
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [
+        { id: '1', nome: 'Alpha', p1: 'a.jpg', photoAt: now },
+        { id: '2', nome: 'Beta' }, // senza foto/data → non in "Latest additions"
+      ],
+    }),
+  );
+
+  render(<App />);
+
+  await userEvent.click(await screen.findByRole('button', { name: 'Alpha' }));
+
+  // siamo entrati in collection (niente più splash) col dettaglio di Alpha aperto
+  expect(screen.queryByRole('button', { name: /enter the collection/i })).toBeNull();
+  expect(await screen.findByRole('button', { name: /^close$/i })).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'Alpha' })).toBeTruthy();
+});
+
 test('admin già loggato su questo browser (mv_auth) salta la landing anche a sessione nuova', async () => {
   localStorage.setItem('mv_auth', '1');
   render(<App />);

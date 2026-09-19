@@ -1,3 +1,6 @@
+import type { Can } from './types';
+import { CanGrid } from './CanGrid';
+
 // Splash iniziale (struttura/classi del vecchio #landing-overlay): scelta guest
 // vs admin + link alla mappa. Presentazionale: stats e callback vengono da App.
 // Testo del badge "attività del mese": singolare/plurale o nessuna novità.
@@ -10,16 +13,20 @@ export function LandingPage({
   total,
   countries,
   addedThisMonth,
+  latest,
   loading = false,
   onEnter,
   onAdmin,
+  onSelect,
 }: Readonly<{
   total: number;
   countries: number;
   addedThisMonth: number;
+  latest: Can[];
   loading?: boolean;
   onEnter: () => void;
   onAdmin: () => void;
+  onSelect: (can: Can) => void;
 }>) {
   return (
     // Il CSS vecchio parte da display:none (nel vanilla la mostrava il JS);
@@ -90,6 +97,16 @@ export function LandingPage({
         <a className="land-map-link" href="/map.html">
           Explore the world map &rarr;
         </a>
+
+        {/* Anteprima delle ultime aggiunte, stesso pattern di "Other cans from
+            this country" in CanDetail: solo quando i dati sono pronti e ce ne
+            sono, altrimenti sotto la landing resterebbe uno spazio vuoto. */}
+        {!loading && latest.length > 0 && (
+          <section className="detail-related land-latest" aria-label="Latest additions">
+            <h2 className="detail-related-title">Latest additions</h2>
+            <CanGrid cans={latest} showPrice={false} onSelect={onSelect} />
+          </section>
+        )}
 
         <div className="land-footer">
           <span>Built by Mario Ranieri &middot; Spring Boot + React</span>
