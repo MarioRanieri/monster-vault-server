@@ -130,6 +130,7 @@ export function CanEditForm({
   // conferma prima di scartarle (a differenza di Cancel/✕, che è un'azione
   // esplicita dell'utente e non la richiede).
   useEscapeClose(() => {
+    if (saving) return;
     if (!dirty || globalThis.confirm('Discard changes?')) onCancel();
   });
 

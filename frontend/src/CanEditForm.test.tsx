@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CanEditForm } from './CanEditForm';
 import type { Can } from './types';
@@ -264,5 +264,26 @@ test('ESC con modifiche non salvate, confermando chiude', async () => {
   await userEvent.keyboard('{Escape}');
 
   expect(onCancel).toHaveBeenCalled();
+  vi.restoreAllMocks();
+});
+
+test('ESC durante il salvataggio non chiude e non chiede conferma', async () => {
+  let resolveSave: () => void = () => {};
+  const onSave = vi.fn(() => new Promise<void>((resolve) => (resolveSave = resolve)));
+  vi.spyOn(window, 'confirm').mockReturnValue(true);
+  const onCancel = vi.fn();
+  render(<CanEditForm can={can} onSave={onSave} onCancel={onCancel} />);
+
+  await userEvent.type(screen.getByLabelText('Name'), ' Beta');
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  expect(await screen.findByRole('button', { name: /saving/i })).toBeTruthy();
+
+  await userEvent.keyboard('{Escape}');
+
+  expect(window.confirm).not.toHaveBeenCalled();
+  expect(onCancel).not.toHaveBeenCalled();
+
+  resolveSave();
+  await waitFor(() => expect(screen.getByRole('button', { name: /^save$/i })).toBeTruthy());
   vi.restoreAllMocks();
 });
