@@ -2,7 +2,7 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-09-19 (rev 64 — fix dalla review Lovable: vuoto griglia mobile, mappa a11y/zoom)  
+**Updated:** 2026-09-19 (rev 64 — fix dalla review Lovable: vuoto griglia mobile, mappa a11y/zoom/skip link/lista a colonne)  
 **Branch:** main  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
@@ -24,6 +24,11 @@
 > (decisione dell'utente: nessun valore leggibile per gli ospiti). **Scartati**: bandiere emoji come prima scelta
 > (Windows non le disegna), contatore del Compare (c'è già "✓ Comparing" + CompareBar), link condivisibili della
 > mappa, skip-link della mappa (YAGNI). **Da fare**: provare il pinch sulla mappa su iPhone/Android veri.
+> **Follow-up mappa:** **skip link** "Skip to country list" (PR #72), visibile solo col focus da tastiera e nascosto
+> finché non c'è una lista, porta il focus su `#list-scroll` (`tabindex=-1`) saltando i ~84 Paesi focusabili.
+> **Lista Paesi a colonne CSS** (PR #73): la griglia faceva ogni riga alta quanto il blocco più lungo (buchi sotto
+> i Paesi corti accanto a Canada); ora `columns:280px` + `break-inside:avoid`, niente buchi, ordine alfabetico per
+> colonna (scelto dall'utente dopo un mock; masonry nativo di Grid scartato perché Chrome non lo supporta).
 > Test: **415 frontend Vitest**.
 
 > **2026-09-19 — rev 63: landing polish (PR #67) + landing sempre all'apertura della PWA.** Claw con maschera
