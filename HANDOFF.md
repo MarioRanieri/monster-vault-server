@@ -2,10 +2,19 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-09-19 (rev 62 — Esc su tutti gli overlay, "Latest additions", Spring Boot 3.5, bug `photoAt`, pulizia doc)  
+**Updated:** 2026-09-19 (rev 63 — landing polish, landing sempre nella PWA)  
 **Branch:** main  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
+
+> **2026-09-19 — rev 63: landing polish (PR #67) + landing sempre all'apertura della PWA.** Claw con maschera
+> radiale (il quadrato del jpg non si vede più), barra sotto la tagline lime invece dell'arcobaleno, claw ≤160px
+> sotto i 640px ("Latest additions" sopra la piega). **Bug segnalato dall'utente:** da guest la PWA riapriva
+> dritta nella collection. Due cause: (1) `mv_auth` si toglieva solo col logout — a refresh token scaduto (7
+> giorni) `/auth/refresh` dava 401 ma l'hint restava e la landing veniva saltata per sempre; ora `refresh()` lo
+> rimuove su risposta non-ok (non su errore di rete). (2) in `display-mode: standalone` `sessionStorage` può
+> sopravvivere alla chiusura (iOS): nella PWA il "già vista" del guest resta solo in memoria (anche un
+> pull-to-refresh mostra la landing); nel browser invariato. Admin loggato continua a saltarla.
 
 > **2026-09-19 — rev 62: Esc su tutti gli overlay, "Latest additions" in landing, Spring Boot 3.5, bug
 > `photoAt`, pulizia doc (branch `feat/overlays-esc-landing-latest-boot35`).** Nuovo hook `useEscapeClose`
