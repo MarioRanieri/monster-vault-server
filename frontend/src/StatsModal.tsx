@@ -9,7 +9,7 @@ import {
   type Freq,
   type TimelinePoint,
 } from './computeStats';
-import { statoBadgeClass } from './statoBadge';
+import { statusBadgeClass } from './statusBadge';
 import { cloudinaryThumb } from './cloudinary';
 import { useEscapeClose } from './useEscapeClose';
 
@@ -477,7 +477,7 @@ export function StatsModal({
                 {conditions.map((d) =>
                   conditionCard(
                     d.n,
-                    <span className={`badge ${statoBadgeClass(d.k)}`}>{d.k}</span>,
+                    <span className={`badge ${statusBadgeClass(d.k)}`}>{d.k}</span>,
                     ['stato', d.k],
                     d.k,
                   ),

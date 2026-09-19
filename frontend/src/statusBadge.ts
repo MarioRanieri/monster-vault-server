@@ -7,6 +7,6 @@ const BY_STATO: Record<string, string> = {
   danneggiata: 'badge-stato-danneggiata',
 };
 
-export function statoBadgeClass(stato?: string): string {
+export function statusBadgeClass(stato?: string): string {
   return BY_STATO[(stato ?? '').trim().toLowerCase()] ?? 'badge-stato-ok';
 }

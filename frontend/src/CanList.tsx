@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Can } from './types';
-import { statoBadgeClass } from './statoBadge';
+import { statusBadgeClass } from './statusBadge';
 import { hasPromo } from './filterCans';
 import { cloudinaryThumb } from './cloudinary';
 import { Flags } from './flags';
@@ -103,7 +103,7 @@ export function CanList({
               <td className="lt-status" data-label="Status">
                 {hasPromo(can.promo) && <span className="badge badge-promo">{can.promo}</span>}
                 {can.stato && (
-                  <span className={`badge ${statoBadgeClass(can.stato)}`}>{can.stato}</span>
+                  <span className={`badge ${statusBadgeClass(can.stato)}`}>{can.stato}</span>
                 )}
                 {!hasPromo(can.promo) && !can.stato && '—'}
               </td>

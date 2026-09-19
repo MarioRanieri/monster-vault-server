@@ -1,4 +1,4 @@
-import { statoBadgeClass } from './statoBadge';
+import { statusBadgeClass } from './statusBadge';
 
 test.each([
   ['OK', 'badge-stato-ok'],
@@ -10,6 +10,6 @@ test.each([
   ['DANNEGGIATA', 'badge-stato-danneggiata'],
   ['Mint', 'badge-stato-ok'], // sconosciuto → default come il vecchio cardHTML
   [undefined, 'badge-stato-ok'],
-])('statoBadgeClass(%s) → %s', (stato, cls) => {
-  expect(statoBadgeClass(stato)).toBe(cls);
+])('statusBadgeClass(%s) → %s', (stato, cls) => {
+  expect(statusBadgeClass(stato)).toBe(cls);
 });

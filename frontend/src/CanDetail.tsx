@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Can } from './types';
-import { statoBadgeClass } from './statoBadge';
+import { statusBadgeClass } from './statusBadge';
 import { hasPromo } from './filterCans';
 import { colorizeTab } from './colorizeTab';
 import { TabParts } from './TabParts';
@@ -213,7 +213,7 @@ export function CanDetail({
               {can.size && <span className="badge badge-size">{can.size}</span>}
               {hasPromo(can.promo) && <span className="badge badge-promo">{can.promo}</span>}
               {can.stato && (
-                <span className={`badge ${statoBadgeClass(can.stato)}`}>{can.stato}</span>
+                <span className={`badge ${statusBadgeClass(can.stato)}`}>{can.stato}</span>
               )}
               {photos.length > 0 && (
                 <span className="badge badge-photo">{photos.length} photo</span>
