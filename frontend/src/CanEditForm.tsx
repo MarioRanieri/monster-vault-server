@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import type { Can } from './types';
-import { PhotoCrop } from './PhotoCrop';
-import { cloudinaryThumb } from './cloudinary';
+import { PhotoCrop } from './photos/PhotoCrop';
+import { cloudinaryThumb } from './photos/cloudinary';
 import { colorizeTab } from './colorizeTab';
 import { useEscapeClose } from './useEscapeClose';
 

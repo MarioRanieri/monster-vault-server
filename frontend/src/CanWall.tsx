@@ -1,5 +1,5 @@
 import type { Can } from './types';
-import { cloudinaryThumb } from './cloudinary';
+import { cloudinaryThumb } from './photos/cloudinary';
 import { Flags } from './flags';
 
 // Vista "wall" (classe .wall-grid del vecchio): mosaico di sole foto, miniature

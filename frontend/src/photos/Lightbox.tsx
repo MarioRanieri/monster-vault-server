@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { cloudinaryThumb } from './cloudinary';
 import { ZOOM_RESET, zoomAt, panBy, type ZoomState } from './zoomPan';
-import { useEscapeClose } from './useEscapeClose';
+import { useEscapeClose } from '../useEscapeClose';
 
 // Lightbox a schermo intero riusabile: ✕ per chiudere, ‹ › per scorrere le foto,
 // ESC per uscire. Zoom: rotellina e pinch (verso il cursore, 1–4x), doppio

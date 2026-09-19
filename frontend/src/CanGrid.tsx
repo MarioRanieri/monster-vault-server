@@ -1,7 +1,7 @@
 import type { Can } from './types';
 import { statusBadgeClass } from './statusBadge';
 import { hasPromo } from './filterCans';
-import { cloudinaryThumb, cloudinaryLqip } from './cloudinary';
+import { cloudinaryThumb, cloudinaryLqip } from './photos/cloudinary';
 import { Flags } from './flags';
 
 // Sagoma di lattina per le card senza foto: SVG inline riusato (niente immagini

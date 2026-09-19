@@ -10,7 +10,7 @@ import {
   type TimelinePoint,
 } from './computeStats';
 import { statusBadgeClass } from './statusBadge';
-import { cloudinaryThumb } from './cloudinary';
+import { cloudinaryThumb } from './photos/cloudinary';
 import { useEscapeClose } from './useEscapeClose';
 
 // Palette categoriale del vecchio (le fette identificano categorie, non magnitudini).

@@ -20,7 +20,7 @@ import { ValueCalc } from './ValueCalc';
 import { parseCsv } from './export/csv';
 import { buildXlsx, parseXlsx } from './export/excel';
 import { HelpModal } from './HelpModal';
-import { Lightbox } from './Lightbox';
+import { Lightbox } from './photos/Lightbox';
 import { AccountPanel } from './AccountPanel';
 import type { Can } from './types';
 
