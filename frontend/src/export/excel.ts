@@ -1,4 +1,4 @@
-import type { Can } from './types';
+import type { Can } from '../types';
 import { COLUMNS } from './csv';
 
 // Header alternativi visti nei fogli storici (dal vecchio parseExcel), mappati
