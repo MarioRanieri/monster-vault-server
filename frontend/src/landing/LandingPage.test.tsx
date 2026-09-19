@@ -18,6 +18,11 @@ const twoLatest: Can[] = [
   { id: '2', nome: 'Beta', p1: 'b.jpg' },
 ];
 
+test('la tagline non menziona "valued" (guest non vede i valori)', () => {
+  render(<LandingPage {...base} />);
+  expect(screen.getByText(/personal Monster Energy archive/i).textContent).not.toMatch(/valued/i);
+});
+
 test('mostra il wordmark e le stats (cans / countries)', () => {
   render(<LandingPage {...base} total={1866} countries={42} />);
   expect(screen.getByRole('heading', { name: /monster vault/i })).toBeTruthy();
