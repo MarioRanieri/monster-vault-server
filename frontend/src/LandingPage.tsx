@@ -103,7 +103,7 @@ export function LandingPage({
             sono, altrimenti sotto la landing resterebbe uno spazio vuoto. */}
         {!loading && latest.length > 0 && (
           <section className="detail-related land-latest" aria-label="Latest additions">
-            <h3 className="detail-related-title">Latest additions</h3>
+            <h2 className="detail-related-title">Latest additions</h2>
             <CanGrid cans={latest} showPrice={false} onSelect={onSelect} />
           </section>
         )}
