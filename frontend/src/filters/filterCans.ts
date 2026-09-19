@@ -1,4 +1,4 @@
-import type { Can } from './types';
+import type { Can } from '../types';
 
 export interface CanFilters {
   query?: string;

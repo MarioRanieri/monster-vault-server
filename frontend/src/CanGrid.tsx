@@ -1,6 +1,6 @@
 import type { Can } from './types';
 import { statusBadgeClass } from './statusBadge';
-import { hasPromo } from './filterCans';
+import { hasPromo } from './filters/filterCans';
 import { cloudinaryThumb, cloudinaryLqip } from './photos/cloudinary';
 import { Flags } from './flags';
 
