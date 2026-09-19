@@ -80,8 +80,9 @@
   .skip{position:absolute;left:-9999px;top:auto}
   .skip:focus{position:fixed;left:12px;top:12px;z-index:100;background:var(--green);color:#0a0a0a;font-weight:700;padding:8px 12px;border-radius:8px}
   #list-scroll{display:none;padding:16px;border-top:1px solid var(--line);background:var(--bg2)}
-  #list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;align-items:start}
-  .blk{background:var(--bg);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  /* colonne CSS (masonry): niente buchi sotto i blocchi corti; ordine alfabetico per colonna */
+  #list{columns:280px;column-gap:14px}
+  .blk{break-inside:avoid;margin-bottom:14px;background:var(--bg);border:1px solid var(--line);border-radius:10px;overflow:hidden}
   .blk-h{display:flex;align-items:center;gap:7px;padding:9px 12px;background:var(--bg3);font-size:12.5px;font-weight:700;letter-spacing:.4px}
   .blk-h img{border-radius:2px}
   .po{font-size:9.5px;color:#c9a227;border:1px solid #5a4d12;border-radius:4px;padding:1px 5px;font-weight:600;letter-spacing:0}
