@@ -2,10 +2,29 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-09-19 (rev 63 — landing polish, landing sempre nella PWA)  
+**Updated:** 2026-09-19 (rev 64 — fix dalla review Lovable: vuoto griglia mobile, mappa a11y/zoom)  
 **Branch:** main  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
+
+> **2026-09-19 — rev 64: fix dalla review esterna di Lovable (PR #70).** Triage fatto con l'utente: circa metà dei
+> punti era valida, il resto già fatto o con premessa sbagliata. **Vuoto nero su mobile**: causato da
+> `content-visibility:auto` sulle `.card` (le card fuori viewport venivano dipinte come riquadri vuoti, riprodotto con
+> screenshot full-page a 390px). Tolto: il paging IntersectionObserver da 60 in `App.tsx` limita già il DOM.
+> **Date storiche `photoAt`** (lasciate in sospeso in rev 62): verificate su prod confrontandole con il timestamp
+> `/v<unix>/` degli URL Cloudinary. Solo 3 lattine su 356 sono sfasate di più di 3 giorni (tutte di maggio, circa
+> una settimana): **nessun data fix necessario**, la questione è chiusa. **Mappa (`map.html`)**: zoom pagina riattivato (via
+> `user-scalable=no`, `touch-action:pan-x pan-y` su `#map-box`); tolti i dati `MOCK` (se l'API fallisce ora compare
+> un errore, niente lattine inventate); legenda ripulita (via lo stato rosso vuoto e le frasi scritte per lo
+> sviluppatore); Paesi accesi focusabili (tabindex/role/aria-label), Invio o Spazio apre il pannello; zoom (bottoni
+> e pinch) ancorato sul punto guardato e ricerca che centra il Paese. La matematica sta in `zoomScroll` e
+> `centerScroll`, in `map-data.js` e testate. Gotcha: in `setScale` lo scroll va letto **prima** di cambiare la larghezza,
+> altrimenti il browser lo ha già clampato sullo zoom-out; il centraggio della ricerca aspetta 220ms per la transizione
+> del pannello. **UI**: `.card-name` su 2 righe, `.detail-back` 44×44, tagline della landing senza "valued"
+> (decisione dell'utente: nessun valore leggibile per gli ospiti). **Scartati**: bandiere emoji come prima scelta
+> (Windows non le disegna), contatore del Compare (c'è già "✓ Comparing" + CompareBar), link condivisibili della
+> mappa, skip-link della mappa (YAGNI). **Da fare**: provare il pinch sulla mappa su iPhone/Android veri.
+> Test: **415 frontend Vitest**.
 
 > **2026-09-19 — rev 63: landing polish (PR #67) + landing sempre all'apertura della PWA.** Claw con maschera
 > radiale (il quadrato del jpg non si vede più), barra sotto la tagline lime invece dell'arcobaleno, claw ≤160px
@@ -931,7 +950,7 @@ Le foto vengono caricate nella cartella `monster-vault/` su Cloudinary. Le foto 
 16. ~~**Statistiche con grafici avanzati**~~ ✅ (rev 15): timeline interattiva con toggle **12 mesi ⇄ per anno** + hover-highlight + tooltip nativi su donut/barre
 17. ~~**Drag & drop foto**~~ ✅
 18. ~~**LQIP progressive images**~~ ✅
-19. ~~**content-visibility: auto**~~ ✅
+19. ~~**content-visibility: auto**~~ ❌ rimosso in rev 64 (card fuori viewport dipinte vuote su mobile; basta il paging IntersectionObserver)
 20. ~~**JWT silent refresh**~~ ✅
 21. ~~**CSP + security headers**~~ ✅
 
