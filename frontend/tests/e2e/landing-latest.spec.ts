@@ -47,6 +47,38 @@ test.describe('landing mobile 390x844', () => {
     expect(box, '.land-wordmark non trovato').not.toBeNull();
     expect(box!.y).toBeGreaterThanOrEqual(0);
   });
+
+  // Su mobile il claw (26vh ≈ 220px) prendeva mezzo schermo e spingeva
+  // "Latest additions" sotto la piega: sotto i 640px resta al massimo 160px.
+  test('il claw non supera 160px di altezza', async ({ page }) => {
+    await openLanding(page);
+    const box = await page.locator('.land-claw').boundingBox();
+    expect(box, '.land-claw non trovato').not.toBeNull();
+    expect(box!.height).toBeLessThanOrEqual(160);
+  });
+});
+
+test.describe('landing: palette', () => {
+  // Il jpg del claw ha un fondo quasi nero ma non nero: con mix-blend-mode
+  // screen restava visibile il quadrato. La maschera radiale ne sfuma i bordi.
+  test('il claw ha una maschera che sfuma i bordi', async ({ page }) => {
+    await openLanding(page);
+    const mask = await page.locator('.land-claw').evaluate((el) => {
+      const s = getComputedStyle(el);
+      return s.maskImage || s.getPropertyValue('-webkit-mask-image');
+    });
+    expect(mask).toContain('radial-gradient');
+  });
+
+  // La barra sotto la tagline era un arcobaleno fuori palette: ora solo lime.
+  test('la barra sotto la tagline usa solo il lime', async ({ page }) => {
+    await openLanding(page);
+    const bg = await page
+      .locator('.land-bar')
+      .evaluate((el) => getComputedStyle(el).backgroundImage);
+    expect(bg).toContain('rgb(168, 255, 0)');
+    expect(bg).not.toContain('rgb(155, 109, 255)');
+  });
 });
 
 test.describe('landing: tema sempre dark', () => {

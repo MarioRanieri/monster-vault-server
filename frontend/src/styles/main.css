@@ -3372,6 +3372,9 @@ body.light #landing-overlay .badge-stato-danneggiata {
   height: clamp(140px, 26vh, 220px);
   width: auto;
   mix-blend-mode: screen;
+  /* il fondo del jpg è quasi nero ma non nero: senza maschera il quadrato si vede */
+  -webkit-mask-image: radial-gradient(closest-side, #000 72%, transparent);
+  mask-image: radial-gradient(closest-side, #000 72%, transparent);
   animation: landClawIn 0.8s cubic-bezier(0.2, 0.9, 0.2, 1) both;
 }
 @keyframes landClawIn {
@@ -3423,7 +3426,7 @@ body.light #landing-overlay .badge-stato-danneggiata {
   width: 200px;
   border-radius: 999px;
   margin: 1.7rem 0;
-  background: linear-gradient(100deg, #9b6dff, #36d6c3, #a8ff00, #ffb22e, #ff2e2e, #ff4f87);
+  background: linear-gradient(90deg, transparent, #a8ff00, transparent);
   transform-origin: center;
   animation: landBarIn 0.6s ease 0.3s both;
 }
@@ -3661,6 +3664,10 @@ body.light #landing-overlay .badge-stato-danneggiata {
      entrano nella larghezza anche su telefoni stretti (320–360px) */
   #landing-overlay {
     padding: 1.5rem 0.9rem;
+  }
+  /* il claw a 26vh prendeva mezzo schermo e spingeva "Latest additions" sotto la piega */
+  .land-claw {
+    height: clamp(110px, 18vh, 160px);
   }
   .land-eyebrow {
     font-size: 9.5px;
