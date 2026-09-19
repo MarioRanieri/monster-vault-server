@@ -691,12 +691,18 @@ test('guest: niente filtro di prezzo né ordinamento per valore', async () => {
 });
 
 test('admin: vede il filtro di prezzo e l’ordinamento per valore', async () => {
+  // Instradato per URL, non per ordine: dopo il login App richiama loadCans()
+  // e sotto coverage (CI, Node 22) l'ordine delle chiamate non è garantito —
+  // la coda posizionale faceva fallire a intermittenza il findByRole('sign out').
   vi.stubGlobal(
     'fetch',
-    vi
-      .fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: '1', nome: 'Alpha' }] }) // loadCans
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ accessToken: 'tok' }) }), // login
+    vi.fn((url: string) =>
+      Promise.resolve(
+        url === '/api/auth/login'
+          ? { ok: true, json: async () => ({ accessToken: 'tok' }) }
+          : { ok: true, json: async () => [{ id: '1', nome: 'Alpha' }] },
+      ),
+    ),
   );
 
   render(<App />);
