@@ -8,7 +8,7 @@ import {
   addedThisMonth,
   latestAdditions,
 } from './computeStats';
-import type { Can } from './types';
+import type { Can } from '../types';
 
 test('addedThisMonth conta max(createdAt, photoAt) nel mese corrente, ignora chi non ha nessuna data o è di un altro mese', () => {
   const now = new Date('2026-07-10T12:00:00Z');

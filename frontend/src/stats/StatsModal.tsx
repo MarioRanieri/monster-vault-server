@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Can } from './types';
+import type { Can } from '../types';
 import {
   statsBreakdown,
   buildTimelineData,
@@ -9,9 +9,9 @@ import {
   type Freq,
   type TimelinePoint,
 } from './computeStats';
-import { statusBadgeClass } from './statusBadge';
-import { cloudinaryThumb } from './photos/cloudinary';
-import { useEscapeClose } from './useEscapeClose';
+import { statusBadgeClass } from '../statusBadge';
+import { cloudinaryThumb } from '../photos/cloudinary';
+import { useEscapeClose } from '../useEscapeClose';
 
 // Palette categoriale del vecchio (le fette identificano categorie, non magnitudini).
 const CHART_COLORS = [

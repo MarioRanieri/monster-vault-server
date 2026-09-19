@@ -1,4 +1,4 @@
-import type { Stats } from '../computeStats';
+import type { Stats } from '../stats/computeStats';
 
 // Hero della collection: titolo + UNA riga compatta (numero grande + resto delle
 // stat in linea). Prima il conteggio grande (hero-count) ripeteva se stesso come

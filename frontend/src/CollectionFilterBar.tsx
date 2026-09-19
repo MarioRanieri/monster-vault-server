@@ -2,7 +2,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import { FilterBar, type Range } from './FilterBar';
 import type { Filters } from './appFilters';
 import type { FilterOptions, SortKey } from './filterCans';
-import type { Stats } from './computeStats';
+import type { Stats } from './stats/computeStats';
 
 export type GridMode = 'grid' | 'list' | 'wall';
 
