@@ -42,6 +42,7 @@
   #svg-host .q4, #svg-host .q4 path{fill:#c6ff4d}
   #svg-host .q3, #svg-host .q4{filter:drop-shadow(0 0 4px rgba(168,255,0,.3))}
   #svg-host .lit:hover, #svg-host .lit:hover path{fill:#e6ff99}
+  #svg-host .lit:focus-visible{outline:2px solid #fff;outline-offset:1px}
   #svg-host .pulse, #svg-host .pulse path{fill:#e6ff99}
   #svg-host .pulse{filter:drop-shadow(0 0 8px rgba(168,255,0,.8));animation:pls .5s ease-in-out 3}
   @keyframes pls{50%{filter:drop-shadow(0 0 12px rgba(168,255,0,1))}}
@@ -234,6 +235,7 @@ function buildStats(cans){
 function clearMapClasses(){
   document.querySelectorAll('#svg-host .lit,#svg-host .shared,#svg-host .nomon').forEach(function(el){
     el.classList.remove('lit','shared','nomon','q1','q2','q3','q4','pulse'); el.removeAttribute('data-iso');
+    el.removeAttribute('tabindex'); el.removeAttribute('role'); el.removeAttribute('aria-label');
   });
 }
 function lightMap(){
@@ -242,7 +244,13 @@ function lightMap(){
   var lit=0;
   Object.keys(byIso).forEach(function(iso){
     var el=host.querySelector('#'+iso.toLowerCase());
-    if(el){ el.classList.add('lit',litBand(byIso[iso].n)); el.setAttribute('data-iso',iso); lit++; }
+    if(el){
+      var n=byIso[iso].n;
+      el.classList.add('lit',litBand(n)); el.setAttribute('data-iso',iso);
+      el.setAttribute('tabindex','0'); el.setAttribute('role','button');
+      el.setAttribute('aria-label',isoName(iso)+': '+n+' can'+(n>1?'s':''));
+      lit++;
+    }
     else  { tinyMissing[iso]=byIso[iso].n; }
   });
   SHARED_CAN_ISO.forEach(function(iso){ var el=host.querySelector('#'+iso.toLowerCase());
@@ -298,11 +306,22 @@ function openPanel(iso){
 function closePanel(){ openIso=null; document.getElementById('panel').classList.remove('open'); }
 function toggleValues(){ showValues=!showValues; document.getElementById('val-btn').classList.toggle('active',showValues); if(openIso) openPanel(openIso); }
 
+/* Applica la scala a #svg-host e riposiziona lo scroll di #map-box così che il punto
+   sotto (ax,ay) — px dal bordo visibile del contenitore — resti fermo (zoomScroll). */
+function setScale(s,ax,ay){
+  var box=document.getElementById('map-box'), host=document.getElementById('svg-host');
+  var s0=parseFloat(host.dataset.scale||'1');
+  host.dataset.scale=s; host.style.width=(s*100)+'%';
+  box.scrollLeft=zoomScroll(box.scrollLeft,ax,s0,s);
+  box.scrollTop=zoomScroll(box.scrollTop,ay,s0,s);
+}
 function zoomMap(dir){
+  var box=document.getElementById('map-box');
+  if(dir===0){ setScale(1,0,0); box.scrollLeft=0; box.scrollTop=0; return; }
   var host=document.getElementById('svg-host');
   var s=parseFloat(host.dataset.scale||'1');
-  s=dir===0?1:Math.min(5,Math.max(1,s+dir*0.5));
-  host.dataset.scale=s; host.style.width=(s*100)+'%';
+  s=Math.min(5,Math.max(1,s+dir*0.5));
+  setScale(s,box.clientWidth/2,box.clientHeight/2);
 }
 
 /* ── flavour picker + lista raggruppata per nazione ── */
@@ -349,12 +368,21 @@ function jumpToCountry(q){
   var up=q.toUpperCase(), target=MAP_COUNTRY[up]||(/^[A-Z]{2}$/.test(up)?up:null);
   if(!target) Object.keys(byIso).forEach(function(iso){
     if(!target&&isoName(iso).toLowerCase().indexOf(q.toLowerCase())===0) target=iso; });
-  if(target&&byIso[target]){ openPanel(target); pulse(target); hint.textContent=''; }
+  if(target&&byIso[target]){
+    openPanel(target);
+    var el=pulse(target); hint.textContent='';
+    if(el){
+      var box=document.getElementById('map-box'), boxRect=box.getBoundingClientRect(), rect=el.getBoundingClientRect();
+      box.scrollLeft=centerScroll(rect.left-boxRect.left+box.scrollLeft,rect.width,box.clientWidth);
+      box.scrollTop=centerScroll(rect.top-boxRect.top+box.scrollTop,rect.height,box.clientHeight);
+    }
+  }
   else hint.textContent = target ? isoName(target)+': not in this view' : 'No match for "'+esc(q)+'"';
 }
 function pulse(iso){
   var el=document.getElementById('svg-host').querySelector('#'+iso.toLowerCase());
   if(el){ el.classList.add('pulse'); setTimeout(function(){ el.classList.remove('pulse'); },1600); }
+  return el;
 }
 /* Lista: blocchi per nazione (alfabetico), bandiera nel titolo, righe ordinate per SKU.
    Niente promo, TRANNE se la nazione ha SOLO promo → la mostro e la segnalo. */
@@ -417,21 +445,31 @@ function attachEvents(){
   host.addEventListener('mousemove',function(e){ if(tip.style.display==='block') moveTip(e); });
   host.addEventListener('mouseout',hideTip);
   host.addEventListener('click',function(e){ var el=e.target.closest('.lit'); if(el) openPanel(el.getAttribute('data-iso')); });
+  host.addEventListener('keydown',function(e){
+    if(e.key!=='Enter'&&e.key!==' ') return;
+    var el=e.target.closest('.lit'); if(!el) return;
+    e.preventDefault(); openPanel(el.getAttribute('data-iso'));
+  });
 }
 
 /* pinch-zoom a 2 dita sulla SOLA mappa (mobile): scala #svg-host dentro #map-box */
 (function(){
   var box=document.getElementById('map-box'), host=document.getElementById('svg-host');
-  var d0=0, s0=1;
+  var d0=0, s0=1, ax=0, ay=0;
   function dist(t){ return Math.hypot(t[0].clientX-t[1].clientX, t[0].clientY-t[1].clientY); }
   box.addEventListener('touchstart',function(e){
-    if(e.touches.length===2){ d0=dist(e.touches); s0=parseFloat(host.dataset.scale||'1'); }
+    if(e.touches.length===2){
+      d0=dist(e.touches); s0=parseFloat(host.dataset.scale||'1');
+      var r=box.getBoundingClientRect();
+      ax=(e.touches[0].clientX+e.touches[1].clientX)/2-r.left;
+      ay=(e.touches[0].clientY+e.touches[1].clientY)/2-r.top;
+    }
   },{passive:true});
   box.addEventListener('touchmove',function(e){
     if(e.touches.length===2&&d0){
       e.preventDefault();
       var s=Math.min(5,Math.max(1,s0*dist(e.touches)/d0));
-      host.dataset.scale=s; host.style.width=(s*100)+'%';
+      setScale(s,ax,ay);
     }
   },{passive:false});
   box.addEventListener('touchend',function(){ d0=0; },{passive:true});
