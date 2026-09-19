@@ -225,7 +225,7 @@ test('il bottone URL mette in coda un upload da URL sullo slot 1', async () => {
   );
 });
 
-test('la modale � un <dialog> nativo', () => {
+test('la modale è un <dialog> nativo', () => {
   render(<CanEditForm can={can} onSave={vi.fn()} onCancel={() => {}} />);
   expect(screen.getByRole('dialog').tagName).toBe('DIALOG');
 });

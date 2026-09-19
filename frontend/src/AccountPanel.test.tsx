@@ -26,7 +26,7 @@ test('genera il codice di recupero e lo mostra una volta', async () => {
   expect(await screen.findByText('MV-AAAA-BBBB-CCCC')).toBeTruthy();
 });
 
-test('la modale � un <dialog> nativo', () => {
+test('la modale è un <dialog> nativo', () => {
   render(<AccountPanel onClose={() => {}} />);
   expect(screen.getByRole('dialog').tagName).toBe('DIALOG');
 });
@@ -38,7 +38,7 @@ test('ESC chiama onClose', async () => {
   expect(onClose).toHaveBeenCalled();
 });
 
-test('il messaggio di esito � un <output> nativo', async () => {
+test('il messaggio di esito è un <output> nativo', async () => {
   useAuthStore.setState({ changePassword: vi.fn().mockResolvedValue({ ok: true }) } as never);
   render(<AccountPanel onClose={() => {}} />);
   await userEvent.type(screen.getByLabelText('Current password'), 'oldpass12');

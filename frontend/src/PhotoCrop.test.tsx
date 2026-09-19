@@ -17,7 +17,7 @@ test('Cancel chiama onCancel', async () => {
   expect(onCancel).toHaveBeenCalled();
 });
 
-test('la modale � un <dialog> nativo', () => {
+test('la modale è un <dialog> nativo', () => {
   render(<PhotoCrop src="blob:x" onApply={() => {}} onCancel={() => {}} />);
   expect(screen.getByRole('dialog').tagName).toBe('DIALOG');
 });

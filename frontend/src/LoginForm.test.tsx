@@ -32,7 +32,7 @@ test('"Forgot password?" apre il recupero e chiama onRecover', async () => {
   expect(await screen.findByText(/password updated/i)).toBeTruthy();
 });
 
-test('la modale � un <dialog> nativo', () => {
+test('la modale è un <dialog> nativo', () => {
   render(<LoginForm onLogin={() => {}} />);
   expect(screen.getByRole('dialog').tagName).toBe('DIALOG');
 });
@@ -50,7 +50,7 @@ test('ESC senza onGuest non fa nulla (nessun modo di lasciare il login)', async 
   expect(screen.getByRole('dialog')).toBeTruthy();
 });
 
-test('il messaggio di recupero riuscito � un <output> nativo', async () => {
+test('il messaggio di recupero riuscito è un <output> nativo', async () => {
   render(<LoginForm onLogin={() => {}} onRecover={vi.fn().mockResolvedValue({ ok: true })} />);
   await userEvent.click(screen.getByRole('button', { name: /forgot password/i }));
   await userEvent.type(screen.getByLabelText('Username'), 'admin');

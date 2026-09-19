@@ -45,7 +45,7 @@ test('il prezzo (Est. Value) è solo da admin', () => {
   expect(screen.getByText('€20')).toBeTruthy();
 });
 
-test('la modale � un <dialog> nativo', () => {
+test('la modale è un <dialog> nativo', () => {
   render(
     <ComparePanel
       cans={[

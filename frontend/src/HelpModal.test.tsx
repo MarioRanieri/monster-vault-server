@@ -16,7 +16,7 @@ test('Close chiama onClose', async () => {
   expect(onClose).toHaveBeenCalled();
 });
 
-test('la modale � un <dialog> nativo', () => {
+test('la modale è un <dialog> nativo', () => {
   render(<HelpModal onClose={() => {}} />);
   expect(screen.getByRole('dialog').tagName).toBe('DIALOG');
 });
