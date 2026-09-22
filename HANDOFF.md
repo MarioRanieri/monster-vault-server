@@ -2,10 +2,31 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-09-22 (rev 65 — form lattina: niente scroll laterale mobile, Condition a scelte, autocomplete, More Info suggerito; ricerca multi-parola)  
+**Updated:** 2026-09-23 (rev 66 — colori tappo, Prev/Next nel dettaglio, Edit dalle correlate, menu foto e crop con raddrizza)  
 **Branch:** main  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
+
+> **2026-09-23 — rev 66: tappo, navigazione nel dettaglio, editor foto (PR #76).** Cinque segnalazioni
+> dell'utente, ognuna riprodotta in Playwright a 390px prima di toccare il codice; le scelte di design sono
+> passate da **mockup renderizzati a 390px** messi in `Downloads` (metodo ora preferito dall'utente, vedi la
+> memoria `mockups-before-ui-decisions`). **Colori tappo**: `colorizeTab` aveva due rami esclusivi — se il primo
+> colore aveva uno sfondo, il valore diventava un unico riquadro senza colori, quindi `BLACK/PINK` perdeva il
+> rosa e le **192 lattine con top BLACK** erano un riquadro `#111` invisibile sul tema scuro. Ora "top" =
+> coperchio → sfondo, "tab" = linguetta → parti dopo lo slash colorate (varianti scure sui fondi chiari), in un
+> unico `TabBadge` usato da lista, dettaglio, confronto e anteprima del form, con bordo hairline. **Prev/Next**:
+> le frecce ← → erano solo da tastiera, quindi da telefono non si cambiava lattina dal dettaglio; nuova barra
+> `.detail-nav` sotto l'header con posizione ("1 / 5"), stessa lista filtrata delle frecce. **Edit dalle
+> correlate**: le due `CanGrid` del dettaglio ricevono `onEditCan` (solo admin). **Menu foto**: le miniature
+> avevano 4 bottoni da 24px e il ✕ compariva solo in hover → da mobile **una foto non si poteva cancellare**.
+> Ora il tocco sullo slot apre `PhotoSlotMenu` (righe da 52px: take photo, gallery, crop, move, URL, remove);
+> lo scatto da fotocamera (`capture="environment"`) entra dritto nel crop, la galleria no (lì si è già ritagliato
+> in Foto). Niente riapertura automatica della fotocamera dopo Apply (scelta utente). **Crop**: riquadro con
+> maniglie agli angoli + trascinamento, griglia 3×3, **raddrizza a 0.1° su ±10°** con pulsanti −/+ (l'utente
+> raddrizza tra 0.2 e 1 grado: il passo 0.5 iniziale era inutilizzabile), `coverScale` evita gli angoli vuoti
+> della rotazione, barra fissa Full photo / Cancel / Apply. La matematica sta in `cropRect.ts` (testata); il
+> canvas applica la stessa trasformazione della vista. Il ritaglio lavora sul file originale: la riduzione a
+> 1800px/JPEG 85% resta in `compressImage` all'upload. Test: **453 Vitest + 23 e2e Playwright**.
 
 > **2026-09-22 — rev 65: form di aggiunta/modifica lattina + ricerca multi-parola.** Segnalazioni dell'utente,
 > analizzate con brainstorming e verificate in Playwright (390px e 1366px) con la sessione admin simulata.
