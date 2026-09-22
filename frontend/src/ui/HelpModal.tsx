@@ -17,8 +17,10 @@ export function HelpModal({ onClose }: Readonly<{ onClose: () => void }>) {
           <div className="chart-section">
             <div className="chart-title">Browsing</div>
             <p>
-              Search by name, SKU or notes; filter by country, size, manufacturer, tab, promo, full,
-              photo status, price and year; sort and switch between grid, list and wall views.
+              Search with any words in any order (e.g. “mango loco mexico”) across name, SKU,
+              country, manufacturer, size and tab; filter by country, size, manufacturer, tab,
+              promo, full, photo status, price and year; sort and switch between grid, list and wall
+              views.
             </p>
           </div>
           <div className="chart-section">
@@ -30,7 +32,7 @@ export function HelpModal({ onClose }: Readonly<{ onClose: () => void }>) {
           </div>
           <div className="chart-section">
             <div className="chart-title">Views &amp; sharing</div>
-            <p>Save a filter combination with “★ Views”, or copy a deep-link with “Share view”.</p>
+            <p>Copy a deep-link to the current filters with “Share view”.</p>
           </div>
           <div className="chart-section">
             <div className="chart-title">Admin</div>
