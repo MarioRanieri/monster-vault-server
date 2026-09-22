@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { PhotoCrop } from './PhotoCrop';
 
@@ -27,4 +27,20 @@ test('ESC chiama onCancel', async () => {
   render(<PhotoCrop src="blob:x" onApply={() => {}} onCancel={onCancel} />);
   await userEvent.keyboard('{Escape}');
   expect(onCancel).toHaveBeenCalled();
+});
+
+test('lo slider Straighten mostra i gradi scelti', () => {
+  render(<PhotoCrop src="blob:x" onApply={() => {}} onCancel={() => {}} />);
+  const slider = screen.getByLabelText('Straighten') as HTMLInputElement;
+  fireEvent.change(slider, { target: { value: '-4.5' } });
+  expect(screen.getByText('-4.5°')).toBeTruthy();
+  fireEvent.change(slider, { target: { value: '3' } });
+  expect(screen.getByText('+3°')).toBeTruthy();
+});
+
+test('Full photo è disponibile solo quando la foto è caricata', () => {
+  render(<PhotoCrop src="blob:x" onApply={() => {}} onCancel={() => {}} />);
+  expect((screen.getByRole('button', { name: /full photo/i }) as HTMLButtonElement).disabled).toBe(
+    true,
+  );
 });
