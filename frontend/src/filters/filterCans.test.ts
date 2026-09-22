@@ -189,6 +189,26 @@ test('filterOptions tiene visibile il valore attivo anche su una combinazione or
   expect(opts.tops).toContain('SILVER');
 });
 
+test('query a più parole: ognuna deve comparire in almeno un campo, in qualsiasi ordine', () => {
+  const list: Can[] = [
+    { id: '1', nome: 'MANGO LOCO', sku: '0920', lingua: 'MEXICO' },
+    { id: '2', nome: 'MANGO LOCO', sku: '0118', lingua: 'MEXICO' },
+    { id: '3', nome: 'MANGO LOCO', sku: '0920', lingua: 'USA' },
+    { id: '4', nome: 'OG SMALL LOGO', sku: '0920', lingua: 'MEXICO', produttore: 'CROWN' },
+  ];
+  const ids = (q: string) => filterCans(list, { query: q }).map((c) => c.id);
+  expect(ids('mango loco 0920')).toEqual(['1', '3']);
+  expect(ids('mango loco mexico')).toEqual(['1', '2']);
+  expect(ids('mexico   mango')).toEqual(['1', '2']);
+  expect(ids('crown 0920')).toEqual(['4']);
+  expect(ids('mango crown')).toEqual([]);
+});
+
+test('la query non cerca in More Info', () => {
+  const list: Can[] = [{ id: '1', nome: 'OG', descrizione: 'Small logo design' }];
+  expect(filterCans(list, { query: 'small' })).toEqual([]);
+});
+
 test('query "ultra" riduce il risultato alle sole lattine che matchano, non torna tutta la lista', () => {
   // Riproduce il sospetto della segnalazione: un pool con più di 60 lattine dove
   // solo poche contengono "ultra" nel nome. Se il filtro fosse rotto (o applicato
