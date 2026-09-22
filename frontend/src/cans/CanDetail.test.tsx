@@ -207,6 +207,35 @@ test('le frecce ← → passano alla lattina precedente/successiva di navCans', 
   expect(onSelect).toHaveBeenCalledWith(a);
 });
 
+test('la barra Prev/Next cambia lattina e mostra la posizione', async () => {
+  const a: Can = { id: '1', nome: 'Alpha' };
+  const b: Can = { id: '2', nome: 'Beta' };
+  const c: Can = { id: '3', nome: 'Gamma' };
+  const onSelect = vi.fn();
+  render(<CanDetail can={b} onClose={() => {}} navCans={[a, b, c]} onSelect={onSelect} />);
+
+  expect(screen.getByText('2 / 3')).toBeTruthy();
+  await userEvent.click(screen.getByRole('button', { name: /next can/i }));
+  expect(onSelect).toHaveBeenCalledWith(c);
+  await userEvent.click(screen.getByRole('button', { name: /prev can/i }));
+  expect(onSelect).toHaveBeenCalledWith(a);
+});
+
+test('la barra Prev/Next gira in tondo: dopo l’ultima torna alla prima', async () => {
+  const a: Can = { id: '1', nome: 'Alpha' };
+  const b: Can = { id: '2', nome: 'Beta' };
+  const onSelect = vi.fn();
+  render(<CanDetail can={b} onClose={() => {}} navCans={[a, b]} onSelect={onSelect} />);
+  await userEvent.click(screen.getByRole('button', { name: /next can/i }));
+  expect(onSelect).toHaveBeenCalledWith(a);
+});
+
+test('con una sola lattina in lista la barra non compare', () => {
+  const a: Can = { id: '1', nome: 'Alpha' };
+  render(<CanDetail can={a} onClose={() => {}} navCans={[a]} onSelect={() => {}} />);
+  expect(screen.queryByRole('button', { name: /next can/i })).toBeNull();
+});
+
 test('con la lightbox aperta le frecce scorrono le foto, non la lattina', async () => {
   const a: Can = { id: '1', nome: 'Alpha', p1: 'a.jpg', p2: 'b.jpg' };
   const b: Can = { id: '2', nome: 'Beta' };

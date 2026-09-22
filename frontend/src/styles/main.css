@@ -1148,6 +1148,24 @@ body.public-mode .public-banner {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* Barra Prev/Next del dettaglio: su mobile è l'unico modo di cambiare lattina
+   (le frecce da tastiera non esistono lì). */
+.detail-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.detail-nav .btn {
+  min-height: 44px;
+}
+.detail-nav-pos {
+  font-size: 11px;
+  color: var(--text3);
+  letter-spacing: 1px;
+}
 .detail-note {
   grid-column: 1/-1;
   background: var(--bg3);

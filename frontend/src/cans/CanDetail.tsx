@@ -99,6 +99,16 @@ export function CanDetail({
     return sameLineupGroups(allCans, can);
   }, [can.id, allCans]);
 
+  // Posizione nella lista aperta (griglia/lista filtrata): serve sia alle frecce
+  // da tastiera sia alla barra Prev/Next, che su mobile è l'unico modo per
+  // cambiare lattina senza tornare indietro.
+  const navIdx = navCans?.findIndex((c) => c.id === can.id) ?? -1;
+  const canNav = Boolean(navCans && navCans.length > 1 && onSelect && navIdx !== -1);
+  const step = (delta: number) => {
+    if (!canNav || !navCans || !onSelect) return;
+    onSelect(navCans[(navIdx + delta + navCans.length) % navCans.length]);
+  };
+
   // Frecce ← → scorrono alla lattina precedente/successiva della lista corrente
   // (stesso ordine/filtri della griglia da cui si è aperto il pannello) — non i
   // pulsanti ‹ › della foto, che restano dedicati alle foto della lattina.
@@ -134,6 +144,19 @@ export function CanDetail({
           </button>
         )}
       </div>
+      {canNav && (
+        <div className="detail-nav">
+          <button type="button" className="btn btn-ghost" onClick={() => step(-1)}>
+            ‹ Prev can
+          </button>
+          <span className="detail-nav-pos">
+            {navIdx + 1} / {navCans!.length}
+          </span>
+          <button type="button" className="btn btn-ghost" onClick={() => step(1)}>
+            Next can ›
+          </button>
+        </div>
+      )}
       <div className="detail-body">
         {/* Riga 1: foto a sinistra, nome/badge + altre lattine a destra.
             align-items:start (vedi CSS) impedisce alle due colonne di stirarsi
