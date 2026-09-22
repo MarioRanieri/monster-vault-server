@@ -1200,36 +1200,6 @@ body.public-mode .public-banner {
   white-space: pre-wrap;
   font-weight: 400;
 }
-.detail-nav {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-.detail-nav-btn {
-  flex: 1;
-  background: var(--bg3);
-  border: 1px solid var(--border2);
-  color: var(--text2);
-  border-radius: 6px;
-  padding: 8px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 12px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  transition: all 0.15s;
-}
-.detail-nav-btn:hover {
-  border-color: var(--green);
-  color: var(--green);
-}
-.detail-nav-btn:disabled {
-  opacity: 0.3;
-  cursor: default;
-}
-
 /* ── STATO BADGE ── */
 .badge-stato-ok {
   background: rgba(0, 200, 80, 0.15);
