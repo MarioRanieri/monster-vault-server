@@ -1148,10 +1148,6 @@ body.public-mode .public-banner {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.detail-field-top .detail-field-lbl {
-  color: inherit;
-  opacity: 0.7;
-}
 .detail-note {
   grid-column: 1/-1;
   background: var(--bg3);
@@ -2844,11 +2840,18 @@ body.light .filter-chip-withphoto.active {
 /* Anteprima live del colore Top/Tab nel form */
 .top-preview {
   margin-top: 6px;
-  padding: 4px 10px;
+  font-size: 12px;
+}
+/* Il tappo: fondo = colore del coperchio, bordo perché i fondi scuri (BLACK, il
+   valore più diffuso) non si stacchino dalla pagina del tema scuro. */
+.tab-badge {
+  display: inline-block;
+  padding: 3px 9px;
   border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
   font-size: 12px;
   font-weight: 600;
-  display: inline-block;
+  letter-spacing: 0.3px;
 }
 /* Validazione form: campo mancante + messaggio nel footer */
 input.field-invalid {

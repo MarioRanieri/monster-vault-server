@@ -3,6 +3,7 @@ import type { Can } from '../app/types';
 import { PhotoCrop } from '../photos/PhotoCrop';
 import { cloudinaryThumb } from '../photos/cloudinary';
 import { colorizeTab } from '../ui/colorizeTab';
+import { TabBadge } from '../ui/TabParts';
 import { SuggestInput } from '../ui/SuggestInput';
 import { suggestMoreInfo } from './moreInfoSuggestions';
 import { useEscapeClose } from '../ui/useEscapeClose';
@@ -414,23 +415,11 @@ export function CanEditForm({
                 onChange={setTop}
                 suggestions={suggestions?.tops}
               />
-              {top.trim() !== '' &&
-                (() => {
-                  const tab = colorizeTab(top);
-                  return (
-                    <div
-                      className="top-preview"
-                      style={tab.style ?? { background: 'var(--bg3)', color: 'var(--text)' }}
-                    >
-                      {tab.parts.map((p, j) => (
-                        <span key={`${j}-${p.text}`}>
-                          {j > 0 && '/'}
-                          <span style={p.color ? { color: p.color } : undefined}>{p.text}</span>
-                        </span>
-                      ))}
-                    </div>
-                  );
-                })()}
+              {top.trim() !== '' && (
+                <div className="top-preview">
+                  <TabBadge tab={colorizeTab(top)} />
+                </div>
+              )}
             </div>
             <div className="field">
               <label htmlFor="e-promo">Promo</label>

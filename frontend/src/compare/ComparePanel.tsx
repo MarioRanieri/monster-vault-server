@@ -1,6 +1,6 @@
 import type { Can } from '../app/types';
 import { colorizeTab } from '../ui/colorizeTab';
-import { TabParts } from '../ui/TabParts';
+import { TabBadge } from '../ui/TabParts';
 import { useEscapeClose } from '../ui/useEscapeClose';
 
 // Pannello di confronto affiancato (classi .compare-panel/.compare-table/
@@ -72,7 +72,7 @@ export function ComparePanel({
                   const tab = colorizeTab(raw);
                   return (
                     <div key={can.id} className="compare-cell compare-cell-val">
-                      <TabParts parts={tab.parts} />
+                      <TabBadge tab={tab} />
                     </div>
                   );
                 }

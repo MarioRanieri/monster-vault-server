@@ -3,7 +3,7 @@ import type { Can } from '../app/types';
 import { statusBadgeClass } from '../ui/statusBadge';
 import { hasPromo } from '../filters/filterCans';
 import { colorizeTab } from '../ui/colorizeTab';
-import { TabParts } from '../ui/TabParts';
+import { TabBadge } from '../ui/TabParts';
 import { cloudinaryThumb } from '../photos/cloudinary';
 import { CanShare } from './CanShare';
 import { Lightbox } from '../photos/Lightbox';
@@ -228,10 +228,10 @@ export function CanDetail({
               if (f.isTop) {
                 const tab = colorizeTab(f.val);
                 return (
-                  <li key={f.lbl} className="detail-field detail-field-top" style={tab.style}>
+                  <li key={f.lbl} className="detail-field">
                     <span className="detail-field-lbl">{f.lbl}</span>
                     <span className="detail-field-val">
-                      <TabParts parts={tab.parts} />
+                      <TabBadge tab={tab} />
                     </span>
                   </li>
                 );

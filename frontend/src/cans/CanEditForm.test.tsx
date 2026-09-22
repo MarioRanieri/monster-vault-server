@@ -262,9 +262,9 @@ test('anteprima colore Top/Tab mentre scrivi', async () => {
   render(<CanEditForm can={can} onSave={() => {}} onCancel={() => {}} />);
   expect(document.querySelector('.top-preview')).toBeNull();
   await userEvent.type(screen.getByLabelText('Top / Tab'), 'gold');
-  const prev = document.querySelector('.top-preview') as HTMLElement;
-  expect(prev).toBeTruthy();
-  expect(prev.style.background).toBeTruthy();
+  const badge = document.querySelector('.top-preview .tab-badge') as HTMLElement;
+  expect(badge).toBeTruthy();
+  expect(badge.style.background).toBe('rgb(202, 166, 46)');
 });
 
 test('click su uno slot pieno riapre il file picker (sostituzione)', async () => {
