@@ -121,6 +121,29 @@ test.each([
   },
 );
 
+test('More Info: suggerisce i testi delle lattine simili mentre compili nome e nazione', async () => {
+  const collection: Can[] = [
+    { id: 'a', nome: 'KHAOS SMALL LOGO', lingua: 'MEXICO', descrizione: 'Small logo 0920 design' },
+    { id: 'b', nome: 'OG SMALL LOGO', lingua: 'MEXICO', descrizione: 'Small logo 0920 design' },
+  ];
+  const onSave = vi.fn();
+  render(
+    <CanEditForm
+      can={{ id: 'new', nome: '' }}
+      collection={collection}
+      onSave={onSave}
+      onCancel={() => {}}
+    />,
+  );
+  expect(screen.queryByRole('button', { name: /Small logo 0920 design/ })).toBeNull();
+  await userEvent.type(screen.getByLabelText('Name'), 'MANGO LOCO SMALL LOGO');
+  await userEvent.type(screen.getByLabelText('Language / Country'), 'MEXICO');
+  await userEvent.click(screen.getByRole('button', { name: /Small logo 0920 design/ }));
+  expect(screen.getByLabelText('More Info')).toHaveProperty('value', 'Small logo 0920 design');
+  // compilato: i suggerimenti spariscono
+  expect(screen.queryByRole('button', { name: /Small logo 0920 design/ })).toBeNull();
+});
+
 test('Annulla chiama onCancel', async () => {
   const onCancel = vi.fn();
   render(<CanEditForm can={can} onSave={() => {}} onCancel={onCancel} />);

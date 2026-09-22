@@ -2309,6 +2309,23 @@ body.light .filter-chip-withphoto.active {
   color: var(--green);
 }
 
+/* ── MORE INFO DALLE LATTINE SIMILI (chip sopra il campo) ── */
+.moreinfo-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.moreinfo-suggest-lbl {
+  font-size: 11px;
+  color: var(--text3);
+}
+.moreinfo-suggest .filter-chip {
+  text-transform: none;
+  white-space: normal;
+  text-align: left;
+}
+
 /* ── DESC AUTOCOMPLETE ── */
 .desc-ac-wrap {
   position: relative;

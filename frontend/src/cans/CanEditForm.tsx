@@ -1,9 +1,10 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { Can } from '../app/types';
 import { PhotoCrop } from '../photos/PhotoCrop';
 import { cloudinaryThumb } from '../photos/cloudinary';
 import { colorizeTab } from '../ui/colorizeTab';
 import { SuggestInput } from '../ui/SuggestInput';
+import { suggestMoreInfo } from './moreInfoSuggestions';
 import { useEscapeClose } from '../ui/useEscapeClose';
 
 // Le scelte di "Opening" (gruppo di pill mutuamente esclusive, come il vecchio).
@@ -63,6 +64,7 @@ export function CanEditForm({
   can,
   title = 'Edit Can',
   suggestions,
+  collection = [],
   onSave,
   onCancel,
   onDelete,
@@ -70,6 +72,7 @@ export function CanEditForm({
   can: Can;
   title?: string;
   suggestions?: Suggestions;
+  collection?: Can[]; // tutta la collezione, per suggerire More Info dalle lattine simili
   onSave: (can: Can, uploads: Upload[]) => void | Promise<void>;
   onCancel: () => void;
   onDelete?: () => void;
@@ -96,6 +99,11 @@ export function CanEditForm({
   const [overIdx, setOverIdx] = useState<number | null>(null);
   const [invalid, setInvalid] = useState(false);
   const fileRefs = useRef<(HTMLInputElement | null)[]>([]);
+  // Calcolato sulla bozza corrente: funziona anche su una lattina non ancora salvata.
+  const similarInfo = useMemo(
+    () => (descrizione.trim() ? [] : suggestMoreInfo(collection, { id: can.id, nome, lingua })),
+    [collection, can.id, nome, lingua, descrizione],
+  );
 
   // Snapshot dei valori all'apertura (congelato al primo render, useRef ignora
   // gli aggiornamenti successivi): confrontato con lo stato corrente per sapere
@@ -477,6 +485,21 @@ export function CanEditForm({
             </fieldset>
             <div className="field field-full">
               <label htmlFor="e-descrizione">More Info</label>
+              {similarInfo.length > 0 && (
+                <div className="moreinfo-suggest">
+                  <span className="moreinfo-suggest-lbl">Like similar cans:</span>
+                  {similarInfo.map((s) => (
+                    <button
+                      key={s.text}
+                      type="button"
+                      className="filter-chip"
+                      onClick={() => setDescrizione(s.text)}
+                    >
+                      {s.text} <span className="chip-count">{s.count}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
               <SuggestInput
                 id="e-descrizione"
                 multiline

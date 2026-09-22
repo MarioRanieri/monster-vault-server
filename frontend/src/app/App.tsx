@@ -447,6 +447,7 @@ function App() {
             can={selected}
             title="Edit Can"
             suggestions={suggestions}
+            collection={cans}
             onSave={async (canData, uploads) => {
               try {
                 const saved = await saveCan(canData);
@@ -486,6 +487,7 @@ function App() {
           can={creating}
           title="Add Can"
           suggestions={suggestions}
+          collection={cans}
           onSave={async (canData, uploads) => {
             try {
               const saved = await createCan(canData);
