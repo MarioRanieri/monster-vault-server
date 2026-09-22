@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import type { Can } from '../app/types';
 import { PhotoCrop } from '../photos/PhotoCrop';
+import { PhotoSlotMenu, type PhotoAction } from './PhotoSlotMenu';
 import { cloudinaryThumb } from '../photos/cloudinary';
 import { colorizeTab } from '../ui/colorizeTab';
 import { TabBadge } from '../ui/TabParts';
@@ -100,6 +101,8 @@ export function CanEditForm({
   const [overIdx, setOverIdx] = useState<number | null>(null);
   const [invalid, setInvalid] = useState(false);
   const fileRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const camRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [menuIdx, setMenuIdx] = useState<number | null>(null);
   // Calcolato sulla bozza corrente: funziona anche su una lattina non ancora salvata.
   const similarInfo = useMemo(
     () => (descrizione.trim() ? [] : suggestMoreInfo(collection, { id: can.id, nome, lingua })),
@@ -158,11 +161,34 @@ export function CanEditForm({
       });
     setSwapFrom(null);
   };
-  // Click sullo slot: destinazione dello swap se ⇄ è attivo, altrimenti file
-  // picker (su slot pieno = sostituzione, come il vecchio; il crop è su ✏️).
+  // Click sullo slot: destinazione dello swap se "Move" è attivo, altrimenti il
+  // menu delle azioni (prima erano icone da 24px, intoccabili da telefono).
   const slotClick = (i: number) => {
     if (swapFrom != null) swap(swapFrom, i);
-    else fileRefs.current[i]?.click();
+    else setMenuIdx(i);
+  };
+
+  // Una foto scelta: dalla fotocamera entra dritta nel crop (è il momento in cui
+  // serve raddrizzarla), dalla galleria no — lì si è già ritagliato in Foto.
+  const takeFile = (i: number, file: File | undefined, fromCamera: boolean) => {
+    if (!file) return;
+    const preview = URL.createObjectURL(file);
+    setSlot(i, { kind: 'file', file, preview });
+    if (fromCamera) setCropTarget({ idx: i, src: preview });
+  };
+
+  const runAction = (i: number, action: PhotoAction) => {
+    setMenuIdx(null);
+    if (action === 'camera') camRefs.current[i]?.click();
+    else if (action === 'gallery') fileRefs.current[i]?.click();
+    else if (action === 'crop') {
+      const sl = pending[i];
+      if (sl) setCropTarget({ idx: i, src: cropSource(sl) });
+    } else if (action === 'move') setSwapFrom(i);
+    else if (action === 'url') {
+      const u = globalThis.prompt('Paste image URL');
+      if (u?.trim()) setSlot(i, { kind: 'url', url: u.trim() });
+    } else if (action === 'remove') setSlot(i, null);
   };
 
   // Async con stato `saving`: durante il salvataggio (PUT + upload foto, lento su
@@ -237,8 +263,8 @@ export function CanEditForm({
                   }`}
                   role="button"
                   tabIndex={0}
-                  aria-label={src ? `Replace photo ${slot}` : `Upload photo ${slot}`}
-                  title={src ? 'Tap to replace · drag to reorder' : 'Tap to upload'}
+                  aria-label={src ? `Photo ${slot} options` : `Add photo ${slot}`}
+                  title={src ? 'Tap for options · drag to reorder' : 'Tap to add a photo'}
                   draggable={Boolean(src)}
                   onDragStart={(e) => {
                     e.dataTransfer.setData('text/plain', String(i));
@@ -273,69 +299,13 @@ export function CanEditForm({
                   ) : (
                     <div className="photo-slot-ph">
                       <span>{slot === 1 ? 'Main photo' : `Photo ${slot}`}</span>
-                      <small>Click or paste URL</small>
+                      <small>Tap to add</small>
                     </div>
                   )}
                   <span className="photo-slot-lbl">
                     {slot}
                     {slot === 1 ? ' · Main' : ''}
                   </span>
-                  {src && (
-                    <button
-                      type="button"
-                      className="photo-slot-del"
-                      aria-label={`Remove photo ${slot}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSlot(i, null);
-                      }}
-                    >
-                      ✕
-                    </button>
-                  )}
-                  {src && (
-                    <button
-                      type="button"
-                      className="photo-slot-edit"
-                      title="Crop photo"
-                      aria-label={`Crop photo ${slot}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const s = pending[i];
-                        if (s) setCropTarget({ idx: i, src: cropSource(s) });
-                      }}
-                    >
-                      ✏️
-                    </button>
-                  )}
-                  {src && (
-                    <button
-                      type="button"
-                      className="photo-slot-move"
-                      title="Move: tap here, then tap the destination slot"
-                      aria-label={`Move photo ${slot}`}
-                      aria-pressed={swapFrom === i}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSwapFrom((f) => (f === i ? null : i));
-                      }}
-                    >
-                      ⇄
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className="photo-slot-url"
-                    title="Paste URL"
-                    aria-label="Paste URL"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const u = globalThis.prompt('Paste image URL');
-                      if (u?.trim()) setSlot(i, { kind: 'url', url: u.trim() });
-                    }}
-                  >
-                    🔗
-                  </button>
                   <input
                     ref={(el) => {
                       fileRefs.current[i] = el;
@@ -345,9 +315,23 @@ export function CanEditForm({
                     aria-label={`Photo ${slot}`}
                     style={{ display: 'none' }}
                     onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file)
-                        setSlot(i, { kind: 'file', file, preview: URL.createObjectURL(file) });
+                      takeFile(i, e.target.files?.[0], false);
+                      e.currentTarget.value = '';
+                    }}
+                  />
+                  {/* capture: apre direttamente la fotocamera del telefono invece
+                      del menu galleria/file; lo scatto va dritto nel crop. */}
+                  <input
+                    ref={(el) => {
+                      camRefs.current[i] = el;
+                    }}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    aria-label={`Take photo ${slot}`}
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      takeFile(i, e.target.files?.[0], true);
                       e.currentTarget.value = '';
                     }}
                   />
@@ -524,6 +508,14 @@ export function CanEditForm({
           </button>
         </div>
       </form>
+      {menuIdx !== null && (
+        <PhotoSlotMenu
+          slot={menuIdx + 1}
+          filled={pending[menuIdx] !== null}
+          onAction={(a) => runAction(menuIdx, a)}
+          onClose={() => setMenuIdx(null)}
+        />
+      )}
       {cropTarget && (
         <PhotoCrop
           src={cropTarget.src}
