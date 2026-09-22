@@ -27,6 +27,7 @@ export function CanDetail({
   allCans,
   navCans,
   onSelect,
+  onEditCan,
 }: Readonly<{
   can: Can;
   onClose: () => void;
@@ -40,6 +41,7 @@ export function CanDetail({
   allCans?: Can[];
   navCans?: Can[];
   onSelect?: (can: Can) => void;
+  onEditCan?: (can: Can) => void; // admin: Edit anche sulle card correlate
 }>) {
   const photos = [can.p1, can.p2, can.p3, can.p4].filter((url): url is string => Boolean(url));
   const [mainIdx, setMainIdx] = useState(0);
@@ -306,7 +308,12 @@ export function CanDetail({
         {relatedCans.length > 0 && (
           <section className="detail-related" aria-label="Other cans from this country">
             <h3 className="detail-related-title">Other cans from this country</h3>
-            <CanGrid cans={relatedCans} showPrice={showPrice} onSelect={onSelect} />
+            <CanGrid
+              cans={relatedCans}
+              showPrice={showPrice}
+              onSelect={onSelect}
+              onEdit={onEditCan}
+            />
           </section>
         )}
         {lineupGroups.length > 0 && (
@@ -318,7 +325,12 @@ export function CanDetail({
                 className={i > 0 ? 'detail-related-subgroup' : undefined}
               >
                 {group.label && <h4 className="detail-related-subtitle">{group.label}</h4>}
-                <CanGrid cans={group.cans} showPrice={showPrice} onSelect={onSelect} />
+                <CanGrid
+                  cans={group.cans}
+                  showPrice={showPrice}
+                  onSelect={onSelect}
+                  onEdit={onEditCan}
+                />
               </div>
             ))}
           </section>

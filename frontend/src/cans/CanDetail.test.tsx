@@ -207,6 +207,32 @@ test('le frecce ← → passano alla lattina precedente/successiva di navCans', 
   expect(onSelect).toHaveBeenCalledWith(a);
 });
 
+test('le lattine correlate offrono anche Edit quando si può modificare', async () => {
+  const a: Can = { id: '1', nome: 'OG ITALY', lingua: 'ITALY' };
+  const b: Can = { id: '2', nome: 'OG ITALY ZERO', lingua: 'ITALY' };
+  const onEditCan = vi.fn();
+  render(
+    <CanDetail
+      can={a}
+      onClose={() => {}}
+      allCans={[a, b]}
+      onSelect={() => {}}
+      onEditCan={onEditCan}
+    />,
+  );
+  const section = screen.getByLabelText('Other cans from this country');
+  await userEvent.click(within(section).getByRole('button', { name: /edit/i }));
+  expect(onEditCan).toHaveBeenCalledWith(b);
+});
+
+test('senza onEditCan (guest) le correlate mostrano solo Details', () => {
+  const a: Can = { id: '1', nome: 'OG ITALY', lingua: 'ITALY' };
+  const b: Can = { id: '2', nome: 'OG ITALY ZERO', lingua: 'ITALY' };
+  render(<CanDetail can={a} onClose={() => {}} allCans={[a, b]} onSelect={() => {}} />);
+  const section = screen.getByLabelText('Other cans from this country');
+  expect(within(section).queryByRole('button', { name: /edit/i })).toBeNull();
+});
+
 test('la barra Prev/Next cambia lattina e mostra la posizione', async () => {
   const a: Can = { id: '1', nome: 'Alpha' };
   const b: Can = { id: '2', nome: 'Beta' };

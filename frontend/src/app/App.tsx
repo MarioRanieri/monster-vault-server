@@ -480,6 +480,14 @@ function App() {
             allCans={cans}
             navCans={visible}
             onSelect={selectCan}
+            onEditCan={
+              isAdmin
+                ? (c) => {
+                    setSelectedId(c.id);
+                    setEditing(true);
+                  }
+                : undefined
+            }
           />
         ))}
       {creating && (
