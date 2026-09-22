@@ -2,10 +2,32 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-09-19 (rev 64 — fix dalla review Lovable: vuoto griglia mobile, mappa a11y/zoom/skip link/lista a colonne)  
+**Updated:** 2026-09-22 (rev 65 — form lattina: niente scroll laterale mobile, Condition a scelte, autocomplete, More Info suggerito; ricerca multi-parola)  
 **Branch:** main  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
+
+> **2026-09-22 — rev 65: form di aggiunta/modifica lattina + ricerca multi-parola.** Segnalazioni dell'utente,
+> analizzate con brainstorming e verificate in Playwright (390px e 1366px) con la sessione admin simulata.
+> **Scroll orizzontale nel modale Edit/Add (solo mobile)**: una traccia `1fr` non scende sotto il min-content del
+> suo item e gli input a 16px su mobile sforavano di 54px; fix `min-width:0` su `.field`, test
+> `tests/e2e/edit-form-mobile.spec.ts`. **Condition**: `<select>` OK / Minor Dents / Damaged come nel vecchio (i
+> dati live hanno solo questi 3 valori); lattina nuova = OK, un valore storico fuori lista resta finché non lo cambi.
+> **Autocomplete**: `ui/SuggestInput.tsx` sostituisce i `<datalist>` (filtravano solo per prefisso, su un campo
+> già compilato non mostravano nulla, su iOS quasi invisibili; il vecchio vanilla non li aveva: i suggerimenti che
+> l'utente ricordava erano l'autofill del browser + la tendina `desc-ac` di More Info). Sottostringa, prima i
+> prefissi, frecce/Invio/tocco; Escape chiude solo la tendina (`stopPropagation`, altrimenti `useEscapeClose` chiude
+> il modale). Su Manufacturer, Size, Country, Top/Tab, More Info (quest'ultimo solo digitando). Riusa le classi
+> `.desc-ac-*` rimaste nel CSS. **More Info dalle lattine simili**: `cans/moreInfoSuggestions.ts` — sulla bozza
+> corrente (quindi anche prima di salvare) +2 stessa nazione, +1 per parola del nome in comune, conta una lattina
+> se ≥3; se nessuna arriva a 3 ripiega sui testi della stessa nazione ("Set Ecuador"). Fino a 3 chip sopra il
+> campo, solo se vuoto. Leave-one-out sulla collezione reale: testo giusto primo nel 50%, tra i primi 3 nell'82%
+> (varianti provate: senza soglia 74%, solo stessa nazione 76%). **Ricerca**: ogni parola deve comparire in almeno
+> uno tra nome, SKU, opening, nazione, manufacturer, size, tab, in qualsiasi ordine; More Info escluso (scelta
+> utente). "mango loco 0920" → 1 lattina, "mango loco mexico" → 2 sui dati reali. **Share view resta**: il
+> deprecato (PR #13) era ★ Views; la Guide lo citava ancora, testo corretto. **Gotcha locale**: il service worker
+> del browser Playwright MCP serviva la build vecchia anche dal dev server (cache-first sugli statici) → deregistrarlo
+> prima delle verifiche visive. Test: **434 frontend Vitest** + e2e Playwright.
 
 > **2026-09-19 — rev 64: fix dalla review esterna di Lovable (PR #70).** Triage fatto con l'utente: circa metà dei
 > punti era valida, il resto già fatto o con premessa sbagliata. **Vuoto nero su mobile**: causato da

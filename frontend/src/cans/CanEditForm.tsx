@@ -1,8 +1,10 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { Can } from '../app/types';
 import { PhotoCrop } from '../photos/PhotoCrop';
 import { cloudinaryThumb } from '../photos/cloudinary';
 import { colorizeTab } from '../ui/colorizeTab';
+import { SuggestInput } from '../ui/SuggestInput';
+import { suggestMoreInfo } from './moreInfoSuggestions';
 import { useEscapeClose } from '../ui/useEscapeClose';
 
 // Le scelte di "Opening" (gruppo di pill mutuamente esclusive, come il vecchio).
@@ -15,6 +17,9 @@ const OPENING = [
   'GLASS FULL',
   'GLASS EMPTY',
 ];
+
+// Le scelte di "Condition" (come il vecchio). Vuota = lattina nuova → OK.
+const CONDITIONS = ['OK', 'Minor Dents', 'Damaged'];
 
 // Uno slot foto: file nuovo (staged), URL nuovo, foto esistente da tenere, o vuoto.
 // Anteprima di uno slot foto: URL Cloudinary (esistente), URL esterno, o file staged.
@@ -49,7 +54,7 @@ export interface Suggestions {
   sizes?: string[];
   countries?: string[];
   tops?: string[];
-  conditions?: string[];
+  descriptions?: string[];
 }
 
 // Modale di modifica/creazione (classi .modal/.photo-grid/.field-grid del vecchio).
@@ -59,6 +64,7 @@ export function CanEditForm({
   can,
   title = 'Edit Can',
   suggestions,
+  collection = [],
   onSave,
   onCancel,
   onDelete,
@@ -66,6 +72,7 @@ export function CanEditForm({
   can: Can;
   title?: string;
   suggestions?: Suggestions;
+  collection?: Can[]; // tutta la collezione, per suggerire More Info dalle lattine simili
   onSave: (can: Can, uploads: Upload[]) => void | Promise<void>;
   onCancel: () => void;
   onDelete?: () => void;
@@ -78,7 +85,7 @@ export function CanEditForm({
   const [top, setTop] = useState(can.top ?? '');
   const [promo, setPromo] = useState(can.promo ?? '');
   const [valore, setValore] = useState(can.valore ?? '');
-  const [stato, setStato] = useState(can.stato ?? '');
+  const [stato, setStato] = useState(can.stato || 'OK');
   const [note, setNote] = useState(can.note ?? '');
   const [descrizione, setDescrizione] = useState(can.descrizione ?? '');
   const [pending, setPending] = useState<Slot[]>(() =>
@@ -92,6 +99,11 @@ export function CanEditForm({
   const [overIdx, setOverIdx] = useState<number | null>(null);
   const [invalid, setInvalid] = useState(false);
   const fileRefs = useRef<(HTMLInputElement | null)[]>([]);
+  // Calcolato sulla bozza corrente: funziona anche su una lattina non ancora salvata.
+  const similarInfo = useMemo(
+    () => (descrizione.trim() ? [] : suggestMoreInfo(collection, { id: can.id, nome, lingua })),
+    [collection, can.id, nome, lingua, descrizione],
+  );
 
   // Snapshot dei valori all'apertura (congelato al primo render, useRef ignora
   // gli aggiornamenti successivi): confrontato con lo stato corrente per sapere
@@ -105,7 +117,7 @@ export function CanEditForm({
     top: can.top ?? '',
     promo: can.promo ?? '',
     valore: can.valore ?? '',
-    stato: can.stato ?? '',
+    stato: can.stato || 'OK',
     note: can.note ?? '',
     descrizione: can.descrizione ?? '',
     pending: JSON.stringify(
@@ -193,15 +205,6 @@ export function CanEditForm({
       setSaving(false);
     }
   };
-
-  const datalist = (id: string, values?: string[]) =>
-    values && values.length > 0 ? (
-      <datalist id={id}>
-        {values.map((v) => (
-          <option key={v} value={v} />
-        ))}
-      </datalist>
-    ) : null;
 
   return (
     <dialog className="modal-backdrop open" open aria-modal="true" aria-label={title}>
@@ -374,47 +377,43 @@ export function CanEditForm({
             </div>
             <div className="field">
               <label htmlFor="e-produttore">Manufacturer</label>
-              <input
+              <SuggestInput
                 id="e-produttore"
-                list="dl-produttore"
                 placeholder="e.g. BALL"
                 value={produttore}
-                onChange={(e) => setProduttore(e.target.value)}
+                onChange={setProduttore}
+                suggestions={suggestions?.manufacturers}
               />
-              {datalist('dl-produttore', suggestions?.manufacturers)}
             </div>
             <div className="field">
               <label htmlFor="e-size">Size</label>
-              <input
+              <SuggestInput
                 id="e-size"
-                list="dl-size"
                 placeholder="e.g. 500ML"
                 value={size}
-                onChange={(e) => setSize(e.target.value)}
+                onChange={setSize}
+                suggestions={suggestions?.sizes}
               />
-              {datalist('dl-size', suggestions?.sizes)}
             </div>
             <div className="field">
               <label htmlFor="e-lingua">Language / Country</label>
-              <input
+              <SuggestInput
                 id="e-lingua"
-                list="dl-lingua"
                 placeholder="e.g. ITALY"
                 value={lingua}
-                onChange={(e) => setLingua(e.target.value)}
+                onChange={setLingua}
+                suggestions={suggestions?.countries}
               />
-              {datalist('dl-lingua', suggestions?.countries)}
             </div>
             <div className="field">
               <label htmlFor="e-top">Top / Tab</label>
-              <input
+              <SuggestInput
                 id="e-top"
-                list="dl-top"
                 placeholder="e.g. Gold"
                 value={top}
-                onChange={(e) => setTop(e.target.value)}
+                onChange={setTop}
+                suggestions={suggestions?.tops}
               />
-              {datalist('dl-top', suggestions?.tops)}
               {top.trim() !== '' &&
                 (() => {
                   const tab = colorizeTab(top);
@@ -458,13 +457,14 @@ export function CanEditForm({
             </div>
             <div className="field">
               <label htmlFor="e-stato">Condition</label>
-              <input
-                id="e-stato"
-                list="dl-stato"
-                value={stato}
-                onChange={(e) => setStato(e.target.value)}
-              />
-              {datalist('dl-stato', suggestions?.conditions)}
+              <select id="e-stato" value={stato} onChange={(e) => setStato(e.target.value)}>
+                {/* un valore storico fuori lista resta selezionato finché non lo cambi */}
+                {(CONDITIONS.includes(stato) ? CONDITIONS : [...CONDITIONS, stato]).map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
             </div>
             <fieldset className="field field-full">
               <legend className="field-label">Opening</legend>
@@ -485,10 +485,27 @@ export function CanEditForm({
             </fieldset>
             <div className="field field-full">
               <label htmlFor="e-descrizione">More Info</label>
-              <textarea
+              {similarInfo.length > 0 && (
+                <div className="moreinfo-suggest">
+                  <span className="moreinfo-suggest-lbl">Like similar cans:</span>
+                  {similarInfo.map((s) => (
+                    <button
+                      key={s.text}
+                      type="button"
+                      className="filter-chip"
+                      onClick={() => setDescrizione(s.text)}
+                    >
+                      {s.text} <span className="chip-count">{s.count}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <SuggestInput
                 id="e-descrizione"
+                multiline
                 value={descrizione}
-                onChange={(e) => setDescrizione(e.target.value)}
+                onChange={setDescrizione}
+                suggestions={suggestions?.descriptions}
               />
             </div>
           </div>

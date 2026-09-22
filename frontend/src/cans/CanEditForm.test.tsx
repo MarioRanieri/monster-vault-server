@@ -16,7 +16,7 @@ test('precompila i campi e salva le modifiche', async () => {
   await userEvent.type(screen.getByLabelText('SKU'), '-2');
   await userEvent.type(screen.getByLabelText('Size'), '500ml');
   await userEvent.selectOptions(screen.getByLabelText('Promo'), 'Yes');
-  await userEvent.type(screen.getByLabelText('Condition'), 'ok');
+  await userEvent.selectOptions(screen.getByLabelText('Condition'), 'Damaged');
   await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
   expect(onSave).toHaveBeenCalledWith(
@@ -26,7 +26,7 @@ test('precompila i campi e salva le modifiche', async () => {
       sku: 'SKU-1-2',
       size: '500ml',
       promo: 'Yes',
-      stato: 'ok',
+      stato: 'Damaged',
     }),
     expect.any(Array),
   );
@@ -64,19 +64,84 @@ test('Promo non toccata non riscrive il valore storico', async () => {
   );
 });
 
-test('Condition mostra i suggerimenti da inserimenti precedenti', () => {
+test('Condition è un select OK / Minor Dents / Damaged', () => {
+  render(<CanEditForm can={can} onSave={() => {}} onCancel={() => {}} />);
+  const options = Array.from((screen.getByLabelText('Condition') as HTMLSelectElement).options).map(
+    (o) => o.value,
+  );
+  expect(options).toEqual(['OK', 'Minor Dents', 'Damaged']);
+});
+
+test('Condition vuota (lattina nuova) parte da OK e salva OK', async () => {
+  const onSave = vi.fn();
+  render(<CanEditForm can={can} onSave={onSave} onCancel={() => {}} />);
+  expect((screen.getByLabelText('Condition') as HTMLSelectElement).value).toBe('OK');
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ stato: 'OK' }), expect.any(Array));
+});
+
+test('Condition storica fuori lista resta intatta se non la tocchi', async () => {
+  const onSave = vi.fn();
+  render(<CanEditForm can={{ ...can, stato: 'Mint' }} onSave={onSave} onCancel={() => {}} />);
+  expect((screen.getByLabelText('Condition') as HTMLSelectElement).value).toBe('Mint');
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  expect(onSave).toHaveBeenCalledWith(
+    expect.objectContaining({ stato: 'Mint' }),
+    expect.any(Array),
+  );
+});
+
+test.each([
+  ['Manufacturer', 'manufacturers', ['BALL', 'CROWN'], 'row', 'CROWN'],
+  ['Size', 'sizes', ['250ML', '500ML'], '500', '500ML'],
+  ['Language / Country', 'countries', ['MEXICO', 'ITALY'], 'mex', 'MEXICO'],
+  ['Top / Tab', 'tops', ['SILVER/ORANGE', 'GOLD'], 'orange', 'SILVER/ORANGE'],
+  [
+    'More Info',
+    'descriptions',
+    ['Small logo 0920 design', 'First sku'],
+    'logo',
+    'Small logo 0920 design',
+  ],
+] as const)(
+  '%s suggerisce i valori esistenti mentre scrivi',
+  async (label, key, values, typed, picked) => {
+    const onSave = vi.fn();
+    render(
+      <CanEditForm
+        can={can}
+        suggestions={{ [key]: [...values] }}
+        onSave={onSave}
+        onCancel={() => {}}
+      />,
+    );
+    await userEvent.type(screen.getByLabelText(label), typed);
+    await userEvent.click(screen.getByRole('option', { name: picked }));
+    expect((screen.getByLabelText(label) as HTMLInputElement).value).toBe(picked);
+  },
+);
+
+test('More Info: suggerisce i testi delle lattine simili mentre compili nome e nazione', async () => {
+  const collection: Can[] = [
+    { id: 'a', nome: 'KHAOS SMALL LOGO', lingua: 'MEXICO', descrizione: 'Small logo 0920 design' },
+    { id: 'b', nome: 'OG SMALL LOGO', lingua: 'MEXICO', descrizione: 'Small logo 0920 design' },
+  ];
+  const onSave = vi.fn();
   render(
     <CanEditForm
-      can={can}
-      suggestions={{ conditions: ['Mint', 'Good'] }}
-      onSave={() => {}}
+      can={{ id: 'new', nome: '' }}
+      collection={collection}
+      onSave={onSave}
       onCancel={() => {}}
     />,
   );
-  const values = Array.from(document.querySelectorAll('#dl-stato option')).map((o) =>
-    o.getAttribute('value'),
-  );
-  expect(values).toEqual(['Mint', 'Good']);
+  expect(screen.queryByRole('button', { name: /Small logo 0920 design/ })).toBeNull();
+  await userEvent.type(screen.getByLabelText('Name'), 'MANGO LOCO SMALL LOGO');
+  await userEvent.type(screen.getByLabelText('Language / Country'), 'MEXICO');
+  await userEvent.click(screen.getByRole('button', { name: /Small logo 0920 design/ }));
+  expect(screen.getByLabelText('More Info')).toHaveProperty('value', 'Small logo 0920 design');
+  // compilato: i suggerimenti spariscono
+  expect(screen.queryByRole('button', { name: /Small logo 0920 design/ })).toBeNull();
 });
 
 test('Annulla chiama onCancel', async () => {

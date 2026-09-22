@@ -42,11 +42,16 @@ export function extractYearFromCan(can: Can): number | null {
 
 type Criterion = (can: Can, f: CanFilters) => boolean;
 
-// La query cerca in nome + SKU + note (come il vecchio).
+// Query a più parole, in qualsiasi ordine: ognuna deve comparire in almeno un
+// campo ("mango loco 0920" → nome + SKU, "mango loco mexico" → nome + nazione).
+// More Info escluso: testi lunghi, troppi falsi positivi.
 const matchesQuery: Criterion = (can, f) => {
-  const q = (f.query ?? '').trim().toLowerCase();
-  if (!q) return true;
-  return `${can.nome} ${can.sku ?? ''} ${can.note ?? ''}`.toLowerCase().includes(q);
+  const words = (f.query ?? '').toLowerCase().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return true;
+  const text = [can.nome, can.sku, can.note, can.lingua, can.produttore, can.size, can.top]
+    .join(' ')
+    .toLowerCase();
+  return words.every((w) => text.includes(w));
 };
 
 // Match esatto su un campo stringa: filtro assente (o vuoto) non restringe.

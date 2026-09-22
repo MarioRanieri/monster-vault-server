@@ -2309,6 +2309,23 @@ body.light .filter-chip-withphoto.active {
   color: var(--green);
 }
 
+/* ── MORE INFO DALLE LATTINE SIMILI (chip sopra il campo) ── */
+.moreinfo-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.moreinfo-suggest-lbl {
+  font-size: 11px;
+  color: var(--text3);
+}
+.moreinfo-suggest .filter-chip {
+  text-transform: none;
+  white-space: normal;
+  text-align: left;
+}
+
 /* ── DESC AUTOCOMPLETE ── */
 .desc-ac-wrap {
   position: relative;
@@ -2345,7 +2362,8 @@ body.light .filter-chip-withphoto.active {
 .desc-ac-item:last-child {
   border-bottom: none;
 }
-.desc-ac-item:hover {
+.desc-ac-item:hover,
+.desc-ac-item.active {
   background: var(--bg4);
   color: var(--text);
 }
@@ -2871,6 +2889,9 @@ input.field-invalid {
   display: flex;
   flex-direction: column;
   gap: 5px;
+  /* Senza, il campo non scende sotto la larghezza intrinseca del suo input
+     (più largo a 16px su mobile) e il modale di edit scorre in orizzontale. */
+  min-width: 0;
 }
 .field label,
 .field .field-label {
@@ -3813,6 +3834,9 @@ body.light #landing-overlay .badge-stato-danneggiata {
   }
   /* Bersaglio di tocco >=44px (soglia accessibilità mobile): il testo resta
      piccolo, ma l'area cliccabile del bottone cresce con min-height. */
+  .desc-ac-item {
+    padding: 13px 12px;
+  }
   .share-view-btn {
     min-height: 44px;
     display: inline-flex;

@@ -154,8 +154,8 @@ function App() {
     sizes: allOptions.sizes,
     countries: allOptions.countries,
     tops: allOptions.tops,
-    conditions: [
-      ...new Set(cans.map((c) => c.stato?.trim()).filter((v): v is string => Boolean(v))),
+    descriptions: [
+      ...new Set(cans.map((c) => c.descrizione?.trim()).filter((v): v is string => Boolean(v))),
     ].sort((a, b) => a.localeCompare(b)),
   };
   const uploadStaged = async (
@@ -447,6 +447,7 @@ function App() {
             can={selected}
             title="Edit Can"
             suggestions={suggestions}
+            collection={cans}
             onSave={async (canData, uploads) => {
               try {
                 const saved = await saveCan(canData);
@@ -486,6 +487,7 @@ function App() {
           can={creating}
           title="Add Can"
           suggestions={suggestions}
+          collection={cans}
           onSave={async (canData, uploads) => {
             try {
               const saved = await createCan(canData);
