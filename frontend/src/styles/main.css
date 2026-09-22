@@ -2871,6 +2871,9 @@ input.field-invalid {
   display: flex;
   flex-direction: column;
   gap: 5px;
+  /* Senza, il campo non scende sotto la larghezza intrinseca del suo input
+     (più largo a 16px su mobile) e il modale di edit scorre in orizzontale. */
+  min-width: 0;
 }
 .field label,
 .field .field-label {
