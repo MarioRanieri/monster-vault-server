@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 // Il form di modifica su mobile non deve scorrere in orizzontale: con la griglia
 // a due colonne gli input (16px su mobile) non si stringevano sotto la loro
@@ -14,12 +14,13 @@ const CANS = [
     top: 'SILVER/LIGHT BLUE',
     stato: 'OK',
   },
+  { id: 'c2', nome: 'OG', sku: '0118', produttore: 'BALL', lingua: 'ITALY' },
 ];
 
 test.use({ viewport: { width: 390, height: 844 } });
 
-test('il modale Edit Can non scorre in orizzontale', async ({ page }) => {
-  // Sessione admin finta: hint in localStorage + refresh che restituisce un token.
+// Sessione admin finta (hint in localStorage + refresh con token) e form aperto.
+async function openEdit(page: Page) {
   await page.addInitScript(() => localStorage.setItem('mv_auth', '1'));
   await page.route('**/api/auth/refresh', (route) =>
     route.fulfill({
@@ -33,8 +34,22 @@ test('il modale Edit Can non scorre in orizzontale', async ({ page }) => {
   );
   await page.goto('/');
   await page.getByRole('button', { name: 'Edit' }).first().click();
+}
+
+test('il modale Edit Can non scorre in orizzontale', async ({ page }) => {
+  await openEdit(page);
   const overflow = await page
     .locator('dialog .modal')
     .evaluate((m) => m.scrollWidth - m.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
+});
+
+test('Manufacturer suggerisce i valori esistenti e il tocco ne sceglie uno', async ({ page }) => {
+  await openEdit(page);
+  const field = page.locator('#e-produttore');
+  await field.fill('');
+  await field.pressSequentially('al');
+  await page.getByRole('option', { name: 'BALL' }).click();
+  await expect(field).toHaveValue('BALL');
+  await expect(page.getByRole('listbox')).toHaveCount(0);
 });

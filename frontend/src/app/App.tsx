@@ -154,6 +154,9 @@ function App() {
     sizes: allOptions.sizes,
     countries: allOptions.countries,
     tops: allOptions.tops,
+    descriptions: [
+      ...new Set(cans.map((c) => c.descrizione?.trim()).filter((v): v is string => Boolean(v))),
+    ].sort((a, b) => a.localeCompare(b)),
   };
   const uploadStaged = async (
     id: string,

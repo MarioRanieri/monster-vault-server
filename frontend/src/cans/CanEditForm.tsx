@@ -3,6 +3,7 @@ import type { Can } from '../app/types';
 import { PhotoCrop } from '../photos/PhotoCrop';
 import { cloudinaryThumb } from '../photos/cloudinary';
 import { colorizeTab } from '../ui/colorizeTab';
+import { SuggestInput } from '../ui/SuggestInput';
 import { useEscapeClose } from '../ui/useEscapeClose';
 
 // Le scelte di "Opening" (gruppo di pill mutuamente esclusive, come il vecchio).
@@ -52,6 +53,7 @@ export interface Suggestions {
   sizes?: string[];
   countries?: string[];
   tops?: string[];
+  descriptions?: string[];
 }
 
 // Modale di modifica/creazione (classi .modal/.photo-grid/.field-grid del vecchio).
@@ -195,15 +197,6 @@ export function CanEditForm({
       setSaving(false);
     }
   };
-
-  const datalist = (id: string, values?: string[]) =>
-    values && values.length > 0 ? (
-      <datalist id={id}>
-        {values.map((v) => (
-          <option key={v} value={v} />
-        ))}
-      </datalist>
-    ) : null;
 
   return (
     <dialog className="modal-backdrop open" open aria-modal="true" aria-label={title}>
@@ -376,47 +369,43 @@ export function CanEditForm({
             </div>
             <div className="field">
               <label htmlFor="e-produttore">Manufacturer</label>
-              <input
+              <SuggestInput
                 id="e-produttore"
-                list="dl-produttore"
                 placeholder="e.g. BALL"
                 value={produttore}
-                onChange={(e) => setProduttore(e.target.value)}
+                onChange={setProduttore}
+                suggestions={suggestions?.manufacturers}
               />
-              {datalist('dl-produttore', suggestions?.manufacturers)}
             </div>
             <div className="field">
               <label htmlFor="e-size">Size</label>
-              <input
+              <SuggestInput
                 id="e-size"
-                list="dl-size"
                 placeholder="e.g. 500ML"
                 value={size}
-                onChange={(e) => setSize(e.target.value)}
+                onChange={setSize}
+                suggestions={suggestions?.sizes}
               />
-              {datalist('dl-size', suggestions?.sizes)}
             </div>
             <div className="field">
               <label htmlFor="e-lingua">Language / Country</label>
-              <input
+              <SuggestInput
                 id="e-lingua"
-                list="dl-lingua"
                 placeholder="e.g. ITALY"
                 value={lingua}
-                onChange={(e) => setLingua(e.target.value)}
+                onChange={setLingua}
+                suggestions={suggestions?.countries}
               />
-              {datalist('dl-lingua', suggestions?.countries)}
             </div>
             <div className="field">
               <label htmlFor="e-top">Top / Tab</label>
-              <input
+              <SuggestInput
                 id="e-top"
-                list="dl-top"
                 placeholder="e.g. Gold"
                 value={top}
-                onChange={(e) => setTop(e.target.value)}
+                onChange={setTop}
+                suggestions={suggestions?.tops}
               />
-              {datalist('dl-top', suggestions?.tops)}
               {top.trim() !== '' &&
                 (() => {
                   const tab = colorizeTab(top);
@@ -488,10 +477,12 @@ export function CanEditForm({
             </fieldset>
             <div className="field field-full">
               <label htmlFor="e-descrizione">More Info</label>
-              <textarea
+              <SuggestInput
                 id="e-descrizione"
+                multiline
                 value={descrizione}
-                onChange={(e) => setDescrizione(e.target.value)}
+                onChange={setDescrizione}
+                suggestions={suggestions?.descriptions}
               />
             </div>
           </div>

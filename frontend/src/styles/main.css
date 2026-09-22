@@ -2345,7 +2345,8 @@ body.light .filter-chip-withphoto.active {
 .desc-ac-item:last-child {
   border-bottom: none;
 }
-.desc-ac-item:hover {
+.desc-ac-item:hover,
+.desc-ac-item.active {
   background: var(--bg4);
   color: var(--text);
 }
@@ -3816,6 +3817,9 @@ body.light #landing-overlay .badge-stato-danneggiata {
   }
   /* Bersaglio di tocco >=44px (soglia accessibilità mobile): il testo resta
      piccolo, ma l'area cliccabile del bottone cresce con min-height. */
+  .desc-ac-item {
+    padding: 13px 12px;
+  }
   .share-view-btn {
     min-height: 44px;
     display: inline-flex;

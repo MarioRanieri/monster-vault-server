@@ -91,6 +91,36 @@ test('Condition storica fuori lista resta intatta se non la tocchi', async () =>
   );
 });
 
+test.each([
+  ['Manufacturer', 'manufacturers', ['BALL', 'CROWN'], 'row', 'CROWN'],
+  ['Size', 'sizes', ['250ML', '500ML'], '500', '500ML'],
+  ['Language / Country', 'countries', ['MEXICO', 'ITALY'], 'mex', 'MEXICO'],
+  ['Top / Tab', 'tops', ['SILVER/ORANGE', 'GOLD'], 'orange', 'SILVER/ORANGE'],
+  [
+    'More Info',
+    'descriptions',
+    ['Small logo 0920 design', 'First sku'],
+    'logo',
+    'Small logo 0920 design',
+  ],
+] as const)(
+  '%s suggerisce i valori esistenti mentre scrivi',
+  async (label, key, values, typed, picked) => {
+    const onSave = vi.fn();
+    render(
+      <CanEditForm
+        can={can}
+        suggestions={{ [key]: [...values] }}
+        onSave={onSave}
+        onCancel={() => {}}
+      />,
+    );
+    await userEvent.type(screen.getByLabelText(label), typed);
+    await userEvent.click(screen.getByRole('option', { name: picked }));
+    expect((screen.getByLabelText(label) as HTMLInputElement).value).toBe(picked);
+  },
+);
+
 test('Annulla chiama onCancel', async () => {
   const onCancel = vi.fn();
   render(<CanEditForm can={can} onSave={() => {}} onCancel={onCancel} />);
