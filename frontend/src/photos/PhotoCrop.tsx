@@ -3,7 +3,13 @@ import { coverScale, moveRect, resizeRect, type Corner, type Rect } from './crop
 import { useEscapeClose } from '../ui/useEscapeClose';
 
 const CORNERS: Corner[] = ['tl', 'tr', 'bl', 'br'];
-const MAX_ANGLE = 15;
+// Raddrizzare una lattina è questione di decimi di grado: passo 0.1 e scala
+// stretta (±10°), così ogni pixel del cursore vale meno di un decimo.
+const MAX_ANGLE = 10;
+const STEP = 0.1;
+// evita il -0.30000000000000004 della somma tra float
+const nudge = (a: number, d: number) =>
+  Math.min(MAX_ANGLE, Math.max(-MAX_ANGLE, Math.round((a + d) * 10) / 10));
 
 // Editor di ritaglio: il riquadro nasce sulla foto intera e si aggiusta
 // trascinando gli angoli (o spostandolo da dentro) — prima andava disegnato da
@@ -133,14 +139,35 @@ export function PhotoCrop({
         </div>
       </div>
       <div className="crop-dial">
-        <output className="crop-deg">{angle > 0 ? `+${angle}` : angle}°</output>
+        <div className="crop-deg-row">
+          <button
+            type="button"
+            className="crop-nudge"
+            aria-label="Straighten 0.1 degree left"
+            onClick={() => setAngle((a) => nudge(a, -STEP))}
+          >
+            −
+          </button>
+          <output className="crop-deg">
+            {angle > 0 ? '+' : ''}
+            {angle.toFixed(1)}°
+          </output>
+          <button
+            type="button"
+            className="crop-nudge"
+            aria-label="Straighten 0.1 degree right"
+            onClick={() => setAngle((a) => nudge(a, STEP))}
+          >
+            +
+          </button>
+        </div>
         <input
           type="range"
           className="crop-range"
           aria-label="Straighten"
           min={-MAX_ANGLE}
           max={MAX_ANGLE}
-          step={0.5}
+          step={STEP}
           value={angle}
           onChange={(e) => setAngle(Number(e.target.value))}
         />

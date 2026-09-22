@@ -13,6 +13,7 @@ const CANS = [
     lingua: 'MEXICO',
     top: 'SILVER/LIGHT BLUE',
     stato: 'OK',
+    p1: 'https://res.cloudinary.com/demo/image/upload/sample.jpg',
   },
   { id: 'c2', nome: 'OG', sku: '0118', produttore: 'BALL', lingua: 'ITALY' },
 ];
@@ -52,4 +53,18 @@ test('Manufacturer suggerisce i valori esistenti e il tocco ne sceglie uno', asy
   await page.getByRole('option', { name: 'BALL' }).click();
   await expect(field).toHaveValue('BALL');
   await expect(page.getByRole('listbox')).toHaveCount(0);
+});
+
+test('le azioni foto sono righe grandi, non icone da 24px', async ({ page }) => {
+  await openEdit(page);
+  await page.locator('#slot-1').click();
+  const rows = page.locator('.sheet-row');
+  await expect(rows.first()).toBeVisible();
+  for (const row of await rows.all()) {
+    const box = await row.boundingBox();
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+  }
+  // il ✕ di prima appariva solo col mouse: da mobile la foto non si cancellava
+  await page.getByRole('button', { name: /remove photo/i }).click();
+  await expect(page.locator('#slot-1 img')).toHaveCount(0);
 });

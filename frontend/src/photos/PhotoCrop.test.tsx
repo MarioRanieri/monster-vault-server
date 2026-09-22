@@ -29,13 +29,26 @@ test('ESC chiama onCancel', async () => {
   expect(onCancel).toHaveBeenCalled();
 });
 
-test('lo slider Straighten mostra i gradi scelti', () => {
+test('lo slider Straighten lavora a decimi di grado', () => {
   render(<PhotoCrop src="blob:x" onApply={() => {}} onCancel={() => {}} />);
   const slider = screen.getByLabelText('Straighten') as HTMLInputElement;
-  fireEvent.change(slider, { target: { value: '-4.5' } });
-  expect(screen.getByText('-4.5°')).toBeTruthy();
-  fireEvent.change(slider, { target: { value: '3' } });
-  expect(screen.getByText('+3°')).toBeTruthy();
+  expect(slider.step).toBe('0.1');
+  expect(slider.min).toBe('-10');
+  fireEvent.change(slider, { target: { value: '-0.3' } });
+  expect(screen.getByText('-0.3°')).toBeTruthy();
+  fireEvent.change(slider, { target: { value: '0.7' } });
+  expect(screen.getByText('+0.7°')).toBeTruthy();
+});
+
+test('i pulsanti − e + spostano di un decimo per volta, senza code decimali', async () => {
+  render(<PhotoCrop src="blob:x" onApply={() => {}} onCancel={() => {}} />);
+  const minus = screen.getByRole('button', { name: /straighten 0.1 degree left/i });
+  await userEvent.click(minus);
+  await userEvent.click(minus);
+  await userEvent.click(minus);
+  expect(screen.getByText('-0.3°')).toBeTruthy();
+  await userEvent.click(screen.getByRole('button', { name: /straighten 0.1 degree right/i }));
+  expect(screen.getByText('-0.2°')).toBeTruthy();
 });
 
 test('Full photo è disponibile solo quando la foto è caricata', () => {

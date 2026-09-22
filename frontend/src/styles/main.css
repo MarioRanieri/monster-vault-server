@@ -1950,11 +1950,27 @@ body.light .filter-chip-withphoto.active {
   gap: 6px;
   width: min(100%, 420px);
 }
+.crop-deg-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.crop-nudge {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
 .crop-deg {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 52px;
+  min-width: 72px;
   height: 36px;
   padding: 0 10px;
   border-radius: 18px;
