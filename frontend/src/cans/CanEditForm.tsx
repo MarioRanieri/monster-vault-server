@@ -16,6 +16,9 @@ const OPENING = [
   'GLASS EMPTY',
 ];
 
+// Le scelte di "Condition" (come il vecchio). Vuota = lattina nuova → OK.
+const CONDITIONS = ['OK', 'Minor Dents', 'Damaged'];
+
 // Uno slot foto: file nuovo (staged), URL nuovo, foto esistente da tenere, o vuoto.
 // Anteprima di uno slot foto: URL Cloudinary (esistente), URL esterno, o file staged.
 function slotSrc(s: Slot): string | null {
@@ -49,7 +52,6 @@ export interface Suggestions {
   sizes?: string[];
   countries?: string[];
   tops?: string[];
-  conditions?: string[];
 }
 
 // Modale di modifica/creazione (classi .modal/.photo-grid/.field-grid del vecchio).
@@ -78,7 +80,7 @@ export function CanEditForm({
   const [top, setTop] = useState(can.top ?? '');
   const [promo, setPromo] = useState(can.promo ?? '');
   const [valore, setValore] = useState(can.valore ?? '');
-  const [stato, setStato] = useState(can.stato ?? '');
+  const [stato, setStato] = useState(can.stato || 'OK');
   const [note, setNote] = useState(can.note ?? '');
   const [descrizione, setDescrizione] = useState(can.descrizione ?? '');
   const [pending, setPending] = useState<Slot[]>(() =>
@@ -105,7 +107,7 @@ export function CanEditForm({
     top: can.top ?? '',
     promo: can.promo ?? '',
     valore: can.valore ?? '',
-    stato: can.stato ?? '',
+    stato: can.stato || 'OK',
     note: can.note ?? '',
     descrizione: can.descrizione ?? '',
     pending: JSON.stringify(
@@ -458,13 +460,14 @@ export function CanEditForm({
             </div>
             <div className="field">
               <label htmlFor="e-stato">Condition</label>
-              <input
-                id="e-stato"
-                list="dl-stato"
-                value={stato}
-                onChange={(e) => setStato(e.target.value)}
-              />
-              {datalist('dl-stato', suggestions?.conditions)}
+              <select id="e-stato" value={stato} onChange={(e) => setStato(e.target.value)}>
+                {/* un valore storico fuori lista resta selezionato finché non lo cambi */}
+                {(CONDITIONS.includes(stato) ? CONDITIONS : [...CONDITIONS, stato]).map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
             </div>
             <fieldset className="field field-full">
               <legend className="field-label">Opening</legend>

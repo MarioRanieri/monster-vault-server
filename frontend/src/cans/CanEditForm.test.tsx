@@ -16,7 +16,7 @@ test('precompila i campi e salva le modifiche', async () => {
   await userEvent.type(screen.getByLabelText('SKU'), '-2');
   await userEvent.type(screen.getByLabelText('Size'), '500ml');
   await userEvent.selectOptions(screen.getByLabelText('Promo'), 'Yes');
-  await userEvent.type(screen.getByLabelText('Condition'), 'ok');
+  await userEvent.selectOptions(screen.getByLabelText('Condition'), 'Damaged');
   await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
   expect(onSave).toHaveBeenCalledWith(
@@ -26,7 +26,7 @@ test('precompila i campi e salva le modifiche', async () => {
       sku: 'SKU-1-2',
       size: '500ml',
       promo: 'Yes',
-      stato: 'ok',
+      stato: 'Damaged',
     }),
     expect.any(Array),
   );
@@ -64,19 +64,31 @@ test('Promo non toccata non riscrive il valore storico', async () => {
   );
 });
 
-test('Condition mostra i suggerimenti da inserimenti precedenti', () => {
-  render(
-    <CanEditForm
-      can={can}
-      suggestions={{ conditions: ['Mint', 'Good'] }}
-      onSave={() => {}}
-      onCancel={() => {}}
-    />,
+test('Condition è un select OK / Minor Dents / Damaged', () => {
+  render(<CanEditForm can={can} onSave={() => {}} onCancel={() => {}} />);
+  const options = Array.from((screen.getByLabelText('Condition') as HTMLSelectElement).options).map(
+    (o) => o.value,
   );
-  const values = Array.from(document.querySelectorAll('#dl-stato option')).map((o) =>
-    o.getAttribute('value'),
+  expect(options).toEqual(['OK', 'Minor Dents', 'Damaged']);
+});
+
+test('Condition vuota (lattina nuova) parte da OK e salva OK', async () => {
+  const onSave = vi.fn();
+  render(<CanEditForm can={can} onSave={onSave} onCancel={() => {}} />);
+  expect((screen.getByLabelText('Condition') as HTMLSelectElement).value).toBe('OK');
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ stato: 'OK' }), expect.any(Array));
+});
+
+test('Condition storica fuori lista resta intatta se non la tocchi', async () => {
+  const onSave = vi.fn();
+  render(<CanEditForm can={{ ...can, stato: 'Mint' }} onSave={onSave} onCancel={() => {}} />);
+  expect((screen.getByLabelText('Condition') as HTMLSelectElement).value).toBe('Mint');
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  expect(onSave).toHaveBeenCalledWith(
+    expect.objectContaining({ stato: 'Mint' }),
+    expect.any(Array),
   );
-  expect(values).toEqual(['Mint', 'Good']);
 });
 
 test('Annulla chiama onCancel', async () => {
