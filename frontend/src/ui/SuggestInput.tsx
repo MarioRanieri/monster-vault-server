@@ -102,6 +102,8 @@ export function SuggestInput({
               key={v}
               id={`${listId}-${i}`}
               role="option"
+              // focusabile solo via aria-activedescendant: il focus resta sul campo
+              tabIndex={-1}
               aria-selected={i === active}
               className={`desc-ac-item${i === active ? ' active' : ''}`}
               // mousedown (non click): scatta prima del blur che chiuderebbe la lista

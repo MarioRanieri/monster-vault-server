@@ -13,6 +13,7 @@ const words = (nome?: string) =>
       .split(/\s+/)
       .filter((w) => w.length > 1),
   );
+const countShared = (a: Set<string>, b: Set<string>) => [...a].filter((w) => b.has(w)).length;
 
 // Classifica i testi "More Info" delle lattine simili alla bozza (anche non ancora
 // salvata): +2 stessa nazione, +1 per parola del nome in comune; conta una lattina
@@ -38,9 +39,7 @@ export function suggestMoreInfo(
     const text = c.descrizione?.trim();
     if (!text || c.id === draft.id) continue;
     const sameCountry = country !== '' && norm(c.lingua) === country;
-    let shared = 0;
-    for (const w of words(c.nome)) if (draftWords.has(w)) shared++;
-    const score = (sameCountry ? 2 : 0) + shared;
+    const score = (sameCountry ? 2 : 0) + countShared(words(c.nome), draftWords);
     if (score >= 3) add(scored, text, score);
     if (sameCountry) add(byCountry, text, 1);
   }
