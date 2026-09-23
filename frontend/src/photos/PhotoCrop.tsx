@@ -1,12 +1,24 @@
 import { useRef, useState } from 'react';
-import { normalizeRect } from './cropRect';
+import { coverScale, moveRect, resizeRect, type Corner, type Rect } from './cropRect';
 import { useEscapeClose } from '../ui/useEscapeClose';
 
-// Editor di crop on-demand: si apre cliccando una foto (già caricata o esistente).
-// L'utente trascina un rettangolo; Apply ritaglia via canvas e ritorna un File.
-// Sorgente = una URL (objectURL per un file appena caricato, o URL Cloudinary per una
-// foto esistente: crossOrigin così il canvas non viene "tainted"). Cancel chiude senza
-// modifiche. Il ritaglio su canvas non è eseguibile in jsdom → la logica pura sta in cropRect.
+const CORNERS: Corner[] = ['tl', 'tr', 'bl', 'br'];
+// Raddrizzare una lattina è questione di decimi di grado: passo 0.1 e scala
+// stretta (±10°), così ogni pixel del cursore vale meno di un decimo.
+const MAX_ANGLE = 10;
+const STEP = 0.1;
+// evita il -0.30000000000000004 della somma tra float
+const nudge = (a: number, d: number) =>
+  Math.min(MAX_ANGLE, Math.max(-MAX_ANGLE, Math.round((a + d) * 10) / 10));
+
+// Editor di ritaglio: il riquadro nasce sulla foto intera e si aggiusta
+// trascinando gli angoli (o spostandolo da dentro) — prima andava disegnato da
+// capo a ogni correzione, e un tocco secco lo azzerava. "Straighten" ruota la
+// foto di pochi gradi come nell'app Foto; l'ingrandimento di copertura evita gli
+// angoli vuoti che la rotazione lascerebbe.
+// Sorgente = una URL (objectURL per un file appena scattato, o URL Cloudinary per
+// una foto esistente: crossOrigin così il canvas non viene "tainted"). Il disegno
+// su canvas non gira in jsdom → la matematica sta in cropRect, testata lì.
 export function PhotoCrop({
   src,
   onApply,
@@ -18,50 +30,63 @@ export function PhotoCrop({
 }>) {
   useEscapeClose(onCancel);
   const imgRef = useRef<HTMLImageElement>(null);
-  const drawing = useRef(false);
-  const [drag, setDrag] = useState<{
-    ax: number;
-    ay: number;
-    bx: number;
-    by: number;
-  } | null>(null);
+  // dimensioni della foto come è mostrata: il riquadro vive in queste coordinate
+  const [disp, setDisp] = useState<{ w: number; h: number } | null>(null);
+  const [rect, setRect] = useState<Rect | null>(null);
+  const [angle, setAngle] = useState(0);
+  // trascinamento in corso: angolo trascinato, o 'move' per lo spostamento
+  const drag = useRef<{ mode: Corner | 'move'; x: number; y: number } | null>(null);
 
-  const rect = drag ? normalizeRect(drag.ax, drag.ay, drag.bx, drag.by) : null;
-  const canApply = !!rect && rect.w >= 4 && rect.h >= 4;
+  const rad = (angle * Math.PI) / 180;
+  const cover = disp ? coverScale(disp.w, disp.h, rad) : 1;
+  const canApply = !!rect && rect.w >= 8 && rect.h >= 8;
 
-  const rel = (e: React.PointerEvent) => {
-    const b = imgRef.current!.getBoundingClientRect();
-    return {
-      x: Math.max(0, Math.min(e.clientX - b.left, b.width)),
-      y: Math.max(0, Math.min(e.clientY - b.top, b.height)),
-    };
+  const reset = (d: { w: number; h: number }) => {
+    setDisp(d);
+    setRect({ x: 0, y: 0, w: d.w, h: d.h });
+    setAngle(0);
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    const d = drag.current;
+    if (!d || !rect || !disp) return;
+    e.preventDefault();
+    if (d.mode === 'move') {
+      setRect(moveRect(rect, e.clientX - d.x, e.clientY - d.y, disp.w, disp.h));
+      drag.current = { ...d, x: e.clientX, y: e.clientY };
+      return;
+    }
+    const box = imgRef.current?.getBoundingClientRect();
+    if (!box) return;
+    setRect(resizeRect(rect, d.mode, e.clientX - box.left, e.clientY - box.top, disp.w, disp.h));
+  };
+
+  const startDrag = (mode: Corner | 'move') => (e: React.PointerEvent) => {
+    e.stopPropagation();
+    drag.current = { mode, x: e.clientX, y: e.clientY };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
 
   const apply = () => {
     const img = imgRef.current;
-    if (!img || !rect || !canApply) return;
-    const sx = img.naturalWidth / img.width;
-    const sy = img.naturalHeight / img.height;
+    if (!img || !rect || !disp || !canApply) return;
+    // il canvas lavora in pixel veri della foto: tutto ciò che è in coordinate
+    // "mostrate" va moltiplicato per questo fattore
+    const k = img.naturalWidth / disp.w;
     const canvas = document.createElement('canvas');
-    canvas.width = Math.round(rect.w * sx);
-    canvas.height = Math.round(rect.h * sy);
+    canvas.width = Math.round(rect.w * k);
+    canvas.height = Math.round(rect.h * k);
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       onCancel();
       return;
     }
     try {
-      ctx.drawImage(
-        img,
-        rect.x * sx,
-        rect.y * sy,
-        rect.w * sx,
-        rect.h * sy,
-        0,
-        0,
-        canvas.width,
-        canvas.height,
-      );
+      // stessa trasformazione che si vede a schermo: centro, rotazione, copertura
+      ctx.translate((disp.w / 2 - rect.x) * k, (disp.h / 2 - rect.y) * k);
+      ctx.rotate(rad);
+      ctx.scale(cover, cover);
+      ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
       canvas.toBlob(
         (blob) => {
           if (blob) onApply(new File([blob], 'crop.jpg', { type: 'image/jpeg' }));
@@ -78,52 +103,89 @@ export function PhotoCrop({
 
   return (
     <dialog className="crop-overlay" open aria-label="Crop photo">
-      <div className="crop-stage">
-        <img
-          ref={imgRef}
-          src={src}
-          alt="To crop"
-          draggable={false}
-          crossOrigin={/^https?:/.test(src) ? 'anonymous' : undefined}
-          // crop pre-selezionato a tutta l'immagine: Apply è subito premibile,
-          // il trascinamento serve solo per restringere
-          onLoad={(e) => {
-            const b = e.currentTarget;
-            setDrag({ ax: 0, ay: 0, bx: b.width, by: b.height });
-          }}
-          onPointerDown={(e) => {
-            const p = rel(e);
-            drawing.current = true;
-            setDrag({ ax: p.x, ay: p.y, bx: p.x, by: p.y });
-            e.currentTarget.setPointerCapture(e.pointerId);
-          }}
-          // ridimensiona solo col pointer premuto: al rilascio il riquadro resta
-          // fermo (senza il flag, l'hover continuerebbe a deformarlo)
-          onPointerMove={(e) => {
-            if (!drawing.current) return;
-            const p = rel(e);
-            setDrag((d) => (d ? { ...d, bx: p.x, by: p.y } : d));
-          }}
-          onPointerUp={() => {
-            drawing.current = false;
-          }}
-          onLostPointerCapture={() => {
-            drawing.current = false;
-          }}
-        />
-        {rect && rect.w > 2 && rect.h > 2 && (
-          <div
-            className="crop-box"
-            style={{ left: rect.x, top: rect.y, width: rect.w, height: rect.h }}
+      <div
+        className="crop-stage"
+        onPointerMove={onPointerMove}
+        onPointerUp={() => (drag.current = null)}
+      >
+        <div className="crop-img-wrap" style={disp ? { width: disp.w, height: disp.h } : undefined}>
+          <img
+            ref={imgRef}
+            src={src}
+            alt="To crop"
+            draggable={false}
+            crossOrigin={/^https?:/.test(src) ? 'anonymous' : undefined}
+            style={{ transform: `rotate(${angle}deg) scale(${cover})` }}
+            onLoad={(e) => reset({ w: e.currentTarget.width, h: e.currentTarget.height })}
           />
-        )}
+          {rect && (
+            <div
+              className="crop-box"
+              style={{ left: rect.x, top: rect.y, width: rect.w, height: rect.h }}
+              onPointerDown={startDrag('move')}
+            >
+              <div className="crop-grid" />
+              {CORNERS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  className={`crop-handle crop-handle-${c}`}
+                  aria-label={`Crop corner ${c}`}
+                  onPointerDown={startDrag(c)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="crop-dial">
+        <div className="crop-deg-row">
+          <button
+            type="button"
+            className="crop-nudge"
+            aria-label="Straighten 0.1 degree left"
+            onClick={() => setAngle((a) => nudge(a, -STEP))}
+          >
+            −
+          </button>
+          <output className="crop-deg">
+            {angle > 0 ? '+' : ''}
+            {angle.toFixed(1)}°
+          </output>
+          <button
+            type="button"
+            className="crop-nudge"
+            aria-label="Straighten 0.1 degree right"
+            onClick={() => setAngle((a) => nudge(a, STEP))}
+          >
+            +
+          </button>
+        </div>
+        <input
+          type="range"
+          className="crop-range"
+          aria-label="Straighten"
+          min={-MAX_ANGLE}
+          max={MAX_ANGLE}
+          step={STEP}
+          value={angle}
+          onChange={(e) => setAngle(Number(e.target.value))}
+        />
       </div>
       <div className="crop-actions">
-        <button type="button" className="btn btn-primary" onClick={apply} disabled={!canApply}>
-          Apply crop
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={() => disp && reset(disp)}
+          disabled={!disp}
+        >
+          Full photo
         </button>
         <button type="button" className="btn btn-ghost" onClick={onCancel}>
           Cancel
+        </button>
+        <button type="button" className="btn btn-primary" onClick={apply} disabled={!canApply}>
+          Apply crop
         </button>
       </div>
     </dialog>

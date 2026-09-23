@@ -1148,9 +1148,23 @@ body.public-mode .public-banner {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.detail-field-top .detail-field-lbl {
-  color: inherit;
-  opacity: 0.7;
+/* Barra Prev/Next del dettaglio: su mobile è l'unico modo di cambiare lattina
+   (le frecce da tastiera non esistono lì). */
+.detail-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.detail-nav .btn {
+  min-height: 44px;
+}
+.detail-nav-pos {
+  font-size: 11px;
+  color: var(--text3);
+  letter-spacing: 1px;
 }
 .detail-note {
   grid-column: 1/-1;
@@ -1186,36 +1200,6 @@ body.public-mode .public-banner {
   white-space: pre-wrap;
   font-weight: 400;
 }
-.detail-nav {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-.detail-nav-btn {
-  flex: 1;
-  background: var(--bg3);
-  border: 1px solid var(--border2);
-  color: var(--text2);
-  border-radius: 6px;
-  padding: 8px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 12px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  transition: all 0.15s;
-}
-.detail-nav-btn:hover {
-  border-color: var(--green);
-  color: var(--green);
-}
-.detail-nav-btn:disabled {
-  opacity: 0.3;
-  cursor: default;
-}
-
 /* ── STATO BADGE ── */
 .badge-stato-ok {
   background: rgba(0, 200, 80, 0.15);
@@ -1829,7 +1813,9 @@ body.light .filter-chip-withphoto.active {
   position: fixed;
   inset: 0;
   z-index: 500;
-  background: rgba(0, 0, 0, 0.85);
+  /* pieno, non semitrasparente: dietro c'è il form di edit e in trasparenza
+     rubava attenzione alla foto che si sta ritagliando */
+  background: #000;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1838,25 +1824,153 @@ body.light .filter-chip-withphoto.active {
   padding: 20px;
 }
 .crop-stage {
-  position: relative;
-  display: inline-block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   touch-action: none;
+}
+.crop-img-wrap {
+  position: relative;
+  overflow: hidden;
 }
 .crop-stage img {
   display: block;
-  max-width: 90vw;
-  max-height: 74vh;
+  max-width: 92vw;
+  max-height: 62vh;
   user-select: none;
+  pointer-events: none;
 }
+/* Il riquadro: fuori resta scurito (box-shadow enorme), dentro la griglia 3×3 */
 .crop-box {
   position: absolute;
-  border: 2px dashed var(--green);
-  background: rgba(168, 255, 0, 0.12);
+  border: 1px solid #fff;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+  cursor: move;
+}
+.crop-grid {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+        to right,
+        transparent calc(33.33% - 1px),
+        rgba(255, 255, 255, 0.35) calc(33.33% - 1px),
+        rgba(255, 255, 255, 0.35) 33.33%,
+        transparent 33.33%,
+        transparent calc(66.66% - 1px),
+        rgba(255, 255, 255, 0.35) calc(66.66% - 1px),
+        rgba(255, 255, 255, 0.35) 66.66%,
+        transparent 66.66%
+      )
+      no-repeat,
+    linear-gradient(
+        to bottom,
+        transparent calc(33.33% - 1px),
+        rgba(255, 255, 255, 0.35) calc(33.33% - 1px),
+        rgba(255, 255, 255, 0.35) 33.33%,
+        transparent 33.33%,
+        transparent calc(66.66% - 1px),
+        rgba(255, 255, 255, 0.35) calc(66.66% - 1px),
+        rgba(255, 255, 255, 0.35) 66.66%,
+        transparent 66.66%
+      )
+      no-repeat;
   pointer-events: none;
+}
+/* Maniglie: 28px di bersaglio al tocco, disegnate come angoli */
+.crop-handle {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: 3px solid #fff;
+  padding: 0;
+  cursor: pointer;
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.9));
+}
+.crop-handle-tl {
+  top: -3px;
+  left: -3px;
+  border-right: 0;
+  border-bottom: 0;
+}
+.crop-handle-tr {
+  top: -3px;
+  right: -3px;
+  border-left: 0;
+  border-bottom: 0;
+}
+.crop-handle-bl {
+  bottom: -3px;
+  left: -3px;
+  border-right: 0;
+  border-top: 0;
+}
+.crop-handle-br {
+  bottom: -3px;
+  right: -3px;
+  border-left: 0;
+  border-top: 0;
+}
+/* Raddrizza: gradi + cursore con le tacche */
+.crop-dial {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: min(100%, 420px);
+}
+.crop-deg-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.crop-nudge {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.crop-deg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 18px;
+  border: 2px solid var(--green);
+  color: var(--green);
+  font-size: 14px;
+  font-weight: 700;
+}
+.crop-range {
+  width: 100%;
+  height: 44px;
+  accent-color: var(--green);
+  background-image: repeating-linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.35) 0 1px,
+    transparent 1px 10px
+  );
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 16px;
 }
 .crop-actions {
   display: flex;
   gap: 10px;
+  width: min(100%, 420px);
+}
+.crop-actions .btn {
+  flex: 1;
+  min-height: 48px;
+  justify-content: center;
 }
 /* CanEditForm (React): i 4 slot foto */
 .edit-photos {
@@ -2327,6 +2441,71 @@ body.light .filter-chip-withphoto.active {
 }
 
 /* ── DESC AUTOCOMPLETE ── */
+/* Menu delle azioni di uno slot foto (PhotoSlotMenu): righe grandi al posto
+   delle icone da 24px che su mobile erano intoccabili. */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 520;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.sheet-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.62);
+  border: 0;
+  cursor: pointer;
+}
+.sheet {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 14px 14px 0 0;
+  padding-bottom: 10px;
+}
+.sheet-title {
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--text3);
+  text-transform: uppercase;
+  padding: 14px 18px 10px;
+}
+.sheet-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 18px;
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--border);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+}
+.sheet-row:hover {
+  background: var(--bg3);
+}
+.sheet-row-ico {
+  width: 22px;
+  text-align: center;
+  font-size: 17px;
+}
+.sheet-row-danger {
+  color: #ff6b6b;
+}
+.sheet-row-cancel {
+  color: var(--text3);
+  justify-content: center;
+}
+
 .desc-ac-wrap {
   position: relative;
   display: flex;
@@ -2756,99 +2935,21 @@ body.light .filter-chip-withphoto.active {
   padding: 2px 7px;
   border-radius: 3px;
 }
-.photo-slot-del {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  background: rgba(0, 0, 0, 0.75);
-  border: none;
-  color: #ff5555;
-  width: 22px;
-  height: 22px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 13px;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-}
-.photo-slot:hover .photo-slot-del {
-  display: flex;
-}
-.photo-slot-url {
-  position: absolute;
-  bottom: 6px;
-  right: 6px;
-  background: rgba(0, 0, 0, 0.65);
-  border: none;
-  color: var(--text2);
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s;
-}
-.photo-slot-url:hover {
-  background: var(--green);
-  color: #000;
-}
-.photo-slot-edit {
-  position: absolute;
-  bottom: 6px;
-  right: 36px;
-  background: rgba(0, 0, 0, 0.65);
-  border: none;
-  color: var(--text2);
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s;
-}
-.photo-slot-edit:hover {
-  background: var(--green);
-  color: #000;
-}
-/* Bottone ⇄ riordino (tap-swap, funziona anche su touch) */
-.photo-slot-move {
-  position: absolute;
-  bottom: 6px;
-  right: 66px;
-  background: rgba(0, 0, 0, 0.65);
-  border: none;
-  color: var(--text2);
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s;
-}
-.photo-slot-move:hover,
-.photo-slot-move[aria-pressed='true'] {
-  background: var(--green);
-  color: #000;
-}
 /* Anteprima live del colore Top/Tab nel form */
 .top-preview {
   margin-top: 6px;
-  padding: 4px 10px;
+  font-size: 12px;
+}
+/* Il tappo: fondo = colore del coperchio, bordo perché i fondi scuri (BLACK, il
+   valore più diffuso) non si stacchino dalla pagina del tema scuro. */
+.tab-badge {
+  display: inline-block;
+  padding: 3px 9px;
   border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
   font-size: 12px;
   font-weight: 600;
-  display: inline-block;
+  letter-spacing: 0.3px;
 }
 /* Validazione form: campo mancante + messaggio nel footer */
 input.field-invalid {

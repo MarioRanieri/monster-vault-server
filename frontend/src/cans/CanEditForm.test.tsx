@@ -5,6 +5,11 @@ import type { Can } from '../app/types';
 
 const can: Can = { id: '1', nome: 'Alpha', sku: 'SKU-1' };
 
+// Le azioni sulle foto stanno nel menu che si apre toccando lo slot.
+const openSlotMenu = async (slot: number) => {
+  await userEvent.click(document.getElementById(`slot-${slot}`)!);
+};
+
 test('precompila i campi e salva le modifiche', async () => {
   const onSave = vi.fn();
   render(<CanEditForm can={can} onSave={onSave} onCancel={() => {}} />);
@@ -187,9 +192,10 @@ test('cliccando una foto caricata si apre il crop (non è forzato all’upload)'
   render(<CanEditForm can={can} onSave={() => {}} onCancel={() => {}} />);
   const file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' });
   await userEvent.upload(screen.getByLabelText('Photo 1'), file);
-  // nessun crop all'upload: si apre solo cliccando la foto
+  // una foto presa dalla galleria non apre il crop da sola
   expect(screen.queryByRole('button', { name: /apply crop/i })).toBeNull();
-  await userEvent.click(screen.getByRole('button', { name: /crop photo 1/i }));
+  await openSlotMenu(1);
+  await userEvent.click(screen.getByRole('button', { name: /crop & straighten/i }));
   expect(screen.getByRole('button', { name: /apply crop/i })).toBeTruthy();
 });
 
@@ -212,7 +218,8 @@ test('⇄: seleziona uno slot, tap su un altro → foto scambiate anche al Save'
   const onSave = vi.fn();
   render(<CanEditForm can={canWithPhotos} onSave={onSave} onCancel={() => {}} />);
 
-  await userEvent.click(screen.getByRole('button', { name: /^move photo 1$/i }));
+  await openSlotMenu(1);
+  await userEvent.click(screen.getByRole('button', { name: /move to another slot/i }));
   await userEvent.click(document.getElementById('slot-2')!);
 
   expect((screen.getByAltText('Slot 1') as HTMLImageElement).src).toContain('b.jpg');
@@ -262,27 +269,57 @@ test('anteprima colore Top/Tab mentre scrivi', async () => {
   render(<CanEditForm can={can} onSave={() => {}} onCancel={() => {}} />);
   expect(document.querySelector('.top-preview')).toBeNull();
   await userEvent.type(screen.getByLabelText('Top / Tab'), 'gold');
-  const prev = document.querySelector('.top-preview') as HTMLElement;
-  expect(prev).toBeTruthy();
-  expect(prev.style.background).toBeTruthy();
+  const badge = document.querySelector('.top-preview .tab-badge') as HTMLElement;
+  expect(badge).toBeTruthy();
+  expect(badge.style.background).toBe('rgb(202, 166, 46)');
 });
 
-test('click su uno slot pieno riapre il file picker (sostituzione)', async () => {
+test('lo slot pieno apre il menu; Replace riapre il file picker', async () => {
   const clickSpy = vi.spyOn(HTMLInputElement.prototype, 'click');
   render(<CanEditForm can={canWithPhotos} onSave={() => {}} onCancel={() => {}} />);
 
-  await userEvent.click(document.getElementById('slot-1')!);
+  await openSlotMenu(1);
+  expect(screen.getByRole('dialog', { name: /photo 1 · main/i })).toBeTruthy();
+  expect(clickSpy).not.toHaveBeenCalled();
 
+  await userEvent.click(screen.getByRole('button', { name: /replace from gallery/i }));
   expect(clickSpy).toHaveBeenCalled();
-  expect(screen.queryByRole('dialog', { name: /crop photo/i })).toBeNull();
   clickSpy.mockRestore();
+});
+
+test('il menu di uno slot vuoto non offre crop, move o remove', async () => {
+  render(<CanEditForm can={can} onSave={() => {}} onCancel={() => {}} />);
+  await openSlotMenu(2);
+  expect(screen.getByRole('button', { name: /take photo/i })).toBeTruthy();
+  expect(screen.getByRole('button', { name: /add from gallery/i })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /crop & straighten/i })).toBeNull();
+  expect(screen.queryByRole('button', { name: /move to another slot/i })).toBeNull();
+  expect(screen.queryByRole('button', { name: /remove photo/i })).toBeNull();
+});
+
+test('Remove photo svuota lo slot e lo salva vuoto', async () => {
+  const onSave = vi.fn();
+  render(<CanEditForm can={canWithPhotos} onSave={onSave} onCancel={() => {}} />);
+  await openSlotMenu(1);
+  await userEvent.click(screen.getByRole('button', { name: /remove photo/i }));
+  expect(screen.queryByAltText('Slot 1')).toBeNull();
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ p1: '' }), expect.any(Array));
+});
+
+test('uno scatto dalla fotocamera apre subito il crop', async () => {
+  render(<CanEditForm can={can} onSave={() => {}} onCancel={() => {}} />);
+  const file = new File(['x'], 'scatto.jpg', { type: 'image/jpeg' });
+  await userEvent.upload(screen.getByLabelText('Take photo 1'), file);
+  expect(screen.getByRole('button', { name: /apply crop/i })).toBeTruthy();
 });
 
 test('il bottone URL mette in coda un upload da URL sullo slot 1', async () => {
   const onSave = vi.fn();
   vi.spyOn(window, 'prompt').mockReturnValue('https://x/y.jpg');
   render(<CanEditForm can={can} onSave={onSave} onCancel={() => {}} />);
-  await userEvent.click(screen.getAllByRole('button', { name: /paste url/i })[0]);
+  await openSlotMenu(1);
+  await userEvent.click(screen.getByRole('button', { name: /paste image url/i }));
   await userEvent.click(screen.getByRole('button', { name: /save/i }));
   expect(onSave).toHaveBeenCalledWith(
     expect.any(Object),

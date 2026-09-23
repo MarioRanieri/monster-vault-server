@@ -3,7 +3,7 @@ import type { Can } from '../app/types';
 import { statusBadgeClass } from '../ui/statusBadge';
 import { hasPromo } from '../filters/filterCans';
 import { colorizeTab } from '../ui/colorizeTab';
-import { TabParts } from '../ui/TabParts';
+import { TabBadge } from '../ui/TabParts';
 import { cloudinaryThumb } from '../photos/cloudinary';
 import { CanShare } from './CanShare';
 import { Lightbox } from '../photos/Lightbox';
@@ -27,6 +27,7 @@ export function CanDetail({
   allCans,
   navCans,
   onSelect,
+  onEditCan,
 }: Readonly<{
   can: Can;
   onClose: () => void;
@@ -40,6 +41,7 @@ export function CanDetail({
   allCans?: Can[];
   navCans?: Can[];
   onSelect?: (can: Can) => void;
+  onEditCan?: (can: Can) => void; // admin: Edit anche sulle card correlate
 }>) {
   const photos = [can.p1, can.p2, can.p3, can.p4].filter((url): url is string => Boolean(url));
   const [mainIdx, setMainIdx] = useState(0);
@@ -99,6 +101,16 @@ export function CanDetail({
     return sameLineupGroups(allCans, can);
   }, [can.id, allCans]);
 
+  // Posizione nella lista aperta (griglia/lista filtrata): serve sia alle frecce
+  // da tastiera sia alla barra Prev/Next, che su mobile è l'unico modo per
+  // cambiare lattina senza tornare indietro.
+  const navIdx = navCans?.findIndex((c) => c.id === can.id) ?? -1;
+  const canNav = Boolean(navCans && navCans.length > 1 && onSelect && navIdx !== -1);
+  const step = (delta: number) => {
+    if (!canNav || !navCans || !onSelect) return;
+    onSelect(navCans[(navIdx + delta + navCans.length) % navCans.length]);
+  };
+
   // Frecce ← → scorrono alla lattina precedente/successiva della lista corrente
   // (stesso ordine/filtri della griglia da cui si è aperto il pannello) — non i
   // pulsanti ‹ › della foto, che restano dedicati alle foto della lattina.
@@ -134,6 +146,19 @@ export function CanDetail({
           </button>
         )}
       </div>
+      {canNav && (
+        <div className="detail-nav">
+          <button type="button" className="btn btn-ghost" onClick={() => step(-1)}>
+            ‹ Prev can
+          </button>
+          <span className="detail-nav-pos">
+            {navIdx + 1} / {navCans!.length}
+          </span>
+          <button type="button" className="btn btn-ghost" onClick={() => step(1)}>
+            Next can ›
+          </button>
+        </div>
+      )}
       <div className="detail-body">
         {/* Riga 1: foto a sinistra, nome/badge + altre lattine a destra.
             align-items:start (vedi CSS) impedisce alle due colonne di stirarsi
@@ -228,10 +253,10 @@ export function CanDetail({
               if (f.isTop) {
                 const tab = colorizeTab(f.val);
                 return (
-                  <li key={f.lbl} className="detail-field detail-field-top" style={tab.style}>
+                  <li key={f.lbl} className="detail-field">
                     <span className="detail-field-lbl">{f.lbl}</span>
                     <span className="detail-field-val">
-                      <TabParts parts={tab.parts} />
+                      <TabBadge tab={tab} />
                     </span>
                   </li>
                 );
@@ -283,7 +308,12 @@ export function CanDetail({
         {relatedCans.length > 0 && (
           <section className="detail-related" aria-label="Other cans from this country">
             <h3 className="detail-related-title">Other cans from this country</h3>
-            <CanGrid cans={relatedCans} showPrice={showPrice} onSelect={onSelect} />
+            <CanGrid
+              cans={relatedCans}
+              showPrice={showPrice}
+              onSelect={onSelect}
+              onEdit={onEditCan}
+            />
           </section>
         )}
         {lineupGroups.length > 0 && (
@@ -295,7 +325,12 @@ export function CanDetail({
                 className={i > 0 ? 'detail-related-subgroup' : undefined}
               >
                 {group.label && <h4 className="detail-related-subtitle">{group.label}</h4>}
-                <CanGrid cans={group.cans} showPrice={showPrice} onSelect={onSelect} />
+                <CanGrid
+                  cans={group.cans}
+                  showPrice={showPrice}
+                  onSelect={onSelect}
+                  onEdit={onEditCan}
+                />
               </div>
             ))}
           </section>

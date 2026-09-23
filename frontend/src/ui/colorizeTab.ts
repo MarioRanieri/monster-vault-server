@@ -110,22 +110,20 @@ export interface TabDisplay {
   parts: TabPart[];
 }
 
+// "top" = il coperchio → sfondo del primo colore; "tab" = la linguetta → le parti
+// dopo lo slash, colorate nel testo. Su uno sfondo chiaro le parti prendono la
+// versione scura del colore (BG), altrimenti quella accesa (TEXT_COLOR): il
+// giallo su bianco o il blu scuro sul nero sarebbero illeggibili.
 export function colorizeTab(tab?: string | null): TabDisplay {
   if (!tab) return { parts: [] };
   const raw = String(tab);
   const first = (raw.split('/')[0] ?? '').trim().toLowerCase();
   const bg = BG[first];
-  if (bg) {
-    return {
-      style: { background: bg, color: LIGHT.has(first) ? '#111' : '#fff' },
-      parts: [{ text: raw }],
-    };
-  }
-  return {
-    parts: raw
-      .split('/')
-      .map((s, i) =>
-        i === 0 ? { text: s } : { text: s, color: TEXT_COLOR[s.trim().toLowerCase()] },
-      ),
-  };
+  const palette = bg && LIGHT.has(first) ? BG : TEXT_COLOR;
+  const parts = raw
+    .split('/')
+    .map((s, i) => (i === 0 ? { text: s } : { text: s, color: palette[s.trim().toLowerCase()] }));
+  return bg
+    ? { style: { background: bg, color: LIGHT.has(first) ? '#111' : '#fff' }, parts }
+    : { parts };
 }

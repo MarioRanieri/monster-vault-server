@@ -5,7 +5,7 @@ import { hasPromo } from '../filters/filterCans';
 import { cloudinaryThumb } from '../photos/cloudinary';
 import { Flags } from '../ui/flags';
 import { colorizeTab } from '../ui/colorizeTab';
-import { TabParts } from '../ui/TabParts';
+import { TabBadge } from '../ui/TabParts';
 
 type SortKey = 'nome' | 'sku' | 'produttore' | 'lingua' | 'size' | 'top' | 'valore';
 const num = (v?: string) => Number.parseFloat(v ?? '') || 0;
@@ -51,7 +51,7 @@ export function CanList({
   );
   const renderTab = (top?: string) => {
     if (!top) return '—';
-    return <TabParts parts={colorizeTab(top).parts} />;
+    return <TabBadge tab={colorizeTab(top)} />;
   };
 
   return (
