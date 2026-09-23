@@ -27,6 +27,10 @@
 > della rotazione, barra fissa Full photo / Cancel / Apply. La matematica sta in `cropRect.ts` (testata); il
 > canvas applica la stessa trasformazione della vista. Il ritaglio lavora sul file originale: la riduzione a
 > 1800px/JPEG 85% resta in `compressImage` all'upload. Test: **453 Vitest + 23 e2e Playwright**.
+> **Rifinitura (PR #77):** il riquadro del tappo ora c'è anche quando il primo colore non ha un fondo noto
+> (SILVER, GREY…): fondo neutro e bordo `color-mix(currentColor 35%)`, che si adatta da solo — chiaro sui
+> fondi scuri, scuro su oro/bianco, e funziona anche in tema chiaro. Chiesto dall'utente dopo aver visto
+> il nero bordato.
 
 > **2026-09-22 — rev 65: form di aggiunta/modifica lattina + ricerca multi-parola.** Segnalazioni dell'utente,
 > analizzate con brainstorming e verificate in Playwright (390px e 1366px) con la sessione admin simulata.

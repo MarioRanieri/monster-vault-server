@@ -21,11 +21,11 @@ export function TabParts({ parts }: Readonly<{ parts: TabPart[] }>) {
 // lo slash colorate nel testo. Senza un fondo noto (es. SILVER) resta solo testo.
 export function TabBadge({ tab }: Readonly<{ tab: TabDisplay }>) {
   if (tab.parts.length === 0) return null;
-  const inner = <TabParts parts={tab.parts} />;
-  if (!tab.style) return inner;
+  // Senza un fondo noto (SILVER, GREY…) il riquadro resta comunque, su fondo
+  // neutro: il tappo si legge come un'etichetta in ogni caso.
   return (
     <span className="tab-badge" style={tab.style}>
-      {inner}
+      <TabParts parts={tab.parts} />
     </span>
   );
 }

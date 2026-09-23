@@ -34,16 +34,19 @@ test('parti con lo stesso testo non generano avvisi di chiave duplicata', () => 
   err.mockRestore();
 });
 
-test('TabBadge: col fondo del top diventa un riquadro, senza resta testo', () => {
+test('TabBadge: riquadro sempre, col fondo del top quando esiste', () => {
   const { container, rerender } = render(<TabBadge tab={colorizeTab('BLACK/PINK')} />);
   const badge = container.querySelector('.tab-badge') as HTMLElement;
   expect(badge).toBeTruthy();
   expect(badge.style.background).toBe('rgb(17, 17, 17)');
   expect(badge.textContent).toBe('BLACK/PINK');
 
+  // tappo senza fondo noto: resta un riquadro, ma senza colore di sfondo
   rerender(<TabBadge tab={colorizeTab('SILVER/GOLD')} />);
-  expect(container.querySelector('.tab-badge')).toBeNull();
-  expect(container.textContent).toBe('SILVER/GOLD');
+  const plain = container.querySelector('.tab-badge') as HTMLElement;
+  expect(plain).toBeTruthy();
+  expect(plain.style.background).toBe('');
+  expect(plain.textContent).toBe('SILVER/GOLD');
 });
 
 test('TabBadge: tappo vuoto non rende nulla', () => {
