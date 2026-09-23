@@ -2946,7 +2946,10 @@ body.light .filter-chip-withphoto.active {
   display: inline-block;
   padding: 3px 9px;
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  /* bordo derivato dal testo del riquadro: chiaro sui fondi scuri, scuro su
+     quelli chiari, visibile anche quando il tappo non ha un colore di fondo */
+  border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+  background: var(--bg3);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.3px;
