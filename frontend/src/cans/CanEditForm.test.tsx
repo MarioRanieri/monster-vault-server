@@ -307,11 +307,17 @@ test('Remove photo svuota lo slot e lo salva vuoto', async () => {
   expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ p1: '' }), expect.any(Array));
 });
 
-test('uno scatto dalla fotocamera apre subito il crop', async () => {
-  render(<CanEditForm can={can} onSave={() => {}} onCancel={() => {}} />);
+test('uno scatto dalla fotocamera entra nello slot senza aprire il crop', async () => {
+  const onSave = vi.fn();
+  render(<CanEditForm can={can} onSave={onSave} onCancel={() => {}} />);
   const file = new File(['x'], 'scatto.jpg', { type: 'image/jpeg' });
   await userEvent.upload(screen.getByLabelText('Take photo 1'), file);
-  expect(screen.getByRole('button', { name: /apply crop/i })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /apply crop/i })).toBeNull();
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  expect(onSave).toHaveBeenCalledWith(
+    expect.any(Object),
+    expect.arrayContaining([expect.objectContaining({ slot: 1, file })]),
+  );
 });
 
 test('il bottone URL mette in coda un upload da URL sullo slot 1', async () => {

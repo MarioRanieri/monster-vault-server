@@ -30,7 +30,9 @@
 > **Rifinitura (PR #77):** il riquadro del tappo ora c'è anche quando il primo colore non ha un fondo noto
 > (SILVER, GREY…): fondo neutro e bordo `color-mix(currentColor 35%)`, che si adatta da solo — chiaro sui
 > fondi scuri, scuro su oro/bianco, e funziona anche in tema chiaro. Chiesto dall'utente dopo aver visto
-> il nero bordato.
+> il nero bordato. **Scatto senza crop automatico (PR #78):** lo scatto da fotocamera non apre più l'editor —
+> il flusso dell'utente è scattare e caricare tutte le foto di fila, poi sistemarle dopo da "Crop & straighten".
+> Fotocamera e galleria ora si comportano uguale.
 
 > **2026-09-22 — rev 65: form di aggiunta/modifica lattina + ricerca multi-parola.** Segnalazioni dell'utente,
 > analizzate con brainstorming e verificate in Playwright (390px e 1366px) con la sessione admin simulata.
