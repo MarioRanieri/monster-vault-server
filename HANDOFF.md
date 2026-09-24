@@ -32,7 +32,11 @@
 > fondi scuri, scuro su oro/bianco, e funziona anche in tema chiaro. Chiesto dall'utente dopo aver visto
 > il nero bordato. **Scatto senza crop automatico (PR #78):** lo scatto da fotocamera non apre più l'editor —
 > il flusso dell'utente è scattare e caricare tutte le foto di fila, poi sistemarle dopo da "Crop & straighten".
-> Fotocamera e galleria ora si comportano uguale.
+> Fotocamera e galleria ora si comportano uguale. **Lattine simili sotto il nome (PR #79):** `similarCans.ts` —
+> +2 per parola del nome in comune, +1 stesso paese, +0.5 con foto, serve almeno una parola in comune;
+> il form mostra 3 righe sola-lettura (nome · SKU · paese) sotto il campo Name, aggiornate mentre scrivi.
+> Serve a nominare la nuova lattina come le sorelle: i nomi si scrivono a mano e ci sono 189 nomi ripetuti
+> ("OG" da solo 66 volte). L'utente ha scelto la variante compatta senza foto dopo i tre mock.
 
 > **2026-09-22 — rev 65: form di aggiunta/modifica lattina + ricerca multi-parola.** Segnalazioni dell'utente,
 > analizzate con brainstorming e verificate in Playwright (390px e 1366px) con la sessione admin simulata.

@@ -2441,6 +2441,38 @@ body.light .filter-chip-withphoto.active {
 }
 
 /* ── DESC AUTOCOMPLETE ── */
+/* Lattine simili sotto il campo Name: solo da leggere, per nominare la nuova
+   lattina come le sorelle già in collezione. */
+.similar-cans {
+  margin-top: 8px;
+}
+.similar-cans-lbl {
+  display: block;
+  font-size: 11px;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.similar-cans ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.similar-cans li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text2);
+}
+.similar-cans-meta {
+  color: var(--text3);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
 /* Menu delle azioni di uno slot foto (PhotoSlotMenu): righe grandi al posto
    delle icone da 24px che su mobile erano intoccabili. */
 .sheet-backdrop {

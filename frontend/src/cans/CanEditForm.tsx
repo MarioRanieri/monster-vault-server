@@ -7,6 +7,7 @@ import { colorizeTab } from '../ui/colorizeTab';
 import { TabBadge } from '../ui/TabParts';
 import { SuggestInput } from '../ui/SuggestInput';
 import { suggestMoreInfo } from './moreInfoSuggestions';
+import { findSimilarCans } from './similarCans';
 import { useEscapeClose } from '../ui/useEscapeClose';
 
 // Le scelte di "Opening" (gruppo di pill mutuamente esclusive, come il vecchio).
@@ -103,6 +104,12 @@ export function CanEditForm({
   const fileRefs = useRef<(HTMLInputElement | null)[]>([]);
   const camRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [menuIdx, setMenuIdx] = useState<number | null>(null);
+  // Lattine già in collezione che somigliano al nome che stai scrivendo: servono
+  // a nominare la nuova come le sorelle (i nomi si scrivono a mano).
+  const similar = useMemo(
+    () => findSimilarCans(collection, { id: can.id, nome, lingua }),
+    [collection, can.id, nome, lingua],
+  );
   // Calcolato sulla bozza corrente: funziona anche su una lattina non ancora salvata.
   const similarInfo = useMemo(
     () => (descrizione.trim() ? [] : suggestMoreInfo(collection, { id: can.id, nome, lingua })),
@@ -348,6 +355,21 @@ export function CanEditForm({
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
               />
+              {similar.length > 0 && (
+                <div className="similar-cans">
+                  <span className="similar-cans-lbl">Similar cans you already have</span>
+                  <ul>
+                    {similar.map((c) => (
+                      <li key={c.id}>
+                        <span>{c.nome}</span>
+                        <span className="similar-cans-meta">
+                          {[c.sku, c.lingua].filter(Boolean).join(' · ')}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
             <div className="field">
               <label htmlFor="e-sku">SKU</label>
