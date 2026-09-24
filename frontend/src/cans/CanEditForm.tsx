@@ -168,13 +168,12 @@ export function CanEditForm({
     else setMenuIdx(i);
   };
 
-  // Una foto scelta: dalla fotocamera entra dritta nel crop (è il momento in cui
-  // serve raddrizzarla), dalla galleria no — lì si è già ritagliato in Foto.
-  const takeFile = (i: number, file: File | undefined, fromCamera: boolean) => {
+  // Una foto scelta entra nello slot e basta, da fotocamera o da galleria: il
+  // flusso dell'utente è scattare tutte le foto e caricarle, sistemandole dopo
+  // con calma da "Crop & straighten".
+  const takeFile = (i: number, file: File | undefined) => {
     if (!file) return;
-    const preview = URL.createObjectURL(file);
-    setSlot(i, { kind: 'file', file, preview });
-    if (fromCamera) setCropTarget({ idx: i, src: preview });
+    setSlot(i, { kind: 'file', file, preview: URL.createObjectURL(file) });
   };
 
   const runAction = (i: number, action: PhotoAction) => {
@@ -315,12 +314,12 @@ export function CanEditForm({
                     aria-label={`Photo ${slot}`}
                     style={{ display: 'none' }}
                     onChange={(e) => {
-                      takeFile(i, e.target.files?.[0], false);
+                      takeFile(i, e.target.files?.[0]);
                       e.currentTarget.value = '';
                     }}
                   />
                   {/* capture: apre direttamente la fotocamera del telefono invece
-                      del menu galleria/file; lo scatto va dritto nel crop. */}
+                      del menu galleria/file. */}
                   <input
                     ref={(el) => {
                       camRefs.current[i] = el;
@@ -331,7 +330,7 @@ export function CanEditForm({
                     aria-label={`Take photo ${slot}`}
                     style={{ display: 'none' }}
                     onChange={(e) => {
-                      takeFile(i, e.target.files?.[0], true);
+                      takeFile(i, e.target.files?.[0]);
                       e.currentTarget.value = '';
                     }}
                   />
