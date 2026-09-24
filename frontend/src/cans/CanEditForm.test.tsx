@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CanEditForm } from './CanEditForm';
 import type { Can } from '../app/types';
@@ -147,6 +147,37 @@ test('More Info: suggerisce i testi delle lattine simili mentre compili nome e n
   expect(screen.getByLabelText('More Info')).toHaveProperty('value', 'Small logo 0920 design');
   // compilato: i suggerimenti spariscono
   expect(screen.queryByRole('button', { name: /Small logo 0920 design/ })).toBeNull();
+});
+
+test('mostra fino a 3 lattine simili mentre scrivi il nome', async () => {
+  const collection: Can[] = [
+    { id: 'a', nome: 'MANGO LOCO SILVER SYMBOLS', sku: '0119', lingua: 'MEXICO' },
+    { id: 'b', nome: 'MANGO LOCO SMALL LOGO', sku: '0920', lingua: 'MEXICO' },
+    { id: 'c', nome: 'MANGO LOCO COD MW3', sku: '0723', lingua: 'SOUTH AFRICA' },
+    { id: 'd', nome: 'MANGO LOCO MEGA', sku: '0521', lingua: 'USA' },
+    { id: 'e', nome: 'ULTRA PARADISE', sku: '1023', lingua: 'MEXICO' },
+  ];
+  render(
+    <CanEditForm
+      can={{ id: 'new', nome: '' }}
+      collection={collection}
+      onSave={() => {}}
+      onCancel={() => {}}
+    />,
+  );
+  const list = () => document.querySelector('.similar-cans');
+  expect(list()).toBeNull();
+
+  await userEvent.type(screen.getByLabelText('Name'), 'MANGO LOCO');
+  const rows = within(list() as HTMLElement).getAllByRole('listitem');
+  expect(rows).toHaveLength(3);
+  expect(rows[0].textContent).toContain('MANGO LOCO SILVER SYMBOLS');
+  expect(rows[0].textContent).toContain('0119');
+  expect(rows[0].textContent).toContain('MEXICO');
+  expect(list()!.textContent).not.toContain('ULTRA PARADISE');
+
+  await userEvent.clear(screen.getByLabelText('Name'));
+  expect(list()).toBeNull();
 });
 
 test('Annulla chiama onCancel', async () => {
