@@ -42,10 +42,11 @@ Niente confronto foto: il riconoscimento immagine (CLIP/DINOv2/OCR **e** VLM) è
 
 ## ⏱️ Finestra temporale
 
-`MAX_LISTING_AGE_HOURS = 2` → eBay manda solo gli annunci listati nelle ultime ~2h. La ricerca
-gira ogni 1h, quindi c'è ~1h di margine per il drift naturale dei cron GitHub Actions (minuti,
-non più le ore osservate col vecchio schedule `*/5 * * * *` — vedi lo spec di design). Gli
-eventuali duplicati residui sono comunque filtrati dallo stato su Mongo.
+`MAX_LISTING_AGE_HOURS = 12` → eBay manda solo gli annunci listati nelle ultime 12h. Il cron è
+orario sulla carta, ma GitHub Actions lo avvia in pratica ogni 3-6h (repo pubblico a bassa
+attività): con la vecchia finestra di 2h gli annunci pubblicati nel mezzo non venivano mai
+cercati. I già visti sono filtrati dallo stato su Mongo, quindi niente doppioni. Ogni ricerca
+chiede fino a 200 annunci (il massimo della Browse API), abbastanza anche per 12h.
 
 ## 📨 Un messaggio per annuncio
 

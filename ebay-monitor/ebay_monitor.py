@@ -169,7 +169,7 @@ def get_ebay_token():
 def search_ebay(marketplace, query, token):
     """Cerca su UN mercato con UNA query (ordine: appena listati). Con
     settings.MAX_LISTING_AGE_HOURS filtra lato eBay i soli annunci freschi."""
-    params = {"q": query, "limit": "50", "sort": "newlyListed"}
+    params = {"q": query, "limit": "200", "sort": "newlyListed"}   # 200 = max Browse API
     filters = []
     max_age = getattr(settings, "MAX_LISTING_AGE_HOURS", None)
     if max_age:
