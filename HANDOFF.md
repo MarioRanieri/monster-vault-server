@@ -2,7 +2,7 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-09-25 (rev 70 — mirino in-app per scattare le 4 foto di fila; fix selezione blu nel crop su iOS)  
+**Updated:** 2026-09-25 (rev 70 — mirino in-app per le 4 foto di fila; crop dai lati + fix selezione blu iOS; scroll bloccato dietro gli overlay)  
 **Branch:** main  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
@@ -20,7 +20,15 @@
 > reale, se `zoom` 2 corrisponde davvero al 2× dell'app Fotocamera (sul device virtuale triplo potrebbe essere
 > tarato diversamente), confronto di qualità sul retro di una lattina; poi decidere se togliere la voce nativa.
 > **Crop**: su iOS il long-press sulle maniglie selezionava tutto l'overlay come testo (riquadro blu): Safari
-> vuole `-webkit-user-select`, aggiunto con `-webkit-touch-callout: none` su `.crop-overlay`. Test: 479 Vitest.
+> vuole `-webkit-user-select`, aggiunto con `-webkit-touch-callout: none` su `.crop-overlay`, e `preventDefault`
+> sul pointerdown delle maniglie. **Lati del crop**: `resizeRect` accetta anche `t/r/b/l` (le lettere della
+> maniglia dicono quali bordi si muovono); ogni lato è una fascia di 28px lunga quanto il bordo, con una barretta
+> al centro — si stringe da qualunque punto del lato, come in Foto. **Scroll dietro gli overlay**: da telefono si
+> scorreva la pagina sotto form/crop e a volte l'overlay "si buggava". Il blocco sta in `useEscapeClose` (tutti
+> gli overlay ci passano, e ha già la pila): al primo overlay il body diventa `position: fixed` allo scroll
+> corrente (`overflow: hidden` non basta su iOS), all'ultimo si torna lì. Verificato in Playwright (900px →
+> fermo con la rotella → 900px). Test: 483 Vitest. **Nota**: un test App a caso va in timeout (5s) quando gira
+> tutta la suite, anche su main senza queste modifiche: flaky preesistente.
 
 > **2026-09-25 — rev 69: il trigger orario passa da Render a GitHub (PR in corso).** Il `/sweep` di rev 68 non
 > ha retto in produzione: alle 18:07 timeout (Render ibernato, cron-job.org aspetta 30s), dalle 19:07 **429**
