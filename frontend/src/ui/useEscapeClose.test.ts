@@ -88,3 +88,21 @@ test('focus restore is skipped if the previously focused element left the docume
 
   expect(() => unmount()).not.toThrow();
 });
+
+test('con un overlay aperto la pagina dietro non scorre; alla chiusura torna dov’era', () => {
+  window.scrollTo = vi.fn();
+  Object.defineProperty(window, 'scrollY', { configurable: true, value: 640 });
+  const bottom = renderHook(() => useEscapeClose(() => {}));
+  expect(document.body.style.position).toBe('fixed');
+  expect(document.body.style.top).toBe('-640px');
+
+  // un secondo overlay sopra (es. il crop dentro il form) non rompe il blocco
+  const top = renderHook(() => useEscapeClose(() => {}));
+  top.unmount();
+  expect(document.body.style.position).toBe('fixed');
+
+  bottom.unmount();
+  expect(document.body.style.position).toBe('');
+  expect(document.body.style.top).toBe('');
+  expect(window.scrollTo).toHaveBeenCalledWith(0, 640);
+});
