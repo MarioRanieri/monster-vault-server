@@ -361,8 +361,7 @@ def run_once(send_now=False, cap_per_query=None):
         print(f"⚠️  MongoDB irraggiungibile: giro saltato. {exc}")
         _tg_text(f"⚠️ eBay Monitor: MongoDB irraggiungibile, giro saltato. {type(exc).__name__}")
         return
-    # Chiude sempre il client: nel servizio web (/sweep) il processo vive a lungo e un
-    # MongoClient per giro mai chiuso accumulerebbe connessioni e thread.
+    # Chiude sempre il client, anche quando il giro si ferma presto (pausa, turno già preso).
     try:
         _sweep(store, send_now, cap_per_query)
     finally:
@@ -374,8 +373,8 @@ def _sweep(store, send_now, cap_per_query):
         print("  ⏸️  Monitor in pausa (/resume da Telegram per riattivare). Giro saltato.")
         return
 
-    # Ricerca eBay: il turno si prenota su Mongo (atomico) — i trigger sono due, /sweep da un
-    # cron esterno orario e GitHub Actions di riserva, e non devono mai girare entrambi. Il
+    # Ricerca eBay: il turno si prenota su Mongo (atomico) — i trigger sono due, workflow_dispatch
+    # orario da cron-job.org e lo schedule GitHub di riserva, e non devono mai girare entrambi. Il
     # turno si prende all'INIZIO: se il giro poi fallisce, riprova il trigger dell'ora dopo
     # (la finestra di 12h copre il buco). Il test --send-now non tocca la cadenza.
     now = time.time()

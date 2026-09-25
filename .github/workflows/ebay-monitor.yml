@@ -1,8 +1,8 @@
 name: eBay Monitor
 
 # Radar Monster Energy: SOLO ricerca eBay + notifica. Trigger principale: cron-job.org, ogni
-# ora, su POST /sweep di webhook_app.py. Questo schedule è la RISERVA: su questo repo pubblico
-# GitHub lo avvia ogni 3-6h. Store.claim_sweep impedisce doppi giri. I comandi Telegram
+# ora, via API workflow_dispatch (parte in pochi secondi). Questo schedule è la RISERVA: su
+# questo repo pubblico GitHub lo avvia ogni 3-6h. Store.claim_sweep impedisce doppi giri. I comandi Telegram
 # (/add /list /market /delete) non passano più da qui — li gestisce webhook_app.py,
 # un servizio Render separato, istantaneo (vedi docs/superpowers/specs/2026-09-15-
 # ebay-monitor-telegram-webhook-design.md). Cron offset a :07 (non in punta d'ora):

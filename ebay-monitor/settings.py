@@ -50,8 +50,8 @@ REQUIRE_WORDS = ["monster", "energy"]
 
 # I comandi Telegram (/add /list /market /delete) non passano più da qui: li gestisce
 # webhook_app.py (servizio Render separato, istantaneo). Questo script fa solo lo sweep
-# eBay, avviato ogni ora da cron-job.org (POST /sweep su webhook_app.py) e, di riserva, dal
-# cron GitHub Actions. Store.claim_sweep() lascia passare un solo giro ogni ~0,9 × questo
+# eBay, avviato ogni ora da cron-job.org (workflow_dispatch via API GitHub) e, di riserva,
+# dallo schedule del workflow. Store.claim_sweep() lascia passare un solo giro ogni ~0,9 × questo
 # intervallo, qualunque sia il trigger.
 # Deve restare < MAX_LISTING_AGE_HOURS (finestra), o perdi annunci tra uno sweep e l'altro.
 SWEEP_INTERVAL_SECONDS = 3600   # 1 ora

@@ -4,9 +4,9 @@ Radar che avvisa su **Telegram** quando spunta un **nuovo annuncio eBay** di una
 Monster che ti interessa, su **più mercati**. Due parti separate, gratis, nessun PC da
 tenere acceso:
 
-- **Ricerca eBay**: **ogni ora**, avviata da **cron-job.org** con un `POST /sweep` al servizio
-  Render dei comandi; **GitHub Actions** (`.github/workflows/ebay-monitor.yml`) resta come
-  riserva. Stato su **MongoDB Atlas**.
+- **Ricerca eBay**: gira **in cloud su GitHub Actions** (`.github/workflows/ebay-monitor.yml`),
+  **ogni ora**, avviata da **cron-job.org** via API GitHub (`workflow_dispatch`); lo schedule
+  del workflow resta come riserva. Stato su **MongoDB Atlas**.
 - **Comandi Telegram** (`/add /remove /list /market /query /delete /help /status /pause /resume`): gira su un **secondo Web Service
   Render**, separato dal sito principale — riceve un **webhook** da Telegram e risponde
   **istantaneamente**, niente attesa di un giro cron. Codice: `webhook_app.py`.
@@ -20,12 +20,17 @@ fanno parte dell'app Java deployata su Render (root directory diversa, deploy in
 
 **Ricerca eBay** (`ebay_monitor.run_once`): un giro solo ed esce. Due trigger:
 
-- **`POST /sweep`** su `webhook_app.py`, chiamato **ogni ora** da un job di cron-job.org con
-  l'header `X-Sweep-Secret: <SWEEP_SECRET>`. Risponde subito `202` e fa il giro in un thread.
-  Secret sbagliato o non impostato → `403`.
-- **GitHub Actions** (cron `7 * * * *`), di riserva: sulla carta è orario, ma su questo repo
-  pubblico GitHub lo avvia ogni 3-6h. Se il primo trigger funziona, quasi sempre trova il turno
-  già preso ed esce.
+- **cron-job.org → `workflow_dispatch`**, ogni ora: il job chiama
+  `POST https://api.github.com/repos/MarioRanieri/monster-vault-server/actions/workflows/ebay-monitor.yml/dispatches`
+  con body `{"ref":"main"}` e un token GitHub fine-grained (solo questo repo, solo
+  *Actions: Read and write*) nell'header `Authorization: Bearer …`. Un run avviato così parte
+  in pochi secondi.
+- **Schedule del workflow** (cron `7 * * * *`), di riserva: sulla carta è orario, ma su questo
+  repo pubblico GitHub lo avvia ogni 3-6h. Quasi sempre trova il turno già preso ed esce.
+
+Perché non Render: un primo tentativo chiamava un endpoint `/sweep` sul servizio Render dei
+comandi, ma il piano gratuito rifiuta di svegliare un servizio ibernato per le richieste da
+cron-job.org (`429`, header `x-render-routing: hibernate-rate-limited`).
 
 1. **Connette MongoDB** (stato anti-duplicati). Se il DB è irraggiungibile, **salta il giro** e
    avvisa su Telegram (non processa nulla, per non rifare la baseline).
@@ -158,24 +163,23 @@ margine di prima.
 | `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | Bot Telegram (token da @BotFather + chat id) |
 | `MONGODB_URI` | URI di MongoDB Atlas (stesso cluster del sito; il monitor usa collection dedicate `ebay_seen`/`ebay_blacklist`/`ebay_meta`, **non** tocca `cans`) |
 
-Nessun altro setup lato GitHub: il workflow installa le dipendenze e parte da solo ogni ora.
+Poi il trigger orario: su **cron-job.org** un job `POST` all'URL `…/dispatches` sopra, con gli
+header `Authorization: Bearer <token fine-grained>`, `Accept: application/vnd.github+json`,
+`X-GitHub-Api-Version: 2022-11-28` e body `{"ref":"main"}` (risposta attesa: `204`).
 
 **Comandi Telegram** (secondo Web Service Render, separato dal sito):
 
 1. Crea un nuovo Web Service su Render, root directory `ebay-monitor/`, start command
    `gunicorn webhook_app:app --bind 0.0.0.0:$PORT --threads 4 --timeout 120`.
-2. Env vars sul servizio: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `MONGODB_URI`,
-   `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET` (stessi valori dei Secret GitHub sopra — store
-   separati, vanno copiati) + `TELEGRAM_WEBHOOK_SECRET` e `SWEEP_SECRET` (nuovi, generati una
-   tantum, es. `openssl rand -hex 32`).
+2. Env vars sul servizio: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `MONGODB_URI` (stessi valori
+   dei Secret GitHub sopra — store separati, vanno copiati) + `TELEGRAM_WEBHOOK_SECRET` (nuovo,
+   generato una tantum, es. `openssl rand -hex 32`).
 3. Una volta deployato, registra il webhook su Telegram (una tantum):
    ```
    curl https://api.telegram.org/bot<TOKEN>/setWebhook \
      -d url=https://<nome-servizio>.onrender.com/telegram-webhook \
      -d secret_token=<TELEGRAM_WEBHOOK_SECRET>
    ```
-4. Su **cron-job.org** crea un job orario: `POST https://<nome-servizio>.onrender.com/sweep`
-   con header `X-Sweep-Secret: <SWEEP_SECRET>`.
 
 ## Uso
 
