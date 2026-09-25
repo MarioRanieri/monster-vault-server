@@ -1,6 +1,7 @@
 import { useEscapeClose } from '../ui/useEscapeClose';
 
-export type PhotoAction = 'camera' | 'gallery' | 'crop' | 'move' | 'url' | 'remove';
+export type PhotoAction =
+  'camera' | 'phone-camera' | 'gallery' | 'crop' | 'move' | 'url' | 'remove';
 
 // Menu delle azioni di uno slot foto. Prima erano quattro icone da 24px stipate
 // nell'angolo della miniatura (e il ✕ appariva solo col mouse: da telefono una
@@ -20,7 +21,10 @@ export function PhotoSlotMenu({
   useEscapeClose(onClose);
   const title = `Photo ${slot}${slot === 1 ? ' · Main' : ''}`;
   const rows: { action: PhotoAction; icon: string; label: string; danger?: boolean }[] = [
-    { action: 'camera', icon: '📸', label: 'Take photo' },
+    // In-app: le 4 foto di fila con lo zoom che resta. Phone: l'app Fotocamera,
+    // un solo scatto ma con la sua elaborazione (resta per confrontare la qualità).
+    { action: 'camera', icon: '📸', label: 'Take photos (in-app camera)' },
+    { action: 'phone-camera', icon: '📱', label: 'Take photo (phone camera)' },
     { action: 'gallery', icon: '🖼', label: filled ? 'Replace from gallery' : 'Add from gallery' },
     ...(filled
       ? ([

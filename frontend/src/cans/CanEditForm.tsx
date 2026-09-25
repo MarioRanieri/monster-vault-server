@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import type { Can } from '../app/types';
 import { PhotoCrop } from '../photos/PhotoCrop';
+import { CameraCapture } from '../photos/CameraCapture';
 import { PhotoSlotMenu, type PhotoAction } from './PhotoSlotMenu';
 import { cloudinaryThumb } from '../photos/cloudinary';
 import { colorizeTab } from '../ui/colorizeTab';
@@ -104,6 +105,7 @@ export function CanEditForm({
   const fileRefs = useRef<(HTMLInputElement | null)[]>([]);
   const camRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [menuIdx, setMenuIdx] = useState<number | null>(null);
+  const [cameraFrom, setCameraFrom] = useState<number | null>(null);
   // Lattine già in collezione che somigliano al nome che stai scrivendo: servono
   // a nominare la nuova come le sorelle (i nomi si scrivono a mano).
   const similar = useMemo(
@@ -185,7 +187,8 @@ export function CanEditForm({
 
   const runAction = (i: number, action: PhotoAction) => {
     setMenuIdx(null);
-    if (action === 'camera') camRefs.current[i]?.click();
+    if (action === 'camera') setCameraFrom(i);
+    else if (action === 'phone-camera') camRefs.current[i]?.click();
     else if (action === 'gallery') fileRefs.current[i]?.click();
     else if (action === 'crop') {
       const sl = pending[i];
@@ -535,6 +538,17 @@ export function CanEditForm({
           filled={pending[menuIdx] !== null}
           onAction={(a) => runAction(menuIdx, a)}
           onClose={() => setMenuIdx(null)}
+        />
+      )}
+      {cameraFrom !== null && (
+        <CameraCapture
+          previews={pending.map(slotSrc)}
+          start={cameraFrom}
+          onDone={(shots) => {
+            shots.forEach((f, i) => f && takeFile(i, f));
+            setCameraFrom(null);
+          }}
+          onClose={() => setCameraFrom(null)}
         />
       )}
       {cropTarget && (

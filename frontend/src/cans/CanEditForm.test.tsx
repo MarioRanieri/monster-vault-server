@@ -3,6 +3,30 @@ import userEvent from '@testing-library/user-event';
 import { CanEditForm } from './CanEditForm';
 import type { Can } from '../app/types';
 
+// Il mirino vero (getUserMedia) ha i suoi test: qui basta un finto che espone
+// lo slot di partenza e restituisce scatti preparati dal test.
+const cameraDone: { shots: (File | null)[] } = { shots: [] };
+vi.mock('../photos/CameraCapture', () => ({
+  CameraCapture: ({
+    start,
+    onDone,
+    onClose,
+  }: {
+    start: number;
+    onDone: (s: (File | null)[]) => void;
+    onClose: () => void;
+  }) => (
+    <div data-testid="camera" data-start={start}>
+      <button type="button" onClick={() => onDone(cameraDone.shots)}>
+        fake done
+      </button>
+      <button type="button" onClick={onClose}>
+        fake close
+      </button>
+    </div>
+  ),
+}));
+
 const can: Can = { id: '1', nome: 'Alpha', sku: 'SKU-1' };
 
 // Le azioni sulle foto stanno nel menu che si apre toccando lo slot.
@@ -321,7 +345,8 @@ test('lo slot pieno apre il menu; Replace riapre il file picker', async () => {
 test('il menu di uno slot vuoto non offre crop, move o remove', async () => {
   render(<CanEditForm can={can} onSave={() => {}} onCancel={() => {}} />);
   await openSlotMenu(2);
-  expect(screen.getByRole('button', { name: /take photo/i })).toBeTruthy();
+  expect(screen.getByRole('button', { name: /take photos \(in-app camera\)/i })).toBeTruthy();
+  expect(screen.getByRole('button', { name: /take photo \(phone camera\)/i })).toBeTruthy();
   expect(screen.getByRole('button', { name: /add from gallery/i })).toBeTruthy();
   expect(screen.queryByRole('button', { name: /crop & straighten/i })).toBeNull();
   expect(screen.queryByRole('button', { name: /move to another slot/i })).toBeNull();
@@ -349,6 +374,40 @@ test('uno scatto dalla fotocamera entra nello slot senza aprire il crop', async 
     expect.any(Object),
     expect.arrayContaining([expect.objectContaining({ slot: 1, file })]),
   );
+});
+
+test('"phone camera" apre la fotocamera nativa del telefono', async () => {
+  const clickSpy = vi.spyOn(HTMLInputElement.prototype, 'click');
+  render(<CanEditForm can={can} onSave={() => {}} onCancel={() => {}} />);
+  await openSlotMenu(1);
+  await userEvent.click(screen.getByRole('button', { name: /phone camera/i }));
+  expect(clickSpy.mock.contexts[0]).toBe(screen.getByLabelText('Take photo 1'));
+  clickSpy.mockRestore();
+});
+
+test('il mirino in-app parte dallo slot scelto e Done mette gli scatti negli slot', async () => {
+  const shot = new File(['x'], 'shot.jpg', { type: 'image/jpeg' });
+  cameraDone.shots = [null, shot, null, null];
+  const onSave = vi.fn();
+  render(<CanEditForm can={can} onSave={onSave} onCancel={() => {}} />);
+  await openSlotMenu(2);
+  await userEvent.click(screen.getByRole('button', { name: /in-app camera/i }));
+  expect(screen.getByTestId('camera').dataset.start).toBe('1');
+  await userEvent.click(screen.getByRole('button', { name: 'fake done' }));
+  expect(screen.queryByTestId('camera')).toBeNull();
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  expect(onSave).toHaveBeenCalledWith(expect.any(Object), [{ slot: 2, file: shot }]);
+});
+
+test('chiudere il mirino con ✕ non tocca gli slot', async () => {
+  const onSave = vi.fn();
+  render(<CanEditForm can={can} onSave={onSave} onCancel={() => {}} />);
+  await openSlotMenu(1);
+  await userEvent.click(screen.getByRole('button', { name: /in-app camera/i }));
+  await userEvent.click(screen.getByRole('button', { name: 'fake close' }));
+  expect(screen.queryByTestId('camera')).toBeNull();
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  expect(onSave).toHaveBeenCalledWith(expect.any(Object), []);
 });
 
 test('il bottone URL mette in coda un upload da URL sullo slot 1', async () => {
