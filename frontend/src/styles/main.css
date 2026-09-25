@@ -2126,7 +2126,8 @@ body.light .filter-chip-withphoto.active {
   height: 40px;
   border-radius: 50%;
   border: 0;
-  background: rgba(255, 255, 255, 0.12);
+  /* opaco: sopra il video il semitrasparente cambiava contrasto a ogni scena */
+  background: #3a3a3a;
   color: #fff;
   font-size: 13px;
   font-weight: 600;
@@ -2134,7 +2135,7 @@ body.light .filter-chip-withphoto.active {
 }
 .cam-zoom button.on {
   color: #ffd60a;
-  background: rgba(0, 0, 0, 0.6);
+  background: #1a1a1a;
 }
 .cam-strip {
   display: flex;
