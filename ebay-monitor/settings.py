@@ -39,14 +39,11 @@ SEARCH_QUERIES = [f"monster energy {kw}".strip() for kw in _KEYWORDS]
 
 MAX_PRICE_EUR = None
 
-# Da quanti annunci-da-notificare nello STESSO giro si passa da un messaggio per annuncio a
-# UN digest unico (evita una raffica di notifiche quando il giro trova molto in un colpo solo).
-DIGEST_THRESHOLD = 5
-
-# ⏱️ Solo annunci listati nelle ultime N ore (filtro lato eBay). Margine di sicurezza sopra
-# SWEEP_INTERVAL_SECONDS (1h): un cron orario reale ha molto meno drift da assorbire di prima
-# (era 3.5h per assorbire le ore di ritardo del vecchio schedule ogni 5 min, non più usato).
-MAX_LISTING_AGE_HOURS = 2
+# ⏱️ Solo annunci listati nelle ultime N ore (filtro lato eBay). Deve coprire il gap REALE tra
+# due sweep, non quello teorico: lo schedule GitHub Actions orario parte in pratica ogni 3-6h
+# (misurato set 2026), e con 2h si perdeva più di metà degli annunci. I già visti li scarta
+# Mongo, quindi una finestra ampia non genera doppioni. Max 200 risultati per ricerca.
+MAX_LISTING_AGE_HOURS = 12
 
 # Parole OBBLIGATORIE nel titolo (tutte, in qualsiasi ordine): eBay non fa un AND stretto.
 REQUIRE_WORDS = ["monster", "energy"]

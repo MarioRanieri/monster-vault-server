@@ -53,7 +53,7 @@ class Store:
         return self.seen.find_one({"_id": item_id}, {"_id": 1}) is not None
 
     def mark_seen(self, item_id, title, price, currency, url, site, query, notified=False):
-        """notified=True SOLO per gli annunci davvero notificati (singolo o digest) — usato
+        """notified=True SOLO per gli annunci davvero notificati (invio Telegram riuscito) — usato
         dal riepilogo settimanale per non contare anche gli scartati/baseline."""
         try:
             price_val = float(price or 0)

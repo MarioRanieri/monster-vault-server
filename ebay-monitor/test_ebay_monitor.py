@@ -68,18 +68,92 @@ def test_no_whitelist_match_still_excludes():
     assert not m.title_passes("Monster Energy Khaos felpa promo", REQ, ["felpa"], whitelist=["rare"])
 
 
-# ─── build_digest_text (digest quando il giro trova molti annunci) ────────────
+# ─── process: un messaggio per annuncio, "notificato" solo se l'invio riesce ──
 
-def test_build_digest_text_includes_count_and_all_items():
-    items = [
-        {"title": "Monster Khaos", "price": "10", "currency": "EUR", "url": "https://a", "site": "EBAY_IT"},
-        {"title": "Monster Rare", "price": "20", "currency": "EUR", "url": "https://b", "site": "EBAY_DE"},
-    ]
-    text = m.build_digest_text(items)
-    assert "2" in text.split("\n", 1)[0]   # intestazione con il conteggio
-    for it in items:
-        assert it["title"] in text
-        assert it["url"] in text
+class FakeStore:
+    def __init__(self):
+        self.marked = {}   # item_id -> notified
+    def already_seen(self, item_id):
+        return item_id in self.marked
+    def mark_seen(self, item_id, *a, notified=False):
+        self.marked[item_id] = notified
+
+
+def _listing(i):
+    return ("EBAY_IT", "monster energy", {
+        "itemId": f"id{i}", "title": f"Monster Energy can {i}",
+        "price": {"value": "5", "currency": "EUR"}, "itemWebUrl": f"https://e/{i}"})
+
+
+def _run_process(n, send_result):
+    calls = []
+    orig = (m.gather_listings, m.send_telegram, m.time.sleep)
+    m.gather_listings = lambda *a, **k: [_listing(i) for i in range(n)]
+    m.send_telegram = lambda *a, **k: calls.append(a) or send_result
+    m.time.sleep = lambda s: None
+    try:
+        store = FakeStore()
+        examined, sent = m.process(store, "tok", [])
+        return store, calls, examined, sent
+    finally:
+        m.gather_listings, m.send_telegram, m.time.sleep = orig
+
+
+def test_process_sends_one_message_per_listing_even_when_many():
+    store, calls, examined, sent = _run_process(8, True)
+    assert len(calls) == 8, "niente digest: un messaggio per ogni annuncio"
+    assert (examined, sent) == (8, 8)
+    assert all(store.marked[f"id{i}"] is True for i in range(8))
+
+
+def test_process_leaves_listing_unseen_when_send_fails():
+    # Invio fallito → l'annuncio NON va segnato come visto: il giro dopo lo riprova.
+    store, calls, examined, sent = _run_process(2, False)
+    assert len(calls) == 2
+    assert (examined, sent) == (2, 0)
+    assert store.marked == {}
+
+
+# ─── Telegram: retry sul 429 + escape HTML ────────────────────────────────────
+
+class FakeResp:
+    def __init__(self, status, body):
+        self.status_code, self._body = status, body
+        self.ok = status == 200
+        self.text = str(body)
+    def json(self):
+        return self._body
+
+
+def _with_fake_post(responses, fn):
+    posted, slept = [], []
+    orig = (m.requests.post, m.time.sleep)
+    m.requests.post = lambda url, data=None, timeout=None: posted.append((url, data)) or responses.pop(0)
+    m.time.sleep = lambda s: slept.append(s)
+    try:
+        return fn(), posted, slept
+    finally:
+        m.requests.post, m.time.sleep = orig
+
+
+def test_tg_post_retries_once_on_429_respecting_retry_after():
+    responses = [FakeResp(429, {"ok": False, "parameters": {"retry_after": 3}}),
+                 FakeResp(200, {"ok": True})]
+    r, posted, slept = _with_fake_post(responses, lambda: m._tg_post("sendMessage", {"chat_id": "1"}))
+    assert r.ok and len(posted) == 2
+    assert slept and slept[0] >= 3
+
+
+def test_send_telegram_escapes_html_in_title_and_url():
+    import os
+    os.environ["TELEGRAM_CHAT_ID"] = "1"
+    responses = [FakeResp(200, {"ok": True})]
+    ok, posted, _ = _with_fake_post(responses, lambda: m.send_telegram(
+        "Monster <Ultra> & Co", "5", "EUR", "https://e/1?a=1&b=2", "", "EBAY_IT", "ricerca: x"))
+    caption = posted[0][1]["text"]
+    assert ok
+    assert "Monster &lt;Ultra&gt; &amp; Co" in caption
+    assert "a=1&amp;b=2" in caption
 
 
 # ─── sweep_due (gate ricerca eBay ogni 1h) ────────────────
