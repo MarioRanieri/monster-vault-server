@@ -2,10 +2,23 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-09-23 (rev 66 — colori tappo, Prev/Next nel dettaglio, Edit dalle correlate, menu foto e crop con raddrizza)  
+**Updated:** 2026-09-25 (rev 67 — bot eBay: niente digest, retry 429, finestra 12h)  
 **Branch:** main  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
+
+> **2026-09-25 — rev 67: bot eBay affidabile (PR in corso).** L'utente non voleva più il digest (da 5
+> annunci in su un unico messaggio di solo testo): ora **un messaggio per annuncio, sempre**, con foto.
+> Controllando il resto, trovato il problema vero: lo schedule orario GitHub Actions parte ogni **3-6h**
+> (40 run misurati) ma `MAX_LISTING_AGE_HOURS` era **2** → gli annunci pubblicati tra un giro e l'altro non
+> venivano mai cercati, più di metà persi. Finestra → **12h** e `limit` ricerca 50 → **200** (max Browse
+> API); i doppioni li filtra già Mongo. Altri fix: annuncio segnato visto **solo dopo** un invio Telegram
+> riuscito (prima veniva marcato e poi, se l'invio falliva, perso); `_tg_post` con un retry sul **429**
+> rispettando `retry_after`; `html.escape` su titolo/query/URL nella didascalia (`parse_mode=HTML`).
+> Effetto atteso al primo giro dopo il merge: una raffica una tantum degli annunci delle ultime 12h mai
+> visti. Test Python: **88** (21 ebay_monitor + 26 bot_logic + 36 webhook_app + 5 weekly_summary).
+> **Prossimo passo, concordato:** il fix della cadenza (`POST /sweep` su Render + pinger esterno orario),
+> vedi la memoria `ebay-monitor-cron-unreliable`.
 
 > **2026-09-23 — rev 66: tappo, navigazione nel dettaglio, editor foto (PR #76).** Cinque segnalazioni
 > dell'utente, ognuna riprodotta in Playwright a 390px prima di toccare il codice; le scelte di design sono
