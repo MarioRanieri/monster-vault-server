@@ -103,14 +103,6 @@ def title_passes(title, require_words, exclude_words, whitelist=()):
     return True
 
 
-def build_digest_text(items):
-    """Testo di UN messaggio digest per N annunci (sopra DIGEST_THRESHOLD, invece di un
-    messaggio per annuncio). Puro: nessun accesso a rete/Mongo."""
-    lines = [f"• <b>{it['title']}</b> — {it['price']} {it['currency']} ({it['site']})\n  {it['url']}"
-             for it in items]
-    return f"📦 <b>{len(items)} nuovi annunci</b>\n\n" + "\n\n".join(lines)
-
-
 def sweep_due(last_sweep_at, now, interval, send_now=False):
     """True se è ora di fare la ricerca eBay: mai visto prima, test send_now, o è passato
     almeno 'interval' dall'ultimo sweep. Altrimenti il giro drena solo i comandi."""
@@ -251,28 +243,6 @@ def send_telegram(title, price, currency, url, image_url, site, reason):
     return ok
 
 
-def send_telegram_digest(items):
-    """UN unico messaggio per tutti gli annunci del giro (sopra DIGEST_THRESHOLD), a
-    tutte le chat configurate. True se andato a buon fine su ALMENO una chat."""
-    text = build_digest_text(items)
-    ok = False
-    for chat_id in _chat_ids():
-        try:
-            r = requests.post(f"{_tg_url()}/sendMessage",
-                              data={"chat_id": chat_id, "text": text, "parse_mode": "HTML",
-                                    "disable_web_page_preview": True}, timeout=25)
-            chat_ok = r.ok and r.json().get("ok")
-            ok = ok or chat_ok
-            if not chat_ok:
-                print(f"  ❌ digest Telegram ({chat_id}): {r.text[:120]}")
-        except Exception as exc:
-            print(f"  ❌ Errore Telegram digest ({chat_id}): {exc}")
-    if ok:
-        print(f"  ✅ digest inviato ({len(items)} annunci)")
-    return ok
-
-
-
 # ─── RICERCHE + STATS ─────────────────────────────────────────────────────────
 
 def _reset_search_stats():
@@ -348,24 +318,18 @@ def process(store, token, exclude_words, notify_all=False, cap_per_query=None, m
             store.mark_seen(item_id, title, price, currency, url, mk, q)
             continue
         examined += 1
-        to_notify.append({"title": title, "price": price, "currency": currency, "url": url,
-                          "image": image, "site": mk, "query": q})
-        store.mark_seen(item_id, title, price, currency, url, mk, q, notified=True)
-        sent_ids.add(item_id); sent += 1
+        to_notify.append((item_id, title, price, currency, url, image, mk, q))
+        sent_ids.add(item_id)
         per_query[q] = per_query.get(q, 0) + 1
 
-    # Sotto soglia: un messaggio per annuncio (com'era). Da soglia in su: UN digest —
-    # eviterebbe una raffica di N notifiche quando il giro trova molti annunci insieme.
-    threshold = getattr(settings, "DIGEST_THRESHOLD", 5)
-    if to_notify and len(to_notify) >= threshold:
-        print()
-        send_telegram_digest(to_notify)
-    else:
-        for it in to_notify:
-            print()  # a capo: stacca la notifica dalla riga di avanzamento
-            send_telegram(it["title"], it["price"], it["currency"], it["url"], it["image"],
-                         it["site"], f"ricerca: {it['query']}")
-            time.sleep(0.4)
+    # Un messaggio per annuncio, sempre. Segnato "visto" SOLO se l'invio riesce: un invio
+    # fallito (Telegram giù, 429 persistente) viene ritentato al giro dopo, non perso.
+    for item_id, title, price, currency, url, image, mk, q in to_notify:
+        print()  # a capo: stacca la notifica dalla riga di avanzamento
+        if send_telegram(title, price, currency, url, image, mk, f"ricerca: {q}"):
+            store.mark_seen(item_id, title, price, currency, url, mk, q, notified=True)
+            sent += 1
+        time.sleep(0.4)
     return examined, sent
 
 

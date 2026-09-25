@@ -47,13 +47,11 @@ gira ogni 1h, quindi c'è ~1h di margine per il drift naturale dei cron GitHub A
 non più le ore osservate col vecchio schedule `*/5 * * * *` — vedi lo spec di design). Gli
 eventuali duplicati residui sono comunque filtrati dallo stato su Mongo.
 
-## 📦 Digest (giri con molti annunci)
+## 📨 Un messaggio per annuncio
 
-Sotto `settings.DIGEST_THRESHOLD` (default **5**) annunci-da-notificare nello stesso giro:
-un messaggio Telegram per annuncio, come sempre. Da `DIGEST_THRESHOLD` in su: **un unico
-messaggio digest** (`build_digest_text` + `send_telegram_digest`) invece di una raffica di N
-notifiche. `mark_seen` avviene comunque per ognuno, digest o no — non cambia cosa viene
-considerato "già visto".
+Ogni annuncio nuovo arriva come messaggio a sé (foto + didascalia), anche se il giro ne trova
+molti insieme — niente digest. L'annuncio è segnato "visto" su Mongo **solo se l'invio riesce**:
+un invio fallito viene ritentato al giro successivo invece di andare perso.
 
 ## Anti-rumore: la blacklist
 
@@ -195,7 +193,7 @@ locale: `py webhook_app.py` (dev server Flask su `:5000`).
 | `webhook_app.py` | Comandi Telegram via webhook, istantanei. Servizio Render separato. |
 | `weekly_summary.py` | Riepilogo settimanale (annunci notificati per query). Cron GitHub Actions separato, ogni lunedì. |
 | `bot_logic.py` | Condiviso da tutti e tre: `Store` (Mongo) + logica comandi/mercati pura. |
-| `settings.py` | Config **non-segreta** versionata (query, mercati, finestra, cadenza sweep, soglia digest). |
+| `settings.py` | Config **non-segreta** versionata (query, mercati, finestra, cadenza sweep). |
 | `blacklist.txt` | Blacklist di base (versionata). Le aggiunte `/add` vivono su Mongo. |
 | `test_ebay_monitor.py` | Test della logica sweep pura + canary spazi blacklist. |
 | `test_bot_logic.py` | Test della logica comandi/mercati pura. |
@@ -210,7 +208,7 @@ locale: `py webhook_app.py` (dev server Flask su `:5000`).
 summary.yml`, ogni lunedì 08:00 UTC): quanti annunci **notificati** (mai i baseline/scartati)
 negli ultimi 7 giorni, raggruppati per query — quali keyword rendono di più. Richiede il campo
 `notified` su `ebay_seen` (scritto da `mark_seen(..., notified=True)` solo per gli annunci
-davvero inviati, singoli o digest).
+davvero inviati).
 
 ## 🔥 Alert Telegram di servizio
 

@@ -68,18 +68,50 @@ def test_no_whitelist_match_still_excludes():
     assert not m.title_passes("Monster Energy Khaos felpa promo", REQ, ["felpa"], whitelist=["rare"])
 
 
-# ─── build_digest_text (digest quando il giro trova molti annunci) ────────────
+# ─── process: un messaggio per annuncio, "notificato" solo se l'invio riesce ──
 
-def test_build_digest_text_includes_count_and_all_items():
-    items = [
-        {"title": "Monster Khaos", "price": "10", "currency": "EUR", "url": "https://a", "site": "EBAY_IT"},
-        {"title": "Monster Rare", "price": "20", "currency": "EUR", "url": "https://b", "site": "EBAY_DE"},
-    ]
-    text = m.build_digest_text(items)
-    assert "2" in text.split("\n", 1)[0]   # intestazione con il conteggio
-    for it in items:
-        assert it["title"] in text
-        assert it["url"] in text
+class FakeStore:
+    def __init__(self):
+        self.marked = {}   # item_id -> notified
+    def already_seen(self, item_id):
+        return item_id in self.marked
+    def mark_seen(self, item_id, *a, notified=False):
+        self.marked[item_id] = notified
+
+
+def _listing(i):
+    return ("EBAY_IT", "monster energy", {
+        "itemId": f"id{i}", "title": f"Monster Energy can {i}",
+        "price": {"value": "5", "currency": "EUR"}, "itemWebUrl": f"https://e/{i}"})
+
+
+def _run_process(n, send_result):
+    calls = []
+    orig = (m.gather_listings, m.send_telegram, m.time.sleep)
+    m.gather_listings = lambda *a, **k: [_listing(i) for i in range(n)]
+    m.send_telegram = lambda *a, **k: calls.append(a) or send_result
+    m.time.sleep = lambda s: None
+    try:
+        store = FakeStore()
+        examined, sent = m.process(store, "tok", [])
+        return store, calls, examined, sent
+    finally:
+        m.gather_listings, m.send_telegram, m.time.sleep = orig
+
+
+def test_process_sends_one_message_per_listing_even_when_many():
+    store, calls, examined, sent = _run_process(8, True)
+    assert len(calls) == 8, "niente digest: un messaggio per ogni annuncio"
+    assert (examined, sent) == (8, 8)
+    assert all(store.marked[f"id{i}"] is True for i in range(8))
+
+
+def test_process_leaves_listing_unseen_when_send_fails():
+    # Invio fallito → l'annuncio NON va segnato come visto: il giro dopo lo riprova.
+    store, calls, examined, sent = _run_process(2, False)
+    assert len(calls) == 2
+    assert (examined, sent) == (2, 0)
+    assert store.marked == {}
 
 
 # ─── sweep_due (gate ricerca eBay ogni 1h) ────────────────
