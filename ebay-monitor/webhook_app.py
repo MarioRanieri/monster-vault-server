@@ -9,7 +9,9 @@ Avvio locale: py webhook_app.py (dev server Flask). In produzione: gunicorn
 webhook_app:app --bind 0.0.0.0:$PORT (Render Web Service, root ebay-monitor/).
 """
 import os
+import hmac
 import time
+import threading
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor
 
@@ -17,6 +19,7 @@ import requests
 from flask import Flask, request
 
 import settings
+import ebay_monitor
 from bot_logic import (
     Store, parse_command, validate_add_word, resolve_marketplace,
     apply_market_change, effective_markets, daily_ebay_calls, prune_expired_snoozes,
@@ -412,6 +415,27 @@ def health_json():
         }, 200
     except Exception as exc:
         return {"error": str(exc)}, 503
+
+def _sweep_in_background():
+    try:
+        ebay_monitor.run_once_safe()
+    except Exception:
+        pass   # già segnalato su Telegram da run_once_safe; il thread muore pulito
+
+
+@app.route("/sweep", methods=["POST"])
+def sweep():
+    """Trigger orario dello sweep eBay da un cron esterno (cron-job.org): lo schedule di
+    GitHub Actions parte ogni 3-6h invece che ogni ora. Risponde SUBITO 202 e lavora in un
+    thread (un giro dura più del timeout di gunicorn). Doppi trigger: li scarta
+    Store.claim_sweep. Secret non impostato → rifiuta tutto (fail closed)."""
+    expected = os.environ.get("SWEEP_SECRET", "")
+    got = request.headers.get("X-Sweep-Secret", "")
+    if not expected or not hmac.compare_digest(got, expected):
+        return ("", 403)
+    threading.Thread(target=_sweep_in_background, daemon=True).start()
+    return ("", 202)
+
 
 @app.route("/telegram-webhook", methods=["POST"])
 def telegram_webhook():
