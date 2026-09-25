@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.Date;
 
 @Component
 public class JwtUtil implements TokenValidator, TokenGenerator {
@@ -47,11 +46,14 @@ public class JwtUtil implements TokenValidator, TokenGenerator {
     }
 
     private String buildToken(String username, long expiration, String type) {
+        Instant now = Instant.now();
         return Jwts.builder()
                 .subject(username)
                 .claim(CLAIM_TYPE, type)
-                .issuedAt(Date.from(Instant.now()))
-                .expiration(Date.from(Instant.now().plusMillis(expiration)))
+                // iat/exp in secondi epoch (il formato del JWT): i setter di jjwt
+                // vogliono java.util.Date, così resta tutto su java.time
+                .claim(Claims.ISSUED_AT, now.getEpochSecond())
+                .claim(Claims.EXPIRATION, now.plusMillis(expiration).getEpochSecond())
                 .signWith(getKey())
                 .compact();
     }
