@@ -191,7 +191,7 @@ def _run_once_with(store, **kwargs):
 
 
 def test_run_once_skips_when_sweep_already_claimed():
-    # Un altro trigger (GitHub Actions o /sweep) ha già il turno: niente ricerca eBay.
+    # Un altro trigger (dispatch orario o schedule di riserva) ha già il turno: niente ricerca eBay.
     store = ClaimStore(claim_ok=False)
     assert _run_once_with(store) == []
     assert store.claims, "run_once deve prenotare il turno prima di cercare"
