@@ -28,7 +28,11 @@
 > gli overlay ci passano, e ha già la pila): al primo overlay il body diventa `position: fixed` allo scroll
 > corrente (`overflow: hidden` non basta su iOS), all'ultimo si torna lì. Verificato in Playwright (900px →
 > fermo con la rotella → 900px). Test: 483 Vitest. **Nota**: un test App a caso va in timeout (5s) quando gira
-> tutta la suite, anche su main senza queste modifiche: flaky preesistente.
+> tutta la suite, anche su main senza queste modifiche: flaky preesistente. Mergiata come **PR #83**.
+> **Pulizia Sonar (PR successiva):** gate OK, ma 2 issue aperti → 0. Contrasto dei pulsanti 1×/2× del mirino
+> (bianco su `rgba(255,255,255,.12)`) → sfondi opachi `#3a3a3a`/`#1a1a1a`. `JwtUtil` (S2143, `java.util.Date`):
+> i setter `issuedAt/expiration` di jjwt vogliono `Date`, quindi `iat`/`exp` passano come claim in secondi epoch
+> da `Instant` (è il formato del JWT); nuovo test che li fissa. 218 test backend verdi.
 
 > **2026-09-25 — rev 69: il trigger orario passa da Render a GitHub (PR in corso).** Il `/sweep` di rev 68 non
 > ha retto in produzione: alle 18:07 timeout (Render ibernato, cron-job.org aspetta 30s), dalle 19:07 **429**
