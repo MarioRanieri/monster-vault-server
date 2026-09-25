@@ -57,3 +57,18 @@ test('Full photo è disponibile solo quando la foto è caricata', () => {
     true,
   );
 });
+
+test('ogni lato del riquadro si trascina, non solo gli angoli', () => {
+  render(<PhotoCrop src="blob:x" onApply={() => {}} onCancel={() => {}} />);
+  fireEvent.load(screen.getByAltText('To crop'));
+  for (const side of ['top', 'right', 'bottom', 'left'])
+    expect(screen.getByRole('button', { name: `Crop edge ${side}` })).toBeTruthy();
+});
+
+test('toccare una maniglia non avvia la selezione del testo (riquadro blu su iOS)', () => {
+  render(<PhotoCrop src="blob:x" onApply={() => {}} onCancel={() => {}} />);
+  fireEvent.load(screen.getByAltText('To crop'));
+  const edge = screen.getByRole('button', { name: 'Crop edge right' });
+  edge.setPointerCapture = () => {};
+  expect(fireEvent.pointerDown(edge)).toBe(false); // false = preventDefault chiamato
+});

@@ -17,6 +17,9 @@ export function normalizeRect(ax: number, ay: number, bx: number, by: number): R
 }
 
 export type Corner = 'tl' | 'tr' | 'bl' | 'br';
+// Maniglia: un angolo, o un lato intero (come in Foto su iPhone, si prende
+// ovunque lungo il bordo). Le lettere dicono quali bordi si muovono.
+export type Handle = Corner | 't' | 'r' | 'b' | 'l';
 
 const MIN = 24; // lato minimo del ritaglio, in pixel dell'immagine mostrata
 
@@ -32,11 +35,12 @@ export function moveRect(r: Rect, dx: number, dy: number, w: number, h: number):
   };
 }
 
-// Trascina un angolo verso (px,py): l'angolo opposto resta fermo, il lato non
-// scende sotto MIN e il rettangolo non esce dall'area.
+// Trascina una maniglia verso (px,py): si muovono solo i bordi che nomina (un
+// lato ignora l'altra coordinata), l'opposto resta fermo, il lato non scende
+// sotto MIN e il rettangolo non esce dall'area.
 export function resizeRect(
   r: Rect,
-  corner: Corner,
+  handle: Handle,
   px: number,
   py: number,
   w: number,
@@ -46,10 +50,10 @@ export function resizeRect(
   const y = clamp(py, 0, h);
   const right = r.x + r.w;
   const bottom = r.y + r.h;
-  const left = corner === 'tl' || corner === 'bl' ? Math.min(x, right - MIN) : r.x;
-  const top = corner === 'tl' || corner === 'tr' ? Math.min(y, bottom - MIN) : r.y;
-  const newRight = corner === 'tr' || corner === 'br' ? Math.max(x, r.x + MIN) : right;
-  const newBottom = corner === 'bl' || corner === 'br' ? Math.max(y, r.y + MIN) : bottom;
+  const left = handle.includes('l') ? Math.min(x, right - MIN) : r.x;
+  const top = handle.includes('t') ? Math.min(y, bottom - MIN) : r.y;
+  const newRight = handle.includes('r') ? Math.max(x, r.x + MIN) : right;
+  const newBottom = handle.includes('b') ? Math.max(y, r.y + MIN) : bottom;
   return { x: left, y: top, w: newRight - left, h: newBottom - top };
 }
 

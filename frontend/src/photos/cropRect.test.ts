@@ -26,6 +26,14 @@ test('resizeRect trascina un angolo, tenendo il lato opposto fermo', () => {
   expect(resizeRect(r, 'tl', 10, 5, 100, 100)).toEqual({ x: 10, y: 5, w: 50, h: 55 });
 });
 
+test('resizeRect trascina un lato: si muove solo quel lato, qualunque sia il punto preso', () => {
+  const r = { x: 20, y: 20, w: 40, h: 40 };
+  expect(resizeRect(r, 'r', 90, 999, 100, 100)).toEqual({ x: 20, y: 20, w: 70, h: 40 });
+  expect(resizeRect(r, 'l', 5, -50, 100, 100)).toEqual({ x: 5, y: 20, w: 55, h: 40 });
+  expect(resizeRect(r, 't', 0, 10, 100, 100)).toEqual({ x: 20, y: 10, w: 40, h: 50 });
+  expect(resizeRect(r, 'b', 0, 30, 100, 100)).toEqual({ x: 20, y: 20, w: 40, h: 24 });
+});
+
 test('resizeRect non scende sotto la dimensione minima né esce dai bordi', () => {
   const r = { x: 20, y: 20, w: 40, h: 40 };
   const tiny = resizeRect(r, 'br', 21, 21, 100, 100);
