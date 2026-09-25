@@ -104,14 +104,6 @@ def title_passes(title, require_words, exclude_words, whitelist=()):
     return True
 
 
-def sweep_due(last_sweep_at, now, interval, send_now=False):
-    """True se è ora di fare la ricerca eBay: mai visto prima, test send_now, o è passato
-    almeno 'interval' dall'ultimo sweep. Altrimenti il giro drena solo i comandi."""
-    if send_now or last_sweep_at is None:
-        return True
-    return (now - last_sweep_at) >= interval
-
-
 # ─── EBAY BROWSE API ──────────────────────────────────────────────────────────
 
 _token_cache = {"token": None, "exp": 0.0}
@@ -369,18 +361,26 @@ def run_once(send_now=False, cap_per_query=None):
         print(f"⚠️  MongoDB irraggiungibile: giro saltato. {exc}")
         _tg_text(f"⚠️ eBay Monitor: MongoDB irraggiungibile, giro saltato. {type(exc).__name__}")
         return
+    # Chiude sempre il client: nel servizio web (/sweep) il processo vive a lungo e un
+    # MongoClient per giro mai chiuso accumulerebbe connessioni e thread.
+    try:
+        _sweep(store, send_now, cap_per_query)
+    finally:
+        store.client.close()
 
+
+def _sweep(store, send_now, cap_per_query):
     if store.get_meta("paused", False):
         print("  ⏸️  Monitor in pausa (/resume da Telegram per riattivare). Giro saltato.")
         return
 
-    # Ricerca eBay: solo se sono passati ≥ SWEEP_INTERVAL_SECONDS dall'ultimo sweep (o test).
-    # I comandi Telegram non passano più di qui: li gestisce webhook_app.py (Render), istantanei.
+    # Ricerca eBay: il turno si prenota su Mongo (atomico) — i trigger sono due, /sweep da un
+    # cron esterno orario e GitHub Actions di riserva, e non devono mai girare entrambi. Il
+    # turno si prende all'INIZIO: se il giro poi fallisce, riprova il trigger dell'ora dopo
+    # (la finestra di 12h copre il buco). Il test --send-now non tocca la cadenza.
     now = time.time()
-    last = store.get_meta("last_sweep_at")
-    if not sweep_due(last, now, settings.SWEEP_INTERVAL_SECONDS * 0.9, send_now):
-        wait = int((settings.SWEEP_INTERVAL_SECONDS - (now - last)) / 60)
-        print(f"  Prossima ricerca eBay tra ~{wait} min.")
+    if not send_now and not store.claim_sweep(now, settings.SWEEP_INTERVAL_SECONDS * 0.9):
+        print("  Ricerca eBay già fatta (o in corso) meno di un'ora fa: giro saltato.")
         return
 
     token = get_ebay_token()
@@ -410,14 +410,11 @@ def run_once(send_now=False, cap_per_query=None):
     if not send_now and store.seen_count() == 0:
         print("Primo avvio: baseline (gli annunci già online non vengono notificati).")
         establish_baseline(store, token, markets, queries)
-        store.set_meta("last_sweep_at", now)
         return
 
     examined, sent = process(store, token, exclude_words, notify_all=send_now,
                              cap_per_query=cap_per_query, markets=markets, queries=queries,
                              whitelist=whitelist)
-    if not send_now:                                # il test --send-now non altera la cadenza reale
-        store.set_meta("last_sweep_at", now)
     print(f"  → {examined} candidati, {sent} notificati.")
 
 

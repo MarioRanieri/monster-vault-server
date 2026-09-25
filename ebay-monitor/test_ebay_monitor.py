@@ -156,21 +156,58 @@ def test_send_telegram_escapes_html_in_title_and_url():
     assert "a=1&amp;b=2" in caption
 
 
-# ─── sweep_due (gate ricerca eBay ogni 1h) ────────────────
+# ─── run_once: il turno di sweep si prenota su Mongo (claim_sweep) ────────────
 
-INT = 3600  # 1h
+class ClaimStore:
+    """Store finto per run_once: claim_sweep risponde come configurato."""
+    def __init__(self, claim_ok):
+        self.claim_ok, self.claims, self.closed = claim_ok, [], False
+        self.client = self
+    def close(self):
+        self.closed = True
+    def get_meta(self, key, default=None):
+        return default
+    def claim_sweep(self, now, min_interval):
+        self.claims.append(min_interval)
+        return self.claim_ok
 
-def test_sweep_due_first_time():
-    assert m.sweep_due(None, 1000, INT) is True          # mai fatto → sweep
 
-def test_sweep_due_send_now_forces():
-    assert m.sweep_due(999, 1000, INT, send_now=True) is True   # test ignora il gate
+def _run_once_with(store, **kwargs):
+    import os
+    tokens = []
+    orig = (m.Store, m.get_ebay_token, os.environ.get("MONGODB_URI"))
+    m.Store = lambda uri: store
+    m.get_ebay_token = lambda: tokens.append(1)   # None → run_once si ferma subito dopo
+    os.environ["MONGODB_URI"] = "mongodb://fake"
+    try:
+        m.run_once(**kwargs)
+        return tokens
+    finally:
+        m.Store, m.get_ebay_token = orig[0], orig[1]
+        if orig[2] is None:
+            os.environ.pop("MONGODB_URI", None)
+        else:
+            os.environ["MONGODB_URI"] = orig[2]
 
-def test_sweep_due_too_soon():
-    assert m.sweep_due(1000, 1000 + 600, INT) is False   # 10 min dopo → solo drain
 
-def test_sweep_due_elapsed():
-    assert m.sweep_due(1000, 1000 + INT, INT) is True     # passate 2h → sweep
+def test_run_once_skips_when_sweep_already_claimed():
+    # Un altro trigger (GitHub Actions o /sweep) ha già il turno: niente ricerca eBay.
+    store = ClaimStore(claim_ok=False)
+    assert _run_once_with(store) == []
+    assert store.claims, "run_once deve prenotare il turno prima di cercare"
+    assert store.closed, "il MongoClient va chiuso anche quando il giro si ferma presto"
+
+
+def test_run_once_searches_when_claim_succeeds():
+    store = ClaimStore(claim_ok=True)
+    assert _run_once_with(store) == [1]
+
+
+def test_run_once_send_now_bypasses_the_claim():
+    # Il test --send-now non tocca la cadenza reale: niente prenotazione.
+    store = ClaimStore(claim_ok=False)
+    assert _run_once_with(store, send_now=True) == [1]
+    assert store.claims == []
 
 
 # ─── run_once_safe (alert Telegram sui crash imprevisti) ──────────────────────
