@@ -2,10 +2,25 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-09-25 (rev 69 — sweep eBay orario via cron-job.org → workflow_dispatch; /sweep rimosso)  
+**Updated:** 2026-09-25 (rev 70 — mirino in-app per scattare le 4 foto di fila; fix selezione blu nel crop su iOS)  
 **Branch:** main  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
+
+> **2026-09-25 — rev 70: mirino in-app (PR in corso).** L'utente scatta sempre 4 foto per lattina, da **iPhone**,
+> con zoom **2×**: con `<input capture>` iOS apre l'app Fotocamera per un solo scatto e lo zoom si resetta ogni
+> volta. Nuovo `photos/CameraCapture.tsx` (`getUserMedia`, 4:3 alla risoluzione massima): lo scatto riempie lo
+> slot e passa al prossimo vuoto, dopo il 4° si chiude; tocco su una miniatura = riscatta quello slot (e non
+> chiude); ✕ scarta, Done consegna. Zoom: `track.applyConstraints({advanced:[{zoom}]})` se la traccia espone
+> `zoom`, altrimenti riapre lo stream sull'obiettivo "Telephoto"; l'ultima scelta resta in localStorage
+> (`mv.cameraZoom`). **Qualità**: è un fotogramma del video, non la pipeline foto di Apple (Safari non ha
+> `ImageCapture.takePhoto`), quindi il mirino mostra la risoluzione ottenuta, gialla sotto 1440px sul lato corto
+> (le foto di oggi arrivano a 1350×1800). Per questo nel menu restano **due voci**: "Take photos (in-app
+> camera)" e "Take photo (phone camera)" (la vecchia). **Da verificare sull'iPhone dell'utente**: risoluzione
+> reale, se `zoom` 2 corrisponde davvero al 2× dell'app Fotocamera (sul device virtuale triplo potrebbe essere
+> tarato diversamente), confronto di qualità sul retro di una lattina; poi decidere se togliere la voce nativa.
+> **Crop**: su iOS il long-press sulle maniglie selezionava tutto l'overlay come testo (riquadro blu): Safari
+> vuole `-webkit-user-select`, aggiunto con `-webkit-touch-callout: none` su `.crop-overlay`. Test: 479 Vitest.
 
 > **2026-09-25 — rev 69: il trigger orario passa da Render a GitHub (PR in corso).** Il `/sweep` di rev 68 non
 > ha retto in produzione: alle 18:07 timeout (Render ibernato, cron-job.org aspetta 30s), dalle 19:07 **429**
