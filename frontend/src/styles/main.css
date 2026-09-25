@@ -1882,6 +1882,60 @@ body.light .filter-chip-withphoto.active {
       no-repeat;
   pointer-events: none;
 }
+/* Lati: fascia di 28px a cavallo del bordo, lunga quanto il lato (gli angoli,
+   dopo nel DOM, restano sopra); la barretta al centro dice che si può tirare */
+.crop-edge {
+  position: absolute;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+.crop-edge::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  border-radius: 2px;
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.9));
+}
+.crop-edge-t,
+.crop-edge-b {
+  left: 0;
+  right: 0;
+  height: 28px;
+  cursor: ns-resize;
+}
+.crop-edge-t {
+  top: -14px;
+}
+.crop-edge-b {
+  bottom: -14px;
+}
+.crop-edge-t::after,
+.crop-edge-b::after {
+  width: 24px;
+  height: 3px;
+}
+.crop-edge-l,
+.crop-edge-r {
+  top: 0;
+  bottom: 0;
+  width: 28px;
+  cursor: ew-resize;
+}
+.crop-edge-l {
+  left: -14px;
+}
+.crop-edge-r {
+  right: -14px;
+}
+.crop-edge-l::after,
+.crop-edge-r::after {
+  width: 3px;
+  height: 24px;
+}
 /* Maniglie: 28px di bersaglio al tocco, disegnate come angoli */
 .crop-handle {
   position: absolute;

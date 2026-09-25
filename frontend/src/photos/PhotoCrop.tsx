@@ -1,8 +1,16 @@
 import { useRef, useState } from 'react';
-import { coverScale, moveRect, resizeRect, type Corner, type Rect } from './cropRect';
+import { coverScale, moveRect, resizeRect, type Corner, type Handle, type Rect } from './cropRect';
 import { useEscapeClose } from '../ui/useEscapeClose';
 
 const CORNERS: Corner[] = ['tl', 'tr', 'bl', 'br'];
+// Lati: fasce lungo tutto il bordo, così si stringe da qualunque punto del lato
+// invece di dover andare a cercare gli angoli (come in Foto su iPhone).
+const EDGES = [
+  ['t', 'top'],
+  ['r', 'right'],
+  ['b', 'bottom'],
+  ['l', 'left'],
+] as const;
 // Raddrizzare una lattina è questione di decimi di grado: passo 0.1 e scala
 // stretta (±10°), così ogni pixel del cursore vale meno di un decimo.
 const MAX_ANGLE = 10;
@@ -34,8 +42,8 @@ export function PhotoCrop({
   const [disp, setDisp] = useState<{ w: number; h: number } | null>(null);
   const [rect, setRect] = useState<Rect | null>(null);
   const [angle, setAngle] = useState(0);
-  // trascinamento in corso: angolo trascinato, o 'move' per lo spostamento
-  const drag = useRef<{ mode: Corner | 'move'; x: number; y: number } | null>(null);
+  // trascinamento in corso: maniglia (angolo o lato), o 'move' per lo spostamento
+  const drag = useRef<{ mode: Handle | 'move'; x: number; y: number } | null>(null);
 
   const rad = (angle * Math.PI) / 180;
   const cover = disp ? coverScale(disp.w, disp.h, rad) : 1;
@@ -61,8 +69,10 @@ export function PhotoCrop({
     setRect(resizeRect(rect, d.mode, e.clientX - box.left, e.clientY - box.top, disp.w, disp.h));
   };
 
-  const startDrag = (mode: Corner | 'move') => (e: React.PointerEvent) => {
+  const startDrag = (mode: Handle | 'move') => (e: React.PointerEvent) => {
     e.stopPropagation();
+    // senza, il long-press su iOS avvia la selezione del testo (riquadro blu)
+    e.preventDefault();
     drag.current = { mode, x: e.clientX, y: e.clientY };
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
@@ -125,6 +135,15 @@ export function PhotoCrop({
               onPointerDown={startDrag('move')}
             >
               <div className="crop-grid" />
+              {EDGES.map(([h, side]) => (
+                <button
+                  key={h}
+                  type="button"
+                  className={`crop-edge crop-edge-${h}`}
+                  aria-label={`Crop edge ${side}`}
+                  onPointerDown={startDrag(h)}
+                />
+              ))}
               {CORNERS.map((c) => (
                 <button
                   key={c}
