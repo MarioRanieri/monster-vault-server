@@ -1822,6 +1822,11 @@ body.light .filter-chip-withphoto.active {
   justify-content: center;
   gap: 16px;
   padding: 20px;
+  /* iOS: col long-press trascinando le maniglie selezionava tutto come testo
+     (riquadro blu). Safari vuole ancora il prefisso -webkit-. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 .crop-stage {
   display: flex;
