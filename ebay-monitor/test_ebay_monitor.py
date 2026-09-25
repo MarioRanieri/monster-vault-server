@@ -114,6 +114,48 @@ def test_process_leaves_listing_unseen_when_send_fails():
     assert store.marked == {}
 
 
+# ─── Telegram: retry sul 429 + escape HTML ────────────────────────────────────
+
+class FakeResp:
+    def __init__(self, status, body):
+        self.status_code, self._body = status, body
+        self.ok = status == 200
+        self.text = str(body)
+    def json(self):
+        return self._body
+
+
+def _with_fake_post(responses, fn):
+    posted, slept = [], []
+    orig = (m.requests.post, m.time.sleep)
+    m.requests.post = lambda url, data=None, timeout=None: posted.append((url, data)) or responses.pop(0)
+    m.time.sleep = lambda s: slept.append(s)
+    try:
+        return fn(), posted, slept
+    finally:
+        m.requests.post, m.time.sleep = orig
+
+
+def test_tg_post_retries_once_on_429_respecting_retry_after():
+    responses = [FakeResp(429, {"ok": False, "parameters": {"retry_after": 3}}),
+                 FakeResp(200, {"ok": True})]
+    r, posted, slept = _with_fake_post(responses, lambda: m._tg_post("sendMessage", {"chat_id": "1"}))
+    assert r.ok and len(posted) == 2
+    assert slept and slept[0] >= 3
+
+
+def test_send_telegram_escapes_html_in_title_and_url():
+    import os
+    os.environ["TELEGRAM_CHAT_ID"] = "1"
+    responses = [FakeResp(200, {"ok": True})]
+    ok, posted, _ = _with_fake_post(responses, lambda: m.send_telegram(
+        "Monster <Ultra> & Co", "5", "EUR", "https://e/1?a=1&b=2", "", "EBAY_IT", "ricerca: x"))
+    caption = posted[0][1]["text"]
+    assert ok
+    assert "Monster &lt;Ultra&gt; &amp; Co" in caption
+    assert "a=1&amp;b=2" in caption
+
+
 # ─── sweep_due (gate ricerca eBay ogni 1h) ────────────────
 
 INT = 3600  # 1h
