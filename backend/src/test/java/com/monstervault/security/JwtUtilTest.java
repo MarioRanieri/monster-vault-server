@@ -1,8 +1,13 @@
 package com.monstervault.security;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -30,6 +35,21 @@ class JwtUtilTest {
     void isValid_freshToken_returnsTrue() {
         String token = jwtUtil.generate("RedMghost");
         assertThat(jwtUtil.isValid(token)).isTrue();
+    }
+
+    @Test
+    void accessToken_carriesIssuedAtAndExpirationInEpochSeconds() {
+        long before = java.time.Instant.now().getEpochSecond();
+        String token = jwtUtil.generateAccess("RedMghost");
+        Claims claims = Jwts.parser()
+                .verifyWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)))
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+        long iat = claims.get(Claims.ISSUED_AT, Long.class);
+        long exp = claims.get(Claims.EXPIRATION, Long.class);
+        assertThat(iat).isBetween(before, before + 2);
+        assertThat(exp - iat).isEqualTo(900);
     }
 
     @Test
