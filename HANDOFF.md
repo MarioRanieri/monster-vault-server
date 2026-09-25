@@ -2,12 +2,26 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-09-25 (rev 68 — bot eBay: sweep orario via cron-job.org su POST /sweep)  
+**Updated:** 2026-09-25 (rev 69 — sweep eBay orario via cron-job.org → workflow_dispatch; /sweep rimosso)  
 **Branch:** main  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
 
-> **2026-09-25 — rev 68: sweep eBay davvero orario (PR in corso).** Ripreso il fix messo in pausa il 16/09.
+> **2026-09-25 — rev 69: il trigger orario passa da Render a GitHub (PR in corso).** Il `/sweep` di rev 68 non
+> ha retto in produzione: alle 18:07 timeout (Render ibernato, cron-job.org aspetta 30s), dalle 19:07 **429**
+> con header `x-render-routing: hibernate-rate-limited`: il piano gratuito Render non si fa svegliare dalle
+> richieste di cron-job.org, nemmeno con un job di sveglia separato (provato e cancellato). Soluzione: il job
+> cron-job.org **8509932** (`monster-vault-ebay-sweep`, ogni ora al minuto 00) ora chiama l'API GitHub
+> `POST …/actions/workflows/ebay-monitor.yml/dispatches` con body `{"ref":"main"}` e un **token fine-grained**
+> (solo questo repo, solo *Actions: Read and write*, creato dall'utente e inserito da lui nel pannello
+> cron-job.org). Un run `workflow_dispatch` parte in ~2s (verificato). Lo schedule del workflow resta come
+> riserva; `claim_sweep` verificato in produzione (run dispatch 32 min dopo un giro → "giro saltato").
+> Rimosso `/sweep` da `webhook_app.py` (+ test): il servizio Render torna a fare solo i comandi Telegram e
+> non gli servono più `EBAY_CLIENT_*` né `SWEEP_SECRET` (l'utente può cancellarli da Render). Le chiavi eBay
+> da ruotare restano quindi in 2 posti: GitHub Secrets e `config.py` locale. Test Python: **87**
+> (20 ebay_monitor + 26 bot_logic + 36 webhook_app + 5 weekly_summary).
+
+> **2026-09-25 — rev 68: sweep eBay davvero orario (PR #81, poi rivisto in rev 69).** Ripreso il fix messo in pausa il 16/09.
 > Nuova rotta **`POST /sweep`** su `webhook_app.py` (servizio Render `monster-vault-ebay-webhook`), chiamata
 > ogni ora da un job **cron-job.org** con header `X-Sweep-Secret` (`SWEEP_SECRET` su Render; secret mancante
 > → 403 su tutto). Risponde subito 202 e fa `run_once_safe` in un thread daemon. GitHub Actions resta come
