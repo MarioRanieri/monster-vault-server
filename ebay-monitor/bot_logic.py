@@ -105,6 +105,21 @@ class Store:
     def set_meta(self, key, value):
         self.db["ebay_meta"].update_one({"_id": key}, {"$set": {"value": value}}, upsert=True)
 
+    def claim_sweep(self, now, min_interval):
+        """Prenota il turno di sweep in modo ATOMICO: scrive last_sweep_at=now solo se
+        l'ultimo sweep è di almeno min_interval fa. Due trigger simultanei (cron esterno su
+        /sweep + GitHub Actions di riserva) → ne passa uno solo. Se il documento esiste ma è
+        recente il filtro non matcha, l'upsert tenta un insert sullo stesso _id e Mongo lo
+        rifiuta (DuplicateKeyError) → turno già preso."""
+        from pymongo.errors import DuplicateKeyError
+        try:
+            self.db["ebay_meta"].update_one(
+                {"_id": "last_sweep_at", "value": {"$not": {"$gt": now - min_interval}}},
+                {"$set": {"value": now}}, upsert=True)
+            return True
+        except DuplicateKeyError:
+            return False
+
 
 # ─── COMANDI: parsing + validazione (puro, testabile senza rete/Mongo) ────────
 

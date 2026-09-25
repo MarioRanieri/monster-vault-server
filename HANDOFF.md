@@ -2,12 +2,26 @@
 
 > **Lingua:** Rispondere sempre in italiano.
 
-**Updated:** 2026-09-25 (rev 67 — bot eBay: niente digest, retry 429, finestra 12h)  
+**Updated:** 2026-09-25 (rev 68 — bot eBay: sweep orario via cron-job.org su POST /sweep)  
 **Branch:** main  
 **Repo:** https://github.com/MarioRanieri/monster-vault-server  
 **Live URL:** https://monster-vault-server.onrender.com
 
-> **2026-09-25 — rev 67: bot eBay affidabile (PR in corso).** L'utente non voleva più il digest (da 5
+> **2026-09-25 — rev 68: sweep eBay davvero orario (PR in corso).** Ripreso il fix messo in pausa il 16/09.
+> Nuova rotta **`POST /sweep`** su `webhook_app.py` (servizio Render `monster-vault-ebay-webhook`), chiamata
+> ogni ora da un job **cron-job.org** con header `X-Sweep-Secret` (`SWEEP_SECRET` su Render; secret mancante
+> → 403 su tutto). Risponde subito 202 e fa `run_once_safe` in un thread daemon. GitHub Actions resta come
+> **riserva**. Doppi trigger: `Store.claim_sweep` prenota il turno con un solo upsert condizionato su
+> `ebay_meta.last_sweep_at` (filtro `$not $gt now-0,9h`): se il documento è recente l'upsert va in
+> duplicate key e il secondo trigger esce. Sostituisce `sweep_due` (leggeva e scriveva in due passi). Il turno
+> si prende all'inizio, non più alla fine: un giro fallito lascia al massimo un'ora di buco, coperto dalla
+> finestra di 12h. `run_once` ora chiude sempre il `MongoClient` (nel processo web vive a lungo). Render: aggiunte
+> dall'utente `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `SWEEP_SECRET`; l'utente ruoterà le chiavi eBay
+> (vanno aggiornate in GitHub Secrets, Render e `config.py` locale). Test Python: **90** (20 ebay_monitor +
+> 26 bot_logic + 39 webhook_app + 5 weekly_summary). L'atomicità su Atlas non è testabile in locale (nessun URI
+> Atlas qui): verificata live dopo il deploy con due `/sweep` di fila.
+
+> **2026-09-25 — rev 67: bot eBay affidabile (PR #80).** L'utente non voleva più il digest (da 5
 > annunci in su un unico messaggio di solo testo): ora **un messaggio per annuncio, sempre**, con foto.
 > Controllando il resto, trovato il problema vero: lo schedule orario GitHub Actions parte ogni **3-6h**
 > (40 run misurati) ma `MAX_LISTING_AGE_HOURS` era **2** → gli annunci pubblicati tra un giro e l'altro non

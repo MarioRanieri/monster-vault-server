@@ -617,6 +617,57 @@ def test_unset_chat_id_silently_ignores():
             os.environ.pop("TELEGRAM_CHAT_ID", None)
 
 
+# ─── /sweep: trigger esterno orario (cron-job.org) ────────────────────────────
+
+def _post_sweep(client, secret):
+    headers = {"X-Sweep-Secret": secret} if secret is not None else {}
+    return client.post("/sweep", headers=headers)
+
+
+def _with_fake_sweep(fn):
+    import threading
+    ran = threading.Event()
+    orig = w.ebay_monitor.run_once_safe
+    w.ebay_monitor.run_once_safe = lambda: ran.set()
+    try:
+        return fn(ran)
+    finally:
+        w.ebay_monitor.run_once_safe = orig
+
+
+def test_sweep_rejects_missing_or_wrong_secret():
+    os.environ["SWEEP_SECRET"] = "sweep-secret"
+    try:
+        def check(ran):
+            client = _client()
+            assert _post_sweep(client, None).status_code == 403
+            assert _post_sweep(client, "nope").status_code == 403
+            assert not ran.wait(0.2), "nessuno sweep senza il secret giusto"
+        _with_fake_sweep(check)
+    finally:
+        os.environ.pop("SWEEP_SECRET", None)
+
+
+def test_sweep_fails_closed_when_secret_unset():
+    os.environ.pop("SWEEP_SECRET", None)
+    def check(ran):
+        assert _post_sweep(_client(), "").status_code == 403
+        assert not ran.wait(0.2)
+    _with_fake_sweep(check)
+
+
+def test_sweep_with_secret_answers_202_and_runs_in_background():
+    os.environ["SWEEP_SECRET"] = "sweep-secret"
+    try:
+        def check(ran):
+            r = _post_sweep(_client(), "sweep-secret")
+            assert r.status_code == 202
+            assert ran.wait(2), "lo sweep deve partire in background"
+        _with_fake_sweep(check)
+    finally:
+        os.environ.pop("SWEEP_SECRET", None)
+
+
 if __name__ == "__main__":
     import traceback
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
